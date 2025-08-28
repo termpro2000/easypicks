@@ -260,6 +260,54 @@ export const userAPI = {
     });
     const response = await apiClient.get(`/users/activities/logs?${params}`);
     return response.data;
+  },
+
+  // 사용자 프로필 업데이트
+  updateProfile: async (data: {
+    name: string;
+    email?: string;
+    phone?: string;
+    company?: string;
+    password?: string;
+    default_sender_name?: string;
+    default_sender_company?: string;
+    default_sender_phone?: string;
+    default_sender_address?: string;
+    default_sender_detail_address?: string;
+    default_sender_zipcode?: string;
+  }) => {
+    const response = await apiClient.put('/users/profile', data);
+    return response.data;
+  }
+};
+
+/**
+ * QR 코드 API
+ */
+export const qrcodeAPI = {
+  // QR 코드로 상품 정보 조회
+  getProductByQRCode: async (qrCode: string) => {
+    const response = await apiClient.get(`/qrcode/product/${qrCode}`);
+    return response.data;
+  },
+
+  // QR 코드 상품 등록 (관리자만)
+  createQRCodeProduct: async (data: {
+    qr_code: string;
+    product_name: string;
+    quantity?: number;
+    weight?: number;
+    size?: string;
+    description?: string;
+  }) => {
+    const response = await apiClient.post('/qrcode/product', data);
+    return response.data;
+  },
+
+  // 모든 QR 코드 상품 목록 조회
+  getAllQRCodeProducts: async () => {
+    const response = await apiClient.get('/qrcode/products');
+    return response.data;
   }
 };
 

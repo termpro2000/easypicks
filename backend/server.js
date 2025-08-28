@@ -8,6 +8,7 @@ const authRoutes = require('./routes/auth');
 const shippingRoutes = require('./routes/shipping');
 const userRoutes = require('./routes/users');
 const exportRoutes = require('./routes/exports');
+const qrcodeRoutes = require('./routes/qrcode');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -59,7 +60,8 @@ app.get('/', (req, res) => {
       auth: '/api/auth',
       shipping: '/api/shipping',
       users: '/api/users',
-      exports: '/api/exports'
+      exports: '/api/exports',
+      qrcode: '/api/qrcode'
     }
   });
 });
@@ -72,6 +74,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/shipping', shippingRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/exports', exportRoutes);
+app.use('/api/qrcode', qrcodeRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

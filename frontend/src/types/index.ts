@@ -3,9 +3,18 @@ export interface User {
   id: number;
   username: string;
   name: string;
+  email?: string;
   phone?: string;
   company?: string;
   role?: string;
+  
+  // 기본 발송인 정보 설정
+  default_sender_name?: string;
+  default_sender_company?: string;
+  default_sender_phone?: string;
+  default_sender_address?: string;
+  default_sender_detail_address?: string;
+  default_sender_zipcode?: string;
 }
 
 // 인증 관련 타입
@@ -43,15 +52,16 @@ export interface ShippingOrderData {
   receiver_detail_address?: string;
   receiver_zipcode: string;
   
-  // 배송 정보 (8개)
-  package_type?: string;
-  package_weight?: number;
-  package_size?: string;
-  package_value?: number;
-  delivery_type?: string;
-  delivery_date?: string;
-  delivery_time?: string;
-  package_description?: string;
+  // 제품 정보 (4개)
+  product_name: string;
+  product_sku?: string;
+  product_quantity?: number;
+  seller_info?: string;
+  
+  // 배송가능 여부확인 (3개)
+  has_elevator?: boolean;
+  can_use_ladder_truck?: boolean;
+  preferred_delivery_date?: string;
   
   // 특수 옵션 (4개)
   is_fragile?: boolean;
@@ -87,15 +97,16 @@ export interface ShippingOrder {
   receiver_detail_address?: string;
   receiver_zipcode: string;
   
-  // 배송 정보 (8개)
-  package_type?: string;
-  package_weight?: number;
-  package_size?: string;
-  package_value?: number;
-  delivery_type?: string;
-  delivery_date?: string;
-  delivery_time?: string;
-  package_description?: string;
+  // 제품 정보 (4개)
+  product_name: string;
+  product_sku?: string;
+  product_quantity?: number;
+  seller_info?: string;
+  
+  // 배송가능 여부확인 (3개)
+  has_elevator?: boolean;
+  can_use_ladder_truck?: boolean;
+  preferred_delivery_date?: string;
   
   // 특수 옵션 (4개)
   is_fragile?: boolean;

@@ -163,9 +163,9 @@ async function login(req, res) {
       role: user.role
     };
 
-    // 일관된 JWT 시크릿 사용
-    const jwtSecret = 'shipping-webapp-jwt-secret-2024';
-    console.log('JWT 토큰 생성 - Using consistent secret');
+    // 환경변수에서 JWT 시크릿 가져오기
+    const jwtSecret = process.env.JWT_SECRET || 'easypicks-jwt-secret-2024';
+    console.log('JWT 토큰 생성 - Using secret from env');
     
     const token = jwt.sign(
       userPayload,
@@ -233,15 +233,46 @@ async function logout(req, res) {
  */
 async function me(req, res) {
   try {
-    if (!req.session.user) {
+    let userId = null;
+    
+    // JWT 토큰에서 사용자 ID 가져오기 (우선순위)
+    if (req.user && req.user.id) {
+      userId = req.user.id;
+    }
+    // 세션에서 사용자 ID 가져오기 (백워드 호환성)
+    else if (req.session.user && req.session.user.id) {
+      userId = req.session.user.id;
+    }
+
+    if (!userId) {
       return res.status(401).json({
         error: 'Unauthorized',
         message: '로그인이 필요합니다.'
       });
     }
 
+    // 데이터베이스에서 최신 사용자 정보 조회
+    const [users] = await pool.execute(`
+      SELECT 
+        id, username, name, email, phone, company, role, 
+        default_sender_name, default_sender_company, default_sender_phone, default_sender_address, 
+        default_sender_detail_address, default_sender_zipcode,
+        last_login, created_at, updated_at
+      FROM users 
+      WHERE id = ? AND is_active = true
+    `, [userId]);
+
+    if (users.length === 0) {
+      return res.status(401).json({
+        error: 'Unauthorized',
+        message: '유효하지 않은 사용자입니다.'
+      });
+    }
+
+    const user = users[0];
+
     res.json({
-      user: req.session.user,
+      user: user,
       authenticated: true
     });
 

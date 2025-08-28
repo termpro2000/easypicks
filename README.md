@@ -1,6 +1,6 @@
-# 🚚 ikea_fds WebApp (Shipping Management System)
+# 🚚 EASYPICKS WebApp (Management System)
 
-한국 물류 업체를 위한 현대적인 배송 접수 및 관리 시스템입니다.
+EASYPICKS를 위한 현대적인 관리 시스템입니다.
 
 ## 🌐 배포된 애플리케이션
 

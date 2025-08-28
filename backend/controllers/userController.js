@@ -354,6 +354,120 @@ async function logUserActivity(userId, action, targetType = null, targetId = nul
   }
 }
 
+// 사용자 프로필 업데이트 (자신의 정보만)
+async function updateProfile(req, res) {
+  try {
+    const userId = req.user.id;
+    const {
+      name,
+      email,
+      phone,
+      company,
+      password,
+      default_sender_name,
+      default_sender_company,
+      default_sender_phone,
+      default_sender_address,
+      default_sender_detail_address,
+      default_sender_zipcode
+    } = req.body;
+
+    // 필수 필드 검증
+    if (!name || name.trim() === '') {
+      return res.status(400).json({
+        error: 'Bad Request',
+        message: '이름은 필수입니다.'
+      });
+    }
+
+    let updateFields = ['name = ?'];
+    let updateValues = [name.trim()];
+
+    // 선택적 필드 처리
+    if (email !== undefined) {
+      updateFields.push('email = ?');
+      updateValues.push(email || null);
+    }
+
+    if (phone !== undefined) {
+      updateFields.push('phone = ?');
+      updateValues.push(phone || null);
+    }
+
+    if (company !== undefined) {
+      updateFields.push('company = ?');
+      updateValues.push(company || null);
+    }
+
+    // 비밀번호 처리
+    if (password && password.trim() !== '') {
+      if (password.length < 4) {
+        return res.status(400).json({
+          error: 'Bad Request',
+          message: '비밀번호는 최소 4자 이상이어야 합니다.'
+        });
+      }
+      const hashedPassword = await bcrypt.hash(password, 10);
+      updateFields.push('password = ?');
+      updateValues.push(hashedPassword);
+    }
+
+    // 기본 발송인 정보 처리
+    if (default_sender_name !== undefined) {
+      updateFields.push('default_sender_name = ?');
+      updateValues.push(default_sender_name || null);
+    }
+
+    if (default_sender_company !== undefined) {
+      updateFields.push('default_sender_company = ?');
+      updateValues.push(default_sender_company || null);
+    }
+
+    if (default_sender_phone !== undefined) {
+      updateFields.push('default_sender_phone = ?');
+      updateValues.push(default_sender_phone || null);
+    }
+
+    if (default_sender_address !== undefined) {
+      updateFields.push('default_sender_address = ?');
+      updateValues.push(default_sender_address || null);
+    }
+
+    if (default_sender_detail_address !== undefined) {
+      updateFields.push('default_sender_detail_address = ?');
+      updateValues.push(default_sender_detail_address || null);
+    }
+
+    if (default_sender_zipcode !== undefined) {
+      updateFields.push('default_sender_zipcode = ?');
+      updateValues.push(default_sender_zipcode || null);
+    }
+
+    // 업데이트 실행
+    updateValues.push(userId);
+    await pool.execute(
+      `UPDATE users SET ${updateFields.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+      updateValues
+    );
+
+    // 활동 로그 기록
+    await logUserActivity(userId, 'update_profile', 'user', userId, {
+      changes: { name, phone, company, password: password ? '[변경됨]' : undefined }
+    }, req);
+
+    res.json({
+      message: '프로필이 성공적으로 업데이트되었습니다.'
+    });
+
+  } catch (error) {
+    console.error('프로필 업데이트 오류:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: '프로필 업데이트 중 오류가 발생했습니다.'
+    });
+  }
+}
+
 module.exports = {
   getAllUsers,
   getUser,
@@ -361,5 +475,6 @@ module.exports = {
   updateUser,
   deleteUser,
   getUserActivities,
-  logUserActivity
+  logUserActivity,
+  updateProfile
 };

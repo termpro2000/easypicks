@@ -306,7 +306,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onOrderStatusChange }) => {
       <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-6 text-white">
         <h2 className="text-2xl font-bold mb-2">안녕하세요, {user?.name}님! 👋</h2>
         <p className="text-blue-100">
-          오늘도 안전하고 신속한 배송 서비스를 제공해보세요.
+          이지픽스와 함께 효율적인 배송 관리를 시작하세요.
         </p>
       </div>
 
@@ -358,7 +358,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onOrderStatusChange }) => {
         <div className="p-6 border-b">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center gap-4">
-              <h3 className="text-lg font-semibold text-gray-900">배송 주문 목록</h3>
+              <h3 className="text-lg font-semibold text-gray-900">이지픽스 배송정보</h3>
               
               {/* 새로고침 상태 표시 */}
               <div className="flex items-center gap-2 text-sm text-gray-500">

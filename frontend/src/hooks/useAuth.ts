@@ -10,6 +10,7 @@ interface AuthContextType {
   register: (data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
   checkUsername: (username: string) => Promise<{ available: boolean; message: string }>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -141,6 +142,20 @@ export const useAuthProvider = (): AuthContextType => {
     }
   };
 
+  /**
+   * 사용자 정보를 서버에서 새로고침하는 함수
+   */
+  const refreshUser = async () => {
+    try {
+      const response = await authAPI.me();
+      if (response.authenticated && response.user) {
+        setUser(response.user);
+      }
+    } catch (error) {
+      console.error('사용자 정보 새로고침 오류:', error);
+    }
+  };
+
   return {
     user,
     isLoading,
@@ -148,7 +163,8 @@ export const useAuthProvider = (): AuthContextType => {
     login,
     register,
     logout,
-    checkUsername
+    checkUsername,
+    refreshUser
   };
 };
 

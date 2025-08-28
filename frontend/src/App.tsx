@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, Package, BarChart3, Plus, Users, Search } from 'lucide-react';
+import { LogOut, Package, BarChart3, Plus, Users, Search, User } from 'lucide-react';
 import { AuthContext, useAuthProvider, useAuth } from './hooks/useAuth';
 import { useNotification } from './hooks/useNotification';
 import AuthPage from './components/auth/AuthPage';
@@ -9,6 +9,7 @@ import UserManagement from './components/admin/UserManagement';
 import TrackingPage from './components/tracking/TrackingPage';
 import ToastContainer from './components/notifications/ToastContainer';
 import NotificationPermission from './components/notifications/NotificationPermission';
+import UserProfile from './components/profile/UserProfile';
 
 const AppContent: React.FC = () => {
   const { user, isLoading, isAuthenticated, logout } = useAuth();
@@ -23,6 +24,7 @@ const AppContent: React.FC = () => {
   type PageType = 'dashboard' | 'new-order' | 'users' | 'tracking';
   const [currentPage, setCurrentPage] = useState<PageType>('dashboard');
   const [showPermissionRequest, setShowPermissionRequest] = useState(false);
+  const [showUserProfile, setShowUserProfile] = useState(false);
 
   // URL에서 tracking 모드 확인
   useEffect(() => {
@@ -82,8 +84,8 @@ const AppContent: React.FC = () => {
             <div className="flex items-center gap-3">
               <Package className="w-8 h-8 text-blue-500" />
               <div>
-                <h1 className="text-xl font-bold text-gray-900">배송접수 시스템</h1>
-                <p className="text-sm text-gray-500">간편한 배송 접수 서비스</p>
+                <h1 className="text-xl font-bold text-gray-900">이지픽스</h1>
+                <p className="text-sm text-gray-500">스마트 배송 관리 시스템</p>
               </div>
             </div>
             
@@ -196,6 +198,15 @@ const AppContent: React.FC = () => {
               </div>
               
               <button
+                onClick={() => setShowUserProfile(true)}
+                className="flex items-center gap-2 px-3 sm:px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors touch-manipulation"
+                title="내정보"
+              >
+                <User className="w-5 h-5" />
+                <span className="hidden sm:inline">내정보</span>
+              </button>
+              
+              <button
                 onClick={handleLogout}
                 className="flex items-center gap-2 px-3 sm:px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors touch-manipulation"
                 title="로그아웃"
@@ -259,6 +270,11 @@ const AppContent: React.FC = () => {
           onRequestPermission={requestPermission}
           onDismiss={() => setShowPermissionRequest(false)}
         />
+      )}
+      
+      {/* 내정보 모달 */}
+      {showUserProfile && (
+        <UserProfile onClose={() => setShowUserProfile(false)} />
       )}
     </div>
   );

@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { 
   User, Phone, Mail, Building, MapPin, Package, Truck, 
   Calendar, Clock, AlertTriangle, Snowflake, FileText, 
-  Shield, ChevronLeft, ChevronRight, Check
+  Shield, ChevronLeft, ChevronRight, Check, QrCode
 } from 'lucide-react';
-import { shippingAPI } from '../../services/api';
+import { shippingAPI, qrcodeAPI } from '../../services/api';
+import { useAuth } from '../../hooks/useAuth';
 import type { ShippingOrderData } from '../../types';
 
 const STEPS = [
@@ -29,14 +30,18 @@ interface ShippingOrderFormProps {
 }
 
 const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewOrder }) => {
+  const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitResult, setSubmitResult] = useState<{ success: boolean; message: string; trackingNumber?: string } | null>(null);
+  const [qrCodeInput, setQrCodeInput] = useState('');
+  const [isLoadingQR, setIsLoadingQR] = useState(false);
 
-  const { register, handleSubmit, formState: { errors }, watch, trigger } = useForm<ShippingOrderData>({
+  const { register, handleSubmit, formState: { errors }, watch, trigger, setValue } = useForm<ShippingOrderData>({
     defaultValues: {
-      package_type: '소포',
-      delivery_type: '일반',
+      product_quantity: 1,
+      has_elevator: false,
+      can_use_ladder_truck: false,
       is_fragile: false,
       is_frozen: false,
       requires_signature: false,
@@ -45,6 +50,19 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
   });
 
   const watchedValues = watch();
+
+  // 사용자 기본 발송인 정보 자동 로드
+  useEffect(() => {
+    if (user) {
+      if (user.default_sender_name) setValue('sender_name', user.default_sender_name);
+      if (user.email) setValue('sender_email', user.email);
+      if (user.default_sender_company || user.company) setValue('sender_company', user.default_sender_company || user.company);
+      if (user.default_sender_phone) setValue('sender_phone', user.default_sender_phone);
+      if (user.default_sender_address) setValue('sender_address', user.default_sender_address);
+      if (user.default_sender_detail_address) setValue('sender_detail_address', user.default_sender_detail_address);
+      if (user.default_sender_zipcode) setValue('sender_zipcode', user.default_sender_zipcode);
+    }
+  }, [user, setValue]);
 
   // 다음 단계로
   const nextStep = async () => {
@@ -69,7 +87,7 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
       case 2:
         return ['receiver_name', 'receiver_phone', 'receiver_address', 'receiver_zipcode'];
       case 3:
-        return ['package_weight', 'package_size'];
+        return ['product_name'];
       default:
         return [];
     }
@@ -110,6 +128,34 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
       });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // QR 코드로 상품 정보 불러오기
+  const handleLoadFromQR = async () => {
+    if (!qrCodeInput.trim()) {
+      alert('QR 코드를 입력해주세요.');
+      return;
+    }
+
+    try {
+      setIsLoadingQR(true);
+      const response = await qrcodeAPI.getProductByQRCode(qrCodeInput);
+      
+      if (response.success && response.data) {
+        const { product_name, quantity, weight, size, description } = response.data;
+        
+        // 폼에 데이터 자동 입력
+        setValue('product_name', product_name);
+        if (quantity) setValue('product_quantity', quantity);
+
+        alert('QR 코드 정보를 성공적으로 불러왔습니다!');
+        setQrCodeInput('');
+      }
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'QR 코드 정보를 불러올 수 없습니다.');
+    } finally {
+      setIsLoadingQR(false);
     }
   };
 
@@ -338,135 +384,146 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
     <div className="space-y-6">
       {/* 화물 정보 */}
       <div className="bg-gray-50 rounded-lg p-4">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-          <Package className="w-5 h-5" />
-          화물 정보
-        </h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+            <Package className="w-5 h-5" />
+            화물 정보
+          </h3>
+          
+          {/* QR 코드 불러오기 섹션 */}
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={qrCodeInput}
+              onChange={(e) => setQrCodeInput(e.target.value)}
+              placeholder="QR 코드 입력"
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              disabled={isLoadingQR}
+            />
+            <button
+              type="button"
+              onClick={handleLoadFromQR}
+              disabled={isLoadingQR}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <QrCode className="w-4 h-4" />
+              {isLoadingQR ? '불러오는 중...' : 'QR코드'}
+            </button>
+          </div>
+        </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">화물 종류</label>
-            <select
-              {...register('package_type')}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              {PACKAGE_TYPES.map(type => (
-                <option key={type} value={type}>{type}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
+          <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              중량 (kg) <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="number"
-              step="0.1"
-              min="0"
-              {...register('package_weight', { 
-                required: '중량은 필수입니다',
-                min: { value: 0.1, message: '중량은 0.1kg 이상이어야 합니다' }
-              })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="중량을 입력하세요"
-            />
-            {errors.package_weight && <p className="mt-1 text-sm text-red-600">{errors.package_weight.message}</p>}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              크기 (cm) <span className="text-red-500">*</span>
+              제품명 <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
-              {...register('package_size', { required: '크기는 필수입니다' })}
+              {...register('product_name', { required: '제품명은 필수입니다' })}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="예: 30x20x10"
+              placeholder="제품명을 입력하세요"
             />
-            {errors.package_size && <p className="mt-1 text-sm text-red-600">{errors.package_size.message}</p>}
+            {errors.product_name && <p className="mt-1 text-sm text-red-600">{errors.product_name.message}</p>}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">화물 가액 (원)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">제품SKU (관리코드)</label>
+            <input
+              type="text"
+              {...register('product_sku')}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="SKU 코드를 입력하세요"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">수량</label>
             <input
               type="number"
-              min="0"
-              {...register('package_value')}
+              min="1"
+              {...register('product_quantity')}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="화물 가액을 입력하세요"
+              placeholder="수량을 입력하세요"
+              defaultValue={1}
+            />
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">판매저정보</label>
+            <input
+              type="text"
+              {...register('seller_info')}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="판매저 정보를 입력하세요"
             />
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">화물 설명</label>
-          <textarea
-            {...register('package_description')}
-            rows={3}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="화물에 대한 상세 설명을 입력하세요"
-          />
-        </div>
       </div>
 
-      {/* 배송 옵션 */}
+      {/* 배송가능 여부확인 */}
       <div className="bg-gray-50 rounded-lg p-4">
         <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
           <Truck className="w-5 h-5" />
-          배송 옵션
+          배송가능 여부확인
         </h3>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">배송 유형</label>
-            <select
-              {...register('delivery_type')}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              {DELIVERY_TYPES.map(type => (
-                <option key={type} value={type}>{type}</option>
-              ))}
-            </select>
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              id="has_elevator"
+              {...register('has_elevator')}
+              className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <label htmlFor="has_elevator" className="text-sm font-medium text-gray-700">
+              엘리베이터 이용 가능
+            </label>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              id="can_use_ladder_truck"
+              {...register('can_use_ladder_truck')}
+              className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <label htmlFor="can_use_ladder_truck" className="text-sm font-medium text-gray-700">
+              사다리차 이용 가능
+            </label>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">희망 배송일</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">희망배송일</label>
             <div className="relative">
               <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
                 type="date"
-                {...register('delivery_date')}
+                {...register('preferred_delivery_date')}
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
           </div>
+        </div>
+      </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">희망 배송시간</label>
-            <div className="relative">
-              <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                {...register('delivery_time')}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="예: 오전 9-12시"
-              />
-            </div>
-          </div>
-
+      {/* 추가 옵션 */}
+      <div className="bg-gray-50 rounded-lg p-4">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          <Shield className="w-5 h-5" />
+          추가 옵션
+        </h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">보험료 (원)</label>
-            <div className="relative">
-              <Shield className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="number"
-                min="0"
-                {...register('insurance_amount')}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="보험료를 입력하세요"
-              />
-            </div>
+            <input
+              type="number"
+              min="0"
+              {...register('insurance_amount')}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="보험료를 입력하세요"
+            />
           </div>
         </div>
       </div>

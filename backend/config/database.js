@@ -58,6 +58,13 @@ async function initDatabase() {
         company VARCHAR(100),
         role ENUM('admin', 'manager', 'user') DEFAULT 'user',
         is_active BOOLEAN DEFAULT TRUE,
+        
+        -- 기본 발송인 정보 설정
+        default_sender_name VARCHAR(100),
+        default_sender_phone VARCHAR(20),
+        default_sender_address VARCHAR(300),
+        default_sender_detail_address VARCHAR(200),
+        default_sender_zipcode VARCHAR(10),
         last_login TIMESTAMP NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -88,15 +95,16 @@ async function initDatabase() {
         receiver_detail_address VARCHAR(200),
         receiver_zipcode VARCHAR(10) NOT NULL,
         
-        -- 배송 정보 (8개)
-        package_type VARCHAR(20) DEFAULT '소포',
-        package_weight DECIMAL(10,2),
-        package_size VARCHAR(50),
-        package_value DECIMAL(15,2),
-        delivery_type VARCHAR(20) DEFAULT '일반',
-        delivery_date DATE,
-        delivery_time VARCHAR(30),
-        package_description TEXT,
+        -- 제품 정보 (4개)
+        product_name VARCHAR(200) NOT NULL,
+        product_sku VARCHAR(100),
+        product_quantity INT DEFAULT 1,
+        seller_info VARCHAR(200),
+        
+        -- 배송가능 여부확인 (3개)
+        has_elevator BOOLEAN DEFAULT FALSE,
+        can_use_ladder_truck BOOLEAN DEFAULT FALSE,
+        preferred_delivery_date DATE,
         
         -- 특수 옵션 (4개)
         is_fragile BOOLEAN DEFAULT FALSE,
@@ -117,6 +125,23 @@ async function initDatabase() {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         
         FOREIGN KEY (user_id) REFERENCES users(id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    // qrcorddb 테이블 생성 (QR 코드 상품 정보)
+    await pool.execute(`
+      CREATE TABLE IF NOT EXISTS qrcorddb (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        qr_code VARCHAR(100) UNIQUE NOT NULL,
+        product_name VARCHAR(100) NOT NULL,
+        quantity INT DEFAULT 1,
+        weight DECIMAL(10,2),
+        size VARCHAR(50),
+        description TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        
+        INDEX idx_qr_code (qr_code)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 

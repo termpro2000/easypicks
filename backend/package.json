@@ -1,12 +1,13 @@
 {
-  "name": "ikea_fds-backend",
+  "name": "easypicks-backend",
   "version": "1.0.0",
-  "description": "새로운 웹앱 백엔드 서버",
+  "description": "EASYPICKS 웹앱 백엔드 서버",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
     "setup-db": "node scripts/setupDatabase.js",
+    "seed-qr": "node scripts/seedQRCode.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
