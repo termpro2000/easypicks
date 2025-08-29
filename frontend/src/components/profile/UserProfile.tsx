@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { User, Phone, Building, MapPin, Lock, Save, X, Eye, EyeOff, Mail } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
@@ -30,7 +30,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ onClose }) => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  const { register, handleSubmit, formState: { errors }, watch } = useForm<UserProfileData>({
+  const { register, handleSubmit, formState: { errors }, watch, reset } = useForm<UserProfileData>({
     defaultValues: {
       name: user?.name || '',
       email: user?.email || '',
@@ -44,6 +44,24 @@ const UserProfile: React.FC<UserProfileProps> = ({ onClose }) => {
       default_sender_zipcode: user?.default_sender_zipcode || ''
     }
   });
+
+  // user prop이 변경될 때 폼 값 업데이트
+  useEffect(() => {
+    if (user) {
+      reset({
+        name: user.name || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        company: user.company || '',
+        default_sender_name: user.default_sender_name || '',
+        default_sender_company: user.default_sender_company || user.company || '',
+        default_sender_phone: user.default_sender_phone || '',
+        default_sender_address: user.default_sender_address || '',
+        default_sender_detail_address: user.default_sender_detail_address || '',
+        default_sender_zipcode: user.default_sender_zipcode || ''
+      });
+    }
+  }, [user, reset]);
 
   const password = watch('password');
 

@@ -1,18 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { 
   User, Phone, Mail, Building, MapPin, Package, Truck, 
   Calendar, Clock, AlertTriangle, Snowflake, FileText, 
-  Shield, ChevronLeft, ChevronRight, Check, QrCode
+  Shield, ChevronLeft, ChevronRight, Check, QrCode, Camera, X
 } from 'lucide-react';
+import { Html5QrcodeScanner } from 'html5-qrcode';
 import { shippingAPI, qrcodeAPI } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
 import type { ShippingOrderData } from '../../types';
 
 const STEPS = [
-  { id: 1, title: '발송인 정보', description: '발송인 정보를 입력하세요' },
+  { id: 1, title: '배송 정보', description: '배송 상세정보를 입력하세요' },
   { id: 2, title: '수취인 정보', description: '수취인 정보를 입력하세요' },
-  { id: 3, title: '배송 정보', description: '배송 상세정보를 입력하세요' },
+  { id: 3, title: '발송인 정보', description: '발송인 정보를 입력하세요' },
   { id: 4, title: '완료', description: '배송접수를 완료하세요' }
 ];
 
@@ -36,6 +37,24 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
   const [submitResult, setSubmitResult] = useState<{ success: boolean; message: string; trackingNumber?: string } | null>(null);
   const [qrCodeInput, setQrCodeInput] = useState('');
   const [isLoadingQR, setIsLoadingQR] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
+  const qrScannerRef = useRef<Html5QrcodeScanner | null>(null);
+
+  // Daum 우편번호 서비스 초기화
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
+    script.async = true;
+    document.head.appendChild(script);
+
+    return () => {
+      // 컴포넌트 언마운트 시 스크립트 정리
+      const existingScript = document.querySelector('script[src*="postcode.v2.js"]');
+      if (existingScript) {
+        document.head.removeChild(existingScript);
+      }
+    };
+  }, []);
 
   const { register, handleSubmit, formState: { errors }, watch, trigger, setValue } = useForm<ShippingOrderData>({
     defaultValues: {
@@ -79,15 +98,35 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
     setCurrentStep(prev => Math.max(prev - 1, 1));
   };
 
+  // Daum 우편번호 서비스 실행 (발송인용)
+  const openSenderPostcode = () => {
+    new (window as any).daum.Postcode({
+      oncomplete: function(data: any) {
+        setValue('sender_address', data.address);
+        setValue('sender_zipcode', data.zonecode);
+      }
+    }).open();
+  };
+
+  // Daum 우편번호 서비스 실행 (수취인용)
+  const openReceiverPostcode = () => {
+    new (window as any).daum.Postcode({
+      oncomplete: function(data: any) {
+        setValue('receiver_address', data.address);
+        setValue('receiver_zipcode', data.zonecode);
+      }
+    }).open();
+  };
+
   // 단계별 필수 필드 반환
   const getFieldsForStep = (step: number): (keyof ShippingOrderData)[] => {
     switch (step) {
       case 1:
-        return ['sender_name', 'sender_phone', 'sender_address', 'sender_zipcode'];
+        return ['product_name'];
       case 2:
         return ['receiver_name', 'receiver_phone', 'receiver_address', 'receiver_zipcode'];
       case 3:
-        return ['product_name'];
+        return ['sender_name', 'sender_phone', 'sender_address', 'sender_zipcode'];
       default:
         return [];
     }
@@ -158,6 +197,121 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
       setIsLoadingQR(false);
     }
   };
+
+  // QR 코드 카메라 스캔 시작
+  const startQRCodeScan = async () => {
+    try {
+      console.log('QR 스캔 시작');
+      
+      // 먼저 카메라 권한 확인
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        // 권한 확인 후 즉시 스트림 정지
+        stream.getTracks().forEach(track => track.stop());
+        console.log('카메라 권한 확인됨');
+      } catch (permissionError) {
+        console.error('카메라 권한 거부됨:', permissionError);
+        alert('카메라 사용 권한이 필요합니다. 브라우저 설정에서 카메라 권한을 허용해주세요.');
+        return;
+      }
+      
+      setIsScanning(true);
+      
+      // DOM 엘리먼트가 렌더링될 때까지 대기
+      setTimeout(() => {
+        initQRScanner();
+      }, 100);
+      
+    } catch (error) {
+      console.error('QR 스캔 시작 실패:', error);
+      alert('카메라 접근에 실패했습니다. HTTPS 환경에서 사용해주세요.');
+      setIsScanning(false);
+    }
+  };
+
+  // QR 스캐너 초기화 함수
+  const initQRScanner = () => {
+    try {
+      // 이전 스캐너가 있다면 정리
+      if (qrScannerRef.current) {
+        qrScannerRef.current.clear();
+      }
+
+      // DOM 엘리먼트 존재 확인
+      const element = document.getElementById('qr-reader');
+      if (!element) {
+        console.error('qr-reader 엘리먼트를 찾을 수 없습니다');
+        setIsScanning(false);
+        return;
+      }
+
+      console.log('QR 스캐너 초기화 중...');
+      qrScannerRef.current = new Html5QrcodeScanner(
+        "qr-reader",
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+          aspectRatio: 1.0,
+          useBarCodeDetectorIfSupported: true,
+          rememberLastUsedCamera: true,
+          showTorchButtonIfSupported: true
+        },
+        false
+      );
+
+      qrScannerRef.current.render(
+        (decodedText) => {
+          console.log('QR 코드 인식:', decodedText);
+          setQrCodeInput(decodedText);
+          stopQRCodeScan();
+        },
+        (errorMessage) => {
+          // 특정 에러만 로그 출력
+          if (errorMessage.includes('permission') || 
+              errorMessage.includes('NotAllowed') ||
+              errorMessage.includes('camera') ||
+              errorMessage.includes('Camera')) {
+            console.error('카메라 관련 에러:', errorMessage);
+            alert('카메라 접근 중 오류가 발생했습니다: ' + errorMessage);
+            stopQRCodeScan();
+          }
+        }
+      );
+      
+      console.log('QR 스캔 시작됨');
+    } catch (error) {
+      console.error('QR 스캐너 초기화 실패:', error);
+      alert('QR 스캐너 초기화에 실패했습니다.');
+      setIsScanning(false);
+    }
+  };
+
+  // QR 코드 카메라 스캔 중지
+  const stopQRCodeScan = () => {
+    console.log('QR 스캔 중지 시도');
+    
+    try {
+      // QR 스캐너 정리
+      if (qrScannerRef.current) {
+        console.log('QR 스캐너 정리');
+        qrScannerRef.current.clear();
+        qrScannerRef.current = null;
+      }
+      
+      console.log('스캔 상태를 false로 설정');
+      setIsScanning(false);
+    } catch (error) {
+      console.error('QR 스캔 중지 중 오류:', error);
+      setIsScanning(false);
+    }
+  };
+
+  // 컴포넌트 언마운트 시 스캔 정리
+  useEffect(() => {
+    return () => {
+      stopQRCodeScan();
+    };
+  }, []);
 
   // 단계 1: 발송인 정보
   const renderStep1 = () => (
@@ -231,15 +385,25 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
           <label className="block text-sm font-medium text-gray-700 mb-2">
             주소 <span className="text-red-500">*</span>
           </label>
-          <div className="relative">
-            <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              {...register('sender_address', { required: '주소는 필수입니다' })}
-              className="w-full pl-10 pr-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="주소를 입력하세요"
-              autoComplete="street-address"
-            />
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                {...register('sender_address', { required: '주소는 필수입니다' })}
+                className="w-full pl-10 pr-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="주소를 입력하세요"
+                autoComplete="street-address"
+                readOnly
+              />
+            </div>
+            <button
+              type="button"
+              onClick={openSenderPostcode}
+              className="px-4 py-3 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 whitespace-nowrap"
+            >
+              주소검색
+            </button>
           </div>
           {errors.sender_address && <p className="mt-1 text-sm text-red-600">{errors.sender_address.message}</p>}
         </div>
@@ -255,6 +419,7 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
             placeholder="12345"
             autoComplete="postal-code"
             inputMode="numeric"
+            readOnly
           />
           {errors.sender_zipcode && <p className="mt-1 text-sm text-red-600">{errors.sender_zipcode.message}</p>}
         </div>
@@ -341,14 +506,24 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
           <label className="block text-sm font-medium text-gray-700 mb-2">
             주소 <span className="text-red-500">*</span>
           </label>
-          <div className="relative">
-            <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              {...register('receiver_address', { required: '주소는 필수입니다' })}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="주소를 입력하세요"
-            />
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                {...register('receiver_address', { required: '주소는 필수입니다' })}
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="주소를 입력하세요"
+                readOnly
+              />
+            </div>
+            <button
+              type="button"
+              onClick={openReceiverPostcode}
+              className="px-4 py-3 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 whitespace-nowrap"
+            >
+              주소검색
+            </button>
           </div>
           {errors.receiver_address && <p className="mt-1 text-sm text-red-600">{errors.receiver_address.message}</p>}
         </div>
@@ -362,6 +537,7 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
             {...register('receiver_zipcode', { required: '우편번호는 필수입니다' })}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder="우편번호"
+            readOnly
           />
           {errors.receiver_zipcode && <p className="mt-1 text-sm text-red-600">{errors.receiver_zipcode.message}</p>}
         </div>
@@ -398,12 +574,21 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
               onChange={(e) => setQrCodeInput(e.target.value)}
               placeholder="QR 코드 입력"
               className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              disabled={isLoadingQR}
+              disabled={isLoadingQR || isScanning}
             />
             <button
               type="button"
+              onClick={startQRCodeScan}
+              disabled={isLoadingQR || isScanning}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Camera className="w-4 h-4" />
+              {isScanning ? '스캔 중...' : '촬영'}
+            </button>
+            <button
+              type="button"
               onClick={handleLoadFromQR}
-              disabled={isLoadingQR}
+              disabled={isLoadingQR || isScanning}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <QrCode className="w-4 h-4" />
@@ -678,6 +863,58 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
 
   return (
     <div className="max-w-4xl mx-auto p-6">
+      {/* QR 코드 스캔 모달 */}
+      {isScanning && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={(e) => {
+            // 모달 배경 클릭 시에도 닫기
+            if (e.target === e.currentTarget) {
+              stopQRCodeScan();
+            }
+          }}
+        >
+          <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">QR 코드 스캔</h3>
+              <button
+                onClick={stopQRCodeScan}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="mb-4">
+              <div
+                id="qr-reader"
+                className="w-full"
+              />
+            </div>
+            
+            <div className="text-center text-sm text-gray-600 mb-4">
+              <p>QR 코드를 카메라에 비춰주세요</p>
+              <p className="text-xs mt-1 text-gray-500">
+                * HTTPS 환경에서만 카메라 사용이 가능합니다<br/>
+                * 브라우저에서 카메라 권한을 허용해주세요
+              </p>
+            </div>
+            
+            <div className="flex justify-center gap-2">
+              <button
+                onClick={() => {
+                  console.log('스캔 중지 버튼 클릭됨');
+                  stopQRCodeScan();
+                }}
+                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+              >
+                스캔 중지
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* 단계 표시기 */}
       <div className="mb-8">
         <div className="flex justify-between items-center">
@@ -719,9 +956,9 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
         </h2>
         
         <form onSubmit={handleSubmit(onSubmit)}>
-          {currentStep === 1 && renderStep1()}
+          {currentStep === 1 && renderStep3()}
           {currentStep === 2 && renderStep2()}
-          {currentStep === 3 && renderStep3()}
+          {currentStep === 3 && renderStep1()}
           {currentStep === 4 && renderStep4()}
         </form>
       </div>

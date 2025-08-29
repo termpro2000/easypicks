@@ -12,7 +12,7 @@ import type {
 /**
  * API 베이스 URL 설정 (환경변수에서 가져오거나 기본값 사용)
  */
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL = '/api';
 
 /**
  * JWT 토큰을 localStorage에서 가져오는 함수
@@ -108,25 +108,47 @@ export const authAPI = {
 
   // 로그인
   login: async (data: LoginData) => {
-    console.log('[Login]', '로그인 요청 시작:', data.username);
-    const response = await apiClient.post('/auth/login', data);
-    
-    console.log('[Login Response]', response.data);
-    
-    // JWT 토큰이 있으면 localStorage에 저장
-    if (response.data.token) {
-      console.log('[JWT Token]', `받은 토큰: ${response.data.token.substring(0, 30)}...`);
-      setToken(response.data.token);
-      console.log('[JWT Token]', 'localStorage에 저장 완료');
+    try {
+      console.log('[Login]', '로그인 요청 시작:', data.username);
+      console.log('[Login]', 'API URL:', '/api/auth/login (프록시 사용)');
       
-      // 저장 확인
-      const savedToken = getToken();
-      console.log('[JWT Token Verification]', savedToken ? '저장된 토큰 확인됨' : '저장 실패!');
-    } else {
-      console.log('[JWT Token]', '서버에서 토큰을 받지 못함');
+      const response = await apiClient.post('/auth/login', data);
+      
+      console.log('[Login Response]', '응답 상태:', response.status);
+      console.log('[Login Response]', '응답 데이터:', response.data);
+      
+      // 응답 구조 검증
+      if (!response.data) {
+        throw new Error('서버 응답이 없습니다');
+      }
+      
+      if (!response.data.user) {
+        console.error('[Login Error]', '사용자 정보가 응답에 없음:', response.data);
+        throw new Error('사용자 정보를 받을 수 없습니다');
+      }
+      
+      // JWT 토큰이 있으면 localStorage에 저장
+      if (response.data.token) {
+        console.log('[JWT Token]', `받은 토큰: ${response.data.token.substring(0, 30)}...`);
+        setToken(response.data.token);
+        console.log('[JWT Token]', 'localStorage에 저장 완료');
+        
+        // 저장 확인
+        const savedToken = getToken();
+        console.log('[JWT Token Verification]', savedToken ? '저장된 토큰 확인됨' : '저장 실패!');
+      } else {
+        console.log('[JWT Token]', '서버에서 토큰을 받지 못함');
+      }
+      
+      console.log('[Login]', '로그인 성공, 사용자:', response.data.user.username);
+      return response.data;
+      
+    } catch (error: any) {
+      console.error('[Login Error]', '로그인 요청 실패:', error);
+      console.error('[Login Error]', '에러 상세:', error.response?.data);
+      console.error('[Login Error]', '에러 상태:', error.response?.status);
+      throw error;
     }
-    
-    return response.data;
   },
 
   // 로그아웃
@@ -316,9 +338,7 @@ export const qrcodeAPI = {
  * @returns 서버 상태 정보
  */
 export const healthCheck = async () => {
-  const response = await apiClient.get('/', { 
-    baseURL: import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3000'
-  });
+  const response = await apiClient.get('/health');
   return response.data;
 };
 
