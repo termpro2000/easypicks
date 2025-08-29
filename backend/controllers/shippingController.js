@@ -1,4 +1,4 @@
-const { pool, generateTrackingNumber } = require('../config/database');
+const { pool, generateTrackingNumber, executeWithRetry } = require('../config/database');
 
 /**
  * 새로운 배송 접수를 생성하는 함수
@@ -35,9 +35,9 @@ async function createShippingOrder(req, res) {
       receiver_name, receiver_phone, receiver_email, receiver_company,
       receiver_address, receiver_detail_address, receiver_zipcode,
       
-      // 배송 정보 (8개)
-      package_type, package_weight, package_size, package_value,
-      delivery_type, delivery_date, delivery_time, package_description,
+      // 배송 정보 (새로운 스키마에 맞게 수정)
+      product_name, product_sku, product_quantity, seller_info,
+      has_elevator, can_use_ladder_truck, preferred_delivery_date,
       
       // 특수 옵션 (4개)
       is_fragile, is_frozen, requires_signature, insurance_amount,
@@ -63,6 +63,27 @@ async function createShippingOrder(req, res) {
     // 운송장 번호 생성
     const tracking_number = generateTrackingNumber();
 
+    // 파라미터 디버그 로그
+    const params = [
+      user.id, tracking_number,
+      
+      sender_name, sender_phone, sender_email || null, sender_company || null,
+      sender_address, sender_detail_address || null, sender_zipcode,
+      
+      receiver_name, receiver_phone, receiver_email || null, receiver_company || null,
+      receiver_address, receiver_detail_address || null, receiver_zipcode,
+      
+      product_name || null, product_sku || null, product_quantity || 1, seller_info || null,
+      has_elevator || false, can_use_ladder_truck || false, preferred_delivery_date || null,
+      
+      is_fragile || false, is_frozen || false, requires_signature || false, insurance_amount || 0,
+      
+      delivery_memo || null, special_instructions || null
+    ];
+    
+    console.log('INSERT 파라미터 개수:', params.length);
+    console.log('INSERT 파라미터 값들:', params);
+
     // 배송 접수 생성
     const [result] = await pool.execute(`
       INSERT INTO shipping_orders (
@@ -74,29 +95,14 @@ async function createShippingOrder(req, res) {
         receiver_name, receiver_phone, receiver_email, receiver_company,
         receiver_address, receiver_detail_address, receiver_zipcode,
         
-        package_type, package_weight, package_size, package_value,
-        delivery_type, delivery_date, delivery_time, package_description,
+        product_name, product_sku, product_quantity, seller_info,
+        has_elevator, can_use_ladder_truck, preferred_delivery_date,
         
         is_fragile, is_frozen, requires_signature, insurance_amount,
         
         delivery_memo, special_instructions
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [
-      user.id, tracking_number,
-      
-      sender_name, sender_phone, sender_email || null, sender_company || null,
-      sender_address, sender_detail_address || null, sender_zipcode,
-      
-      receiver_name, receiver_phone, receiver_email || null, receiver_company || null,
-      receiver_address, receiver_detail_address || null, receiver_zipcode,
-      
-      package_type || '소포', package_weight || null, package_size || null, package_value || null,
-      delivery_type || '일반', delivery_date || null, delivery_time || null, package_description || null,
-      
-      is_fragile || false, is_frozen || false, requires_signature || false, insurance_amount || 0,
-      
-      delivery_memo || null, special_instructions || null
-    ]);
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, params);
 
     res.status(201).json({
       message: '배송 접수가 완료되었습니다.',
@@ -139,25 +145,29 @@ async function getShippingOrders(req, res) {
     const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
 
-    // 총 개수 조회
-    const [countResult] = await pool.execute(
-      'SELECT COUNT(*) as total FROM shipping_orders WHERE user_id = ?',
-      [user.id]
+    // 총 개수 조회 (재시도 로직 적용)
+    const [countResult] = await executeWithRetry(() => 
+      pool.execute(
+        'SELECT COUNT(*) as total FROM shipping_orders WHERE user_id = ?',
+        [user.id]
+      )
     );
     const total = countResult[0].total;
 
-    // 배송 접수 목록 조회
-    const [orders] = await pool.execute(`
-      SELECT 
-        id, tracking_number, status,
-        sender_name, receiver_name,
-        package_type, delivery_type,
-        created_at, updated_at
-      FROM shipping_orders 
-      WHERE user_id = ?
-      ORDER BY created_at DESC
-      LIMIT ? OFFSET ?
-    `, [user.id, limit, offset]);
+    // 배송 접수 목록 조회 (재시도 로직 적용)
+    const [orders] = await executeWithRetry(() => 
+      pool.execute(`
+        SELECT 
+          id, tracking_number, status,
+          sender_name, receiver_name,
+          product_name, seller_info,
+          created_at, updated_at
+        FROM shipping_orders 
+        WHERE user_id = ?
+        ORDER BY created_at DESC
+        LIMIT ? OFFSET ?
+      `, [user.id, limit, offset])
+    );
 
     res.json({
       orders,
@@ -232,7 +242,7 @@ async function trackShipment(req, res) {
       SELECT 
         tracking_number, status, 
         sender_name, receiver_name, receiver_address,
-        package_type, delivery_type,
+        product_name, seller_info,
         created_at, updated_at
       FROM shipping_orders 
       WHERE tracking_number = ?
@@ -357,7 +367,7 @@ async function trackShipment(req, res) {
         id, tracking_number, status, tracking_company, estimated_delivery,
         sender_name, sender_phone, receiver_name, receiver_phone,
         CONCAT(receiver_address, ' ', COALESCE(receiver_detail_address, '')) as recipient_address_full, 
-        package_description as product_name, package_weight as product_weight, package_value as product_value,
+        product_name, product_quantity, product_sku,
         created_at, updated_at
       FROM shipping_orders 
       WHERE tracking_number = ?
@@ -419,8 +429,8 @@ async function trackShipment(req, res) {
         recipientName: order.receiver_name,
         recipientAddress: order.recipient_address_full,
         productName: order.product_name,
-        weight: order.product_weight,
-        value: order.product_value
+        quantity: order.product_quantity,
+        sku: order.product_sku
       },
       statusHistory
     });

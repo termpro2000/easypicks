@@ -1,4 +1,4 @@
-const { pool } = require('../config/database');
+const { pool, executeWithRetry } = require('../config/database');
 const bcrypt = require('bcryptjs');
 
 // 모든 사용자 목록 조회 (관리자/매니저만)
@@ -372,6 +372,7 @@ async function updateProfile(req, res) {
       default_sender_zipcode
     } = req.body;
 
+
     // 필수 필드 검증
     if (!name || name.trim() === '') {
       return res.status(400).json({
@@ -443,11 +444,13 @@ async function updateProfile(req, res) {
       updateValues.push(default_sender_zipcode || null);
     }
 
-    // 업데이트 실행
+    // 업데이트 실행 (재시도 로직 적용)
     updateValues.push(userId);
-    await pool.execute(
-      `UPDATE users SET ${updateFields.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
-      updateValues
+    await executeWithRetry(() =>
+      pool.execute(
+        `UPDATE users SET ${updateFields.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+        updateValues
+      )
     );
 
     // 활동 로그 기록

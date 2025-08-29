@@ -24,6 +24,7 @@ function authenticateToken(req, res, next) {
   
   jwt.verify(token, jwtSecret, (err, user) => {
     if (err) {
+      console.log(`JWT 토큰 검증 실패: ${err.message}, IP: ${req.ip || req.connection.remoteAddress}`);
       return res.status(403).json({
         error: 'Forbidden',
         message: '유효하지 않은 토큰입니다.'

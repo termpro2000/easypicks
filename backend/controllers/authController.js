@@ -1,4 +1,4 @@
-const { pool } = require('../config/database');
+const { pool, executeWithRetry } = require('../config/database');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
@@ -106,21 +106,32 @@ async function checkUsername(req, res) {
 async function login(req, res) {
   try {
     const { username, password } = req.body;
+    console.log(`로그인 시도: 사용자명=${username}, IP=${req.ip || req.connection.remoteAddress}`);
 
     if (!username || !password) {
+      console.log('로그인 실패: 필수 필드 누락');
       return res.status(400).json({
         error: 'Bad Request',
         message: '아이디와 비밀번호를 입력해주세요.'
       });
     }
 
-    // 사용자 조회 (비밀번호는 별도로 검증)
-    const [users] = await pool.execute(
-      'SELECT id, username, password, name, phone, company, role, is_active, created_at FROM users WHERE username = ?',
-      [username]
-    );
+    // 사용자 조회 (비밀번호는 별도로 검증) - 재시도 로직 적용
+    let users;
+    try {
+      [users] = await executeWithRetry(() =>
+        pool.execute(
+          'SELECT id, username, password, name, phone, company, role, is_active, created_at FROM users WHERE username = ?',
+          [username]
+        )
+      );
+    } catch (dbError) {
+      console.error(`데이터베이스 조회 오류: ${dbError.message}, 사용자명: ${username}`);
+      throw dbError; // catch 블록에서 처리
+    }
 
     if (users.length === 0) {
+      console.log(`로그인 실패: 사용자명 '${username}' 존재하지 않음`);
       return res.status(401).json({
         error: 'Unauthorized',
         message: '아이디 또는 비밀번호가 올바르지 않습니다.'
@@ -133,6 +144,7 @@ async function login(req, res) {
     const isValidPassword = await bcrypt.compare(password, user.password);
     
     if (!isValidPassword) {
+      console.log(`로그인 실패: 사용자명 '${username}' 비밀번호 불일치`);
       return res.status(401).json({
         error: 'Unauthorized',
         message: '아이디 또는 비밀번호가 올바르지 않습니다.'
@@ -141,17 +153,25 @@ async function login(req, res) {
 
     // 계정 비활성화 확인
     if (!user.is_active) {
+      console.log(`로그인 실패: 사용자명 '${username}' 계정 비활성화`);
       return res.status(401).json({
         error: 'Unauthorized',
         message: '비활성화된 계정입니다. 관리자에게 문의하세요.'
       });
     }
 
-    // 마지막 로그인 시간 업데이트
-    await pool.execute(
-      'UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?',
-      [user.id]
-    );
+    // 마지막 로그인 시간 업데이트 (재시도 로직 적용)
+    try {
+      await executeWithRetry(() =>
+        pool.execute(
+          'UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?',
+          [user.id]
+        )
+      );
+    } catch (dbError) {
+      console.error(`마지막 로그인 시간 업데이트 오류: ${dbError.message}, 사용자 ID: ${user.id}`);
+      // 로그인은 성공시키되, 오류만 로깅
+    }
 
     // JWT 토큰 생성
     const userPayload = {
@@ -165,7 +185,7 @@ async function login(req, res) {
 
     // 환경변수에서 JWT 시크릿 가져오기
     const jwtSecret = process.env.JWT_SECRET || 'easypicks-jwt-secret-2024';
-    console.log('JWT 토큰 생성 - Using secret from env');
+    console.log(`로그인 성공: 사용자명='${username}' (ID: ${user.id})`);
     
     const token = jwt.sign(
       userPayload,
@@ -174,7 +194,12 @@ async function login(req, res) {
     );
 
     // 세션에도 저장 (기존 호환성 유지)
-    req.session.user = userPayload;
+    try {
+      req.session.user = userPayload;
+    } catch (sessionError) {
+      console.error(`세션 저장 오류: ${sessionError.message}, 사용자명: ${username}`);
+      // JWT 토큰이 있으니 세션 오류는 무시하고 계속 진행
+    }
 
     res.json({
       message: '로그인 성공',
@@ -251,16 +276,18 @@ async function me(req, res) {
       });
     }
 
-    // 데이터베이스에서 최신 사용자 정보 조회
-    const [users] = await pool.execute(`
-      SELECT 
-        id, username, name, email, phone, company, role, 
-        default_sender_name, default_sender_company, default_sender_phone, default_sender_address, 
-        default_sender_detail_address, default_sender_zipcode,
-        last_login, created_at, updated_at
-      FROM users 
-      WHERE id = ? AND is_active = true
-    `, [userId]);
+    // 데이터베이스에서 최신 사용자 정보 조회 (재시도 로직 적용)
+    const [users] = await executeWithRetry(() =>
+      pool.execute(`
+        SELECT 
+          id, username, name, email, phone, company, role, 
+          default_sender_name, default_sender_company, default_sender_phone, default_sender_address, 
+          default_sender_detail_address, default_sender_zipcode,
+          last_login, created_at, updated_at
+        FROM users 
+        WHERE id = ? AND is_active = true
+      `, [userId])
+    );
 
     if (users.length === 0) {
       return res.status(401).json({
@@ -270,6 +297,7 @@ async function me(req, res) {
     }
 
     const user = users[0];
+
 
     res.json({
       user: user,

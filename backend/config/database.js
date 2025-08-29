@@ -1,17 +1,32 @@
 const mysql = require('mysql2/promise');
 require('dotenv').config();
 
+// PlanetScale 최적화 설정
 const dbConfig = {
-  host: process.env.DB_HOST || 'my8003.gabiadb.com',
+  host: process.env.DB_HOST || 'aws.connect.psdb.cloud',
   port: process.env.DB_PORT || 3306,
-  user: process.env.DB_USER || 'miraepartner',
-  password: process.env.DB_PASSWORD || 'mirae11825826!@',
-  database: process.env.DB_NAME || 'miraeapp',
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME || 'easypicks',
   charset: process.env.DB_CHARSET || 'utf8mb4',
   timezone: process.env.DB_TIMEZONE || '+09:00',
+  
+  // PlanetScale SSL 설정 (필수)
+  ssl: process.env.DB_SSL === 'true' ? {
+    rejectUnauthorized: true
+  } : false,
+  
+  // PlanetScale 최적화된 연결 풀 설정
   connectionLimit: 10,
   waitForConnections: true,
-  queueLimit: 0
+  queueLimit: 0,
+  acquireTimeout: 60000,       // 연결 획득 타임아웃
+  timeout: 60000,              // 쿼리 타임아웃
+  
+  // PlanetScale 서버리스 최적화
+  enableKeepAlive: true,
+  keepAliveInitialDelay: 0,
+  idleTimeout: 300000          // 5분 후 유휴 연결 해제
 };
 
 /**
@@ -183,6 +198,43 @@ async function initDatabase() {
 }
 
 /**
+ * 데이터베이스 쿼리를 재시도 로직과 함께 실행하는 함수
+ * @param {Function} queryFn - 실행할 쿼리 함수
+ * @param {number} retries - 재시도 횟수 (기본값: 3)
+ * @param {number} delay - 재시도 간격(ms) (기본값: 1000)
+ * @returns {Promise} 쿼리 결과
+ */
+async function executeWithRetry(queryFn, retries = 3, delay = 1000) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await queryFn();
+    } catch (error) {
+      console.log(`데이터베이스 쿼리 시도 ${i + 1}/${retries} 실패:`, error.message);
+      
+      // ECONNRESET, ENOTFOUND, ETIMEDOUT 등 연결 관련 에러인 경우 재시도
+      if (error.code === 'ECONNRESET' || 
+          error.code === 'ENOTFOUND' || 
+          error.code === 'ETIMEDOUT' ||
+          error.code === 'ECONNREFUSED' ||
+          error.code === 'PROTOCOL_CONNECTION_LOST') {
+        
+        if (i === retries - 1) {
+          console.error('모든 재시도 실패, 에러 발생:', error.message);
+          throw error;
+        }
+        
+        console.log(`${delay}ms 후 재시도...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        delay *= 1.5; // 백오프 증가
+      } else {
+        // 다른 종류의 에러는 바로 throw
+        throw error;
+      }
+    }
+  }
+}
+
+/**
  * 유니크한 운송장 번호를 생성하는 함수
  * 형식: SH + YYYYMMDD + 6자리 랜덤 문자열
  * 예시: SH20240101ABC123
@@ -200,5 +252,6 @@ module.exports = {
   pool,
   testConnection,
   initDatabase,
-  generateTrackingNumber
+  generateTrackingNumber,
+  executeWithRetry
 };
