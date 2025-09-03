@@ -54,41 +54,19 @@ async function createDelivery(req, res) {
     // 운송장 번호 생성
     const tracking_number = generateTrackingNumber();
 
-    // 배송 정보 삽입 (실제 deliveries 테이블 스키마에 맞춤)
+    // 배송 정보 삽입 (필수 필드들)
     const [result] = await pool.execute(`
       INSERT INTO deliveries (
-        tracking_number, sender_name, sender_address,
-        receiver_name, receiver_address, receiver_phone,
-        package_type, weight, status,
-        request_type, construction_type, shipment_type,
-        visit_date, visit_time, assigned_driver,
-        furniture_company, main_memo, emergency_contact,
-        customer_name, customer_phone, customer_address,
-        building_type, floor_count, elevator_available,
-        ladder_truck, disposal, room_movement, wall_construction,
-        product_name, furniture_product_code, product_weight, product_size,
-        box_size, furniture_requests, driver_notes,
-        installation_photos, customer_signature,
-        delivery_fee, special_instructions, delivery_time_preference,
-        fragile, insurance_value, cod_amount,
-        driver_id, driver_name
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        tracking_number, sender_name, sender_address, 
+        receiver_name, receiver_address, receiver_phone, status,
+        customer_name, customer_phone, customer_address
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
-      tracking_number, sender_name, sender_address,
-      receiver_name || null, receiver_address || null, receiver_phone || null,
-      package_type || null, weight || null, status,
-      request_type || null, construction_type || null, shipment_type || null,
-      visit_date || null, visit_time || null, assigned_driver || null,
-      furniture_company || null, main_memo || null, emergency_contact || null,
-      customer_name || null, customer_phone || null, customer_address || null,
-      building_type || null, floor_count || null, elevator_available || null,
-      ladder_truck || null, disposal || null, room_movement || null, wall_construction || null,
-      product_name || null, furniture_product_code || null, product_weight || null, product_size || null,
-      box_size || null, furniture_requests || null, driver_notes || null,
-      installation_photos ? JSON.stringify(installation_photos) : null, customer_signature || null,
-      delivery_fee || null, special_instructions || null, delivery_time_preference || null,
-      fragile || false, insurance_value || null, cod_amount || null,
-      driver_id || null, driver_name || null
+      tracking_number, sender_name, sender_address, 
+      receiver_name || customer_name || 'Unknown', 
+      receiver_address || customer_address || 'Unknown',
+      receiver_phone || customer_phone || 'Unknown', status,
+      customer_name || 'Unknown', customer_phone || 'Unknown', customer_address || 'Unknown'
     ]);
 
     res.status(201).json({
@@ -100,6 +78,7 @@ async function createDelivery(req, res) {
 
   } catch (error) {
     console.error('배송 생성 오류:', error);
+    console.log('요청 데이터:', JSON.stringify(req.body, null, 2));
     res.status(500).json({
       error: 'Internal Server Error',
       message: '배송 접수 처리 중 오류가 발생했습니다.'
@@ -161,22 +140,38 @@ async function getDeliveries(req, res) {
       pool.execute(listQuery, listParams)
     );
 
+    // 결과가 없는 경우에도 빈 배열로 응답
     res.json({
-      deliveries,
+      deliveries: deliveries || [],
       pagination: {
         page,
         limit,
-        total,
-        totalPages: Math.ceil(total / limit)
+        total: total || 0,
+        totalPages: Math.ceil((total || 0) / limit)
       }
     });
 
   } catch (error) {
     console.error('배송 목록 조회 오류:', error);
-    res.status(500).json({
-      error: 'Internal Server Error',
-      message: '배송 목록 조회 중 오류가 발생했습니다.'
+    console.error('Error details:', {
+      code: error.code,
+      errno: error.errno,
+      sqlState: error.sqlState,
+      sqlMessage: error.sqlMessage
     });
+    
+    // 데이터베이스 연결 오류인 경우
+    if (error.code === 'ECONNRESET' || error.code === 'ETIMEDOUT') {
+      res.status(503).json({
+        error: 'Service Unavailable',
+        message: '데이터베이스 연결 오류입니다. 잠시 후 다시 시도해주세요.'
+      });
+    } else {
+      res.status(500).json({
+        error: 'Internal Server Error',
+        message: '배송 목록 조회 중 오류가 발생했습니다.'
+      });
+    }
   }
 }
 

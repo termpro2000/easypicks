@@ -542,38 +542,6 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ order, isOpen, onCl
               </div>
             )}
 
-            {/* 배송 추적 정보 */}
-            {(order as any).tracking_number && (
-              <div className="mt-8 bg-green-50 border border-green-200 rounded-lg p-6">
-                <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <Truck className="w-5 h-5 text-green-500" />
-                  배송 추적 정보
-                </h4>
-                
-                <div className="grid md:grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <span className="text-sm font-medium text-gray-600">운송장 번호</span>
-                    <p className="text-lg font-mono text-gray-900">{(order as any).tracking_number}</p>
-                  </div>
-                  <div>
-                    <span className="text-sm font-medium text-gray-600">현재 상태</span>
-                    <p className="text-lg text-gray-900">{getStatusBadge((order as any).status)}</p>
-                  </div>
-                </div>
-                
-                <div className="flex justify-center">
-                  <a
-                    href={`/tracking?number=${(order as any).tracking_number}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                  >
-                    <Truck className="w-5 h-5" />
-                    배송 추적하기
-                  </a>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* 모달 푸터 */}

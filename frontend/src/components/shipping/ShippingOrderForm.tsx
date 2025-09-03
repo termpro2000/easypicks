@@ -14,8 +14,8 @@ import { useAuth } from '../../hooks/useAuth';
 interface DeliveryData {
   tracking_number?: string;
   sender_name: string;
-  sender_addr: string;
-  sender_detail_addr?: string;
+  sender_address: string;
+  sender_detail_address?: string;
   package_type: string;
   weight?: number;
   status: string;
@@ -265,7 +265,7 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
         const zonecode = data.zonecode;
         
         if (type === 'sender') {
-          setValue('sender_addr', addr);
+          setValue('sender_address', addr);
         } else if (type === 'customer') {
           setValue('customer_address', addr);
         }
@@ -382,7 +382,7 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
             <div className="flex gap-2 mb-2">
               <input
                 type="text"
-                {...register('sender_addr', { required: '발송인 주소는 필수입니다' })}
+                {...register('sender_address', { required: '발송인 주소는 필수입니다' })}
                 className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="주소를 입력하세요"
                 readOnly
@@ -397,11 +397,11 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
             </div>
             <input
               type="text"
-              {...register('sender_detail_addr')}
+              {...register('sender_detail_address')}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="상세주소를 입력하세요 (동, 호수, 건물명 등)"
             />
-            {errors.sender_addr && <p className="mt-1 text-sm text-red-600">{errors.sender_addr.message}</p>}
+            {errors.sender_address && <p className="mt-1 text-sm text-red-600">{errors.sender_address.message}</p>}
           </div>
         </div>
       </div>
