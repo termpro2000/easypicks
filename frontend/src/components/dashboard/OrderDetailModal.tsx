@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Package, User, MapPin, Truck, Clock, CheckCircle, AlertCircle, TrendingUp, Edit, Hash } from 'lucide-react';
 import type { ShippingOrder } from '../../types';
-import { shippingAPI } from '../../services/api';
+import { deliveriesAPI } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
 
 interface OrderDetailModalProps {
@@ -27,15 +27,13 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ order, isOpen, onCl
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      '접수완료': { color: 'bg-yellow-100 text-yellow-800', text: '접수완료', icon: Clock },
-      '배송준비': { color: 'bg-blue-100 text-blue-800', text: '배송준비', icon: TrendingUp },
-      '배송중': { color: 'bg-orange-100 text-orange-800', text: '배송중', icon: Truck },
-      '배송완료': { color: 'bg-green-100 text-green-800', text: '배송완료', icon: CheckCircle },
-      '취소': { color: 'bg-red-100 text-red-800', text: '취소', icon: AlertCircle },
-      '반송': { color: 'bg-red-100 text-red-800', text: '반송', icon: AlertCircle }
+      'pending': { color: 'bg-yellow-100 text-yellow-800', text: '접수대기', icon: Clock },
+      'in_transit': { color: 'bg-blue-100 text-blue-800', text: '배송중', icon: Truck },
+      'delivered': { color: 'bg-green-100 text-green-800', text: '배송완료', icon: CheckCircle },
+      'cancelled': { color: 'bg-red-100 text-red-800', text: '취소', icon: AlertCircle }
     };
     
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig['접수완료'];
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig['pending'];
     const Icon = config.icon;
     
     return (
@@ -57,12 +55,10 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ order, isOpen, onCl
   };
 
   const statusOptions = [
-    { value: '접수완료', label: '접수완료', color: 'bg-yellow-500' },
-    { value: '배송준비', label: '배송준비', color: 'bg-blue-500' },
-    { value: '배송중', label: '배송중', color: 'bg-orange-500' },
-    { value: '배송완료', label: '배송완료', color: 'bg-green-500' },
-    { value: '취소', label: '취소', color: 'bg-red-500' },
-    { value: '반송', label: '반송', color: 'bg-red-500' }
+    { value: 'pending', label: '접수대기', color: 'bg-yellow-500' },
+    { value: 'in_transit', label: '배송중', color: 'bg-blue-500' },
+    { value: 'delivered', label: '배송완료', color: 'bg-green-500' },
+    { value: 'cancelled', label: '취소', color: 'bg-red-500' }
   ];
 
   const handleStatusChange = async (newStatus: string) => {
@@ -88,10 +84,9 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ order, isOpen, onCl
     }
 
     try {
-      await shippingAPI.assignTrackingNumber(order.id, {
-        tracking_number: trackingFormData.tracking_number.trim(),
-        tracking_company: trackingFormData.tracking_company.trim() || undefined,
-        estimated_delivery: trackingFormData.estimated_delivery || undefined
+      // deliveries 테이블 업데이트 (운송장 번호만 업데이트)
+      await deliveriesAPI.updateDelivery(order.id, {
+        tracking_number: trackingFormData.tracking_number.trim()
       });
       
       setShowTrackingForm(false);
@@ -138,7 +133,7 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ order, isOpen, onCl
               
               <div className="flex items-center gap-3">
                 {/* 관리자/매니저만 운송장 할당 버튼 표시 */}
-                {(user?.role === 'admin' || user?.role === 'manager') && !order.tracking_number && (
+                {(user?.role === 'admin' || user?.role === 'manager') && !(order as any).tracking_number && (
                   <button
                     onClick={() => setShowTrackingForm(true)}
                     className="px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm flex items-center gap-1"
@@ -198,7 +193,7 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ order, isOpen, onCl
 
           {/* 모달 본문 */}
           <div className="bg-white px-6 py-4 max-h-[calc(100vh-200px)] overflow-y-auto">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               
               {/* 발송인 정보 */}
               <div className="bg-gray-50 rounded-lg p-6">
@@ -208,181 +203,268 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ order, isOpen, onCl
                 </div>
                 
                 <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">이름</label>
-                      <p className="text-sm text-gray-900 mt-1">{order.sender_name || '-'}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">전화번호</label>
-                      <p className="text-sm text-gray-900 mt-1">{order.sender_phone || '-'}</p>
-                    </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">이름</label>
+                    <p className="text-sm text-gray-900 mt-1">{(order as any).sender_name || '-'}</p>
                   </div>
-                  
                   <div>
                     <label className="text-sm font-medium text-gray-600">주소</label>
-                    <p className="text-sm text-gray-900 mt-1">
-                      ({order.sender_zipcode}) {order.sender_address} {order.sender_detail_address}
-                    </p>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">이메일</label>
-                      <p className="text-sm text-gray-900 mt-1">{order.sender_email || '-'}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">회사명</label>
-                      <p className="text-sm text-gray-900 mt-1">{order.sender_company || '-'}</p>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">메모</label>
-                    <p className="text-sm text-gray-900 mt-1">{order.delivery_memo || '-'}</p>
+                    <p className="text-sm text-gray-900 mt-1">{(order as any).sender_address || '-'}</p>
                   </div>
                 </div>
               </div>
 
-              {/* 수취인 정보 */}
+              {/* 고객 정보 */}
               <div className="bg-gray-50 rounded-lg p-6">
                 <div className="flex items-center gap-2 mb-4">
                   <MapPin className="w-5 h-5 text-green-500" />
-                  <h4 className="text-lg font-semibold text-gray-900">수취인 정보</h4>
+                  <h4 className="text-lg font-semibold text-gray-900">고객 정보</h4>
                 </div>
                 
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm font-medium text-gray-600">이름</label>
-                      <p className="text-sm text-gray-900 mt-1">{order.receiver_name || '-'}</p>
+                      <label className="text-sm font-medium text-gray-600">고객명</label>
+                      <p className="text-sm text-gray-900 mt-1">{(order as any).customer_name || '-'}</p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-600">전화번호</label>
-                      <p className="text-sm text-gray-900 mt-1">{order.receiver_phone || '-'}</p>
+                      <label className="text-sm font-medium text-gray-600">고객 전화번호</label>
+                      <p className="text-sm text-gray-900 mt-1">{(order as any).customer_phone || '-'}</p>
                     </div>
                   </div>
-                  
                   <div>
-                    <label className="text-sm font-medium text-gray-600">주소</label>
-                    <p className="text-sm text-gray-900 mt-1">
-                      ({order.receiver_zipcode}) {order.receiver_address} {order.receiver_detail_address}
-                    </p>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">이메일</label>
-                      <p className="text-sm text-gray-900 mt-1">{order.receiver_email || '-'}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">회사명</label>
-                      <p className="text-sm text-gray-900 mt-1">{order.receiver_company || '-'}</p>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">메모</label>
-                    <p className="text-sm text-gray-900 mt-1">{order.delivery_memo || '-'}</p>
+                    <label className="text-sm font-medium text-gray-600">고객 주소</label>
+                    <p className="text-sm text-gray-900 mt-1">{(order as any).customer_address || '-'}</p>
                   </div>
                 </div>
               </div>
 
-              {/* 배송 정보 */}
+              {/* 기본 배송 정보 */}
               <div className="bg-gray-50 rounded-lg p-6">
                 <div className="flex items-center gap-2 mb-4">
-                  <Truck className="w-5 h-5 text-purple-500" />
-                  <h4 className="text-lg font-semibold text-gray-900">배송 정보</h4>
+                  <Package className="w-5 h-5 text-purple-500" />
+                  <h4 className="text-lg font-semibold text-gray-900">배송 기본 정보</h4>
                 </div>
                 
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm font-medium text-gray-600">상품명</label>
-                      <p className="text-sm text-gray-900 mt-1">{order.package_description || '-'}</p>
+                      <label className="text-sm font-medium text-gray-600">배송 유형</label>
+                      <p className="text-sm text-gray-900 mt-1">{(order as any).package_type || '-'}</p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-600">수량</label>
-                      <p className="text-sm text-gray-900 mt-1">{order.package_type || '-'}</p>
+                      <label className="text-sm font-medium text-gray-600">무게</label>
+                      <p className="text-sm text-gray-900 mt-1">{(order as any).weight || '-'}</p>
                     </div>
                   </div>
-                  
                   <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">무게 (kg)</label>
-                      <p className="text-sm text-gray-900 mt-1">{order.package_weight || '-'}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">크기 (cm)</label>
-                      <p className="text-sm text-gray-900 mt-1">{order.package_size || '-'}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">배송비</label>
-                      <p className="text-sm text-gray-900 mt-1">{order.package_value ? `${order.package_value}원` : '-'}</p>
-                    </div>
                     <div>
                       <label className="text-sm font-medium text-gray-600">운송장번호</label>
-                      <div className="mt-1 flex items-center gap-2">
-                        <p className="text-sm text-gray-900 font-mono">{order.tracking_number || '미배정'}</p>
-                        {order.tracking_number && (
-                          <a
-                            href={`/tracking?number=${order.tracking_number}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-500 hover:text-blue-700 text-xs underline"
-                          >
-                            추적
-                          </a>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">희망배송일</label>
-                      <p className="text-sm text-gray-900 mt-1">{order.delivery_date || '-'}</p>
+                      <p className="text-sm text-gray-900 mt-1 font-mono">{(order as any).tracking_number || '미배정'}</p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-600">배송유형</label>
-                      <p className="text-sm text-gray-900 mt-1">{order.delivery_type || '-'}</p>
+                      <label className="text-sm font-medium text-gray-600">배정 기사</label>
+                      <p className="text-sm text-gray-900 mt-1">{(order as any).assigned_driver || '-'}</p>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* 특수 옵션 */}
+              {/* 요청사항 정보 */}
               <div className="bg-gray-50 rounded-lg p-6">
                 <div className="flex items-center gap-2 mb-4">
                   <AlertCircle className="w-5 h-5 text-orange-500" />
-                  <h4 className="text-lg font-semibold text-gray-900">특수 옵션</h4>
+                  <h4 className="text-lg font-semibold text-gray-900">요청사항</h4>
                 </div>
                 
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm font-medium text-gray-600">보험가입</label>
+                      <label className="text-sm font-medium text-gray-600">요청 타입</label>
+                      <p className="text-sm text-gray-900 mt-1">{(order as any).request_type || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">시공 유형</label>
+                      <p className="text-sm text-gray-900 mt-1">{(order as any).construction_type || '-'}</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">배송 유형</label>
+                      <p className="text-sm text-gray-900 mt-1">{(order as any).shipment_type || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">가구회사</label>
+                      <p className="text-sm text-gray-900 mt-1">{(order as any).furniture_company || '-'}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 방문 및 일정 정보 */}
+              <div className="bg-gray-50 rounded-lg p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Clock className="w-5 h-5 text-indigo-500" />
+                  <h4 className="text-lg font-semibold text-gray-900">방문 정보</h4>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">방문 날짜</label>
+                      <p className="text-sm text-gray-900 mt-1">{(order as any).visit_date || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">방문 시간</label>
+                      <p className="text-sm text-gray-900 mt-1">{(order as any).visit_time || '-'}</p>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">비상 연락처</label>
+                    <p className="text-sm text-gray-900 mt-1">{(order as any).emergency_contact || '-'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 건물 정보 */}
+              <div className="bg-gray-50 rounded-lg p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <MapPin className="w-5 h-5 text-teal-500" />
+                  <h4 className="text-lg font-semibold text-gray-900">건물 정보</h4>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">건물 유형</label>
+                      <p className="text-sm text-gray-900 mt-1">{(order as any).building_type || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">층수</label>
+                      <p className="text-sm text-gray-900 mt-1">{(order as any).floor_count || '-'}</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">엘리베이터</label>
                       <p className="text-sm text-gray-900 mt-1">
-                        {order.insurance_amount && order.insurance_amount > 0 ? '가입' : '미가입'}
-                        {order.insurance_amount && order.insurance_amount > 0 && ` (${order.insurance_amount}원)`}
+                        {(order as any).elevator_available === 'Y' ? '사용가능' : 
+                         (order as any).elevator_available === 'N' ? '사용불가' : '-'}
                       </p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-600">착불</label>
+                      <label className="text-sm font-medium text-gray-600">사다리차</label>
                       <p className="text-sm text-gray-900 mt-1">
-                        {order.requires_signature ? '서명필요' : '서명불필요'}
+                        {(order as any).ladder_truck === 'Y' ? '필요' : 
+                         (order as any).ladder_truck === 'N' ? '불필요' : '-'}
                       </p>
                     </div>
                   </div>
-                  
+                </div>
+              </div>
+
+              {/* 상품 정보 */}
+              <div className="bg-gray-50 rounded-lg p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Package className="w-5 h-5 text-pink-500" />
+                  <h4 className="text-lg font-semibold text-gray-900">상품 정보</h4>
+                </div>
+                
+                <div className="space-y-3">
                   <div>
-                    <label className="text-sm font-medium text-gray-600">특별 요청사항</label>
-                    <p className="text-sm text-gray-900 mt-1 whitespace-pre-wrap">
-                      {order.special_instructions || '없음'}
+                    <label className="text-sm font-medium text-gray-600">상품명</label>
+                    <p className="text-sm text-gray-900 mt-1">{(order as any).product_name || '-'}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">상품 코드</label>
+                      <p className="text-sm text-gray-900 mt-1">{(order as any).furniture_product_code || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">상품 무게</label>
+                      <p className="text-sm text-gray-900 mt-1">{(order as any).product_weight || '-'}</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">상품 크기</label>
+                      <p className="text-sm text-gray-900 mt-1">{(order as any).product_size || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">박스 크기</label>
+                      <p className="text-sm text-gray-900 mt-1">{(order as any).box_size || '-'}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 작업 옵션 */}
+              <div className="bg-gray-50 rounded-lg p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <TrendingUp className="w-5 h-5 text-red-500" />
+                  <h4 className="text-lg font-semibold text-gray-900">작업 옵션</h4>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">폐기물 처리</label>
+                      <p className="text-sm text-gray-900 mt-1">
+                        {(order as any).disposal === 'Y' ? '필요' : 
+                         (order as any).disposal === 'N' ? '불필요' : '-'}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">방간 이동</label>
+                      <p className="text-sm text-gray-900 mt-1">
+                        {(order as any).room_movement === 'Y' ? '필요' : 
+                         (order as any).room_movement === 'N' ? '불필요' : '-'}
+                      </p>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">벽면 시공</label>
+                    <p className="text-sm text-gray-900 mt-1">
+                      {(order as any).wall_construction === 'Y' ? '필요' : 
+                       (order as any).wall_construction === 'N' ? '불필요' : '-'}
                     </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 메모 및 요청사항 */}
+              <div className="bg-gray-50 rounded-lg p-6 lg:col-span-2">
+                <div className="flex items-center gap-2 mb-4">
+                  <Edit className="w-5 h-5 text-gray-500" />
+                  <h4 className="text-lg font-semibold text-gray-900">메모 및 요청사항</h4>
+                </div>
+                
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">주요 메모</label>
+                    <p className="text-sm text-gray-900 mt-1 p-3 bg-white rounded border min-h-[80px] whitespace-pre-wrap">
+                      {(order as any).main_memo || '없음'}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">가구 요청사항</label>
+                    <p className="text-sm text-gray-900 mt-1 p-3 bg-white rounded border min-h-[80px] whitespace-pre-wrap">
+                      {(order as any).furniture_requests || '없음'}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">기사 메모</label>
+                    <p className="text-sm text-gray-900 mt-1 p-3 bg-white rounded border min-h-[80px] whitespace-pre-wrap">
+                      {(order as any).driver_notes || '없음'}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">설치 사진</label>
+                    <div className="text-sm text-gray-900 mt-1 p-3 bg-white rounded border min-h-[80px]">
+                      {(order as any).installation_photos && Array.isArray((order as any).installation_photos) && (order as any).installation_photos.length > 0 
+                        ? `${(order as any).installation_photos.length}개 사진` 
+                        : '사진 없음'}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -461,35 +543,27 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ order, isOpen, onCl
             )}
 
             {/* 배송 추적 정보 */}
-            {order.tracking_number && (
+            {(order as any).tracking_number && (
               <div className="mt-8 bg-green-50 border border-green-200 rounded-lg p-6">
                 <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                   <Truck className="w-5 h-5 text-green-500" />
                   배송 추적 정보
                 </h4>
                 
-                <div className="grid md:grid-cols-3 gap-4 mb-4">
+                <div className="grid md:grid-cols-2 gap-4 mb-4">
                   <div>
                     <span className="text-sm font-medium text-gray-600">운송장 번호</span>
-                    <p className="text-lg font-mono text-gray-900">{order.tracking_number}</p>
+                    <p className="text-lg font-mono text-gray-900">{(order as any).tracking_number}</p>
                   </div>
-                  {order.tracking_company && (
-                    <div>
-                      <span className="text-sm font-medium text-gray-600">택배회사</span>
-                      <p className="text-lg text-gray-900">{order.tracking_company}</p>
-                    </div>
-                  )}
-                  {order.estimated_delivery && (
-                    <div>
-                      <span className="text-sm font-medium text-gray-600">예상 배송일</span>
-                      <p className="text-lg text-gray-900">{new Date(order.estimated_delivery).toLocaleDateString('ko-KR')}</p>
-                    </div>
-                  )}
+                  <div>
+                    <span className="text-sm font-medium text-gray-600">현재 상태</span>
+                    <p className="text-lg text-gray-900">{getStatusBadge((order as any).status)}</p>
+                  </div>
                 </div>
                 
                 <div className="flex justify-center">
                   <a
-                    href={`/tracking?number=${order.tracking_number}`}
+                    href={`/tracking?number=${(order as any).tracking_number}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"

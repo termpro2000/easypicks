@@ -3,22 +3,62 @@ import { useForm } from 'react-hook-form';
 import { 
   User, Phone, Mail, Building, MapPin, Package, Truck, 
   Calendar, Clock, AlertTriangle, Snowflake, FileText, 
-  Shield, ChevronLeft, ChevronRight, Check, QrCode, Camera, X
+  Shield, ChevronLeft, ChevronRight, Check, QrCode, Camera, X,
+  Home, Wrench, Weight, Box, Ruler, Settings, Image, PenTool
 } from 'lucide-react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
-import { shippingAPI, qrcodeAPI } from '../../services/api';
+import { shippingAPI, deliveriesAPI, qrcodeAPI } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
-import type { ShippingOrderData } from '../../types';
+
+// Deliveries 테이블에 맞는 데이터 타입
+interface DeliveryData {
+  tracking_number?: string;
+  sender_name: string;
+  sender_addr: string;
+  sender_detail_addr?: string;
+  package_type: string;
+  weight?: number;
+  status: string;
+  
+  // 확장 필드들 (27개 추가 필드)
+  request_type?: string;
+  construction_type?: string;
+  shipment_type?: string;
+  visit_date?: string;
+  visit_time?: string;
+  assigned_driver?: string;
+  furniture_company?: string;
+  main_memo?: string;
+  emergency_contact?: string;
+  customer_name: string;
+  customer_phone: string;
+  customer_address: string;
+  customer_detail_address?: string;
+  building_type?: string;
+  floor_count?: number;
+  elevator_available?: boolean;
+  ladder_truck?: boolean;
+  disposal?: boolean;
+  room_movement?: boolean;
+  wall_construction?: boolean;
+  product_name: string;
+  furniture_product_code?: string;
+  product_weight?: number;
+  product_size?: string;
+  box_size?: string;
+  furniture_requests?: string;
+  driver_notes?: string;
+  installation_photos?: string; // JSON string
+  customer_signature?: string; // Base64 string
+}
 
 const STEPS = [
-  { id: 1, title: '배송 정보', description: '배송 상세정보를 입력하세요' },
-  { id: 2, title: '수취인 정보', description: '수취인 정보를 입력하세요' },
-  { id: 3, title: '발송인 정보', description: '발송인 정보를 입력하세요' },
-  { id: 4, title: '완료', description: '배송접수를 완료하세요' }
+  { id: 1, title: '기본 정보', description: '기본 배송 정보를 입력하세요' },
+  { id: 2, title: '현장 정보', description: '현장 상황 정보를 입력하세요' },
+  { id: 3, title: '상품 정보', description: '상품 및 가구 정보를 입력하세요' },
+  { id: 4, title: '특별 요청', description: '특별 요청사항을 입력하세요' },
+  { id: 5, title: '완료', description: '배송접수를 완료하세요' }
 ];
-
-const PACKAGE_TYPES = ['문서', '소포', '박스', '팔레트'];
-const DELIVERY_TYPES = ['일반', '당일', '익일', '지정일'];
 
 interface ShippingOrderFormProps {
   onSuccess?: () => void;
@@ -48,7 +88,6 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
     document.head.appendChild(script);
 
     return () => {
-      // 컴포넌트 언마운트 시 스크립트 정리
       const existingScript = document.querySelector('script[src*="postcode.v2.js"]');
       if (existingScript) {
         document.head.removeChild(existingScript);
@@ -56,32 +95,20 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
     };
   }, []);
 
-  const { register, handleSubmit, formState: { errors }, watch, trigger, setValue } = useForm<ShippingOrderData>({
+  const { register, handleSubmit, formState: { errors }, watch, trigger, setValue } = useForm<DeliveryData>({
     defaultValues: {
-      product_quantity: 1,
-      has_elevator: false,
-      can_use_ladder_truck: false,
-      is_fragile: false,
-      is_frozen: false,
-      requires_signature: false,
-      insurance_amount: 0
+      status: 'pending',
+      elevator_available: false,
+      ladder_truck: false,
+      disposal: false,
+      room_movement: false,
+      wall_construction: false,
+      floor_count: 1
     }
   });
 
   const watchedValues = watch();
 
-  // 사용자 기본 발송인 정보 자동 로드
-  useEffect(() => {
-    if (user) {
-      if (user.default_sender_name) setValue('sender_name', user.default_sender_name);
-      if (user.email) setValue('sender_email', user.email);
-      if (user.default_sender_company || user.company) setValue('sender_company', user.default_sender_company || user.company);
-      if (user.default_sender_phone) setValue('sender_phone', user.default_sender_phone);
-      if (user.default_sender_address) setValue('sender_address', user.default_sender_address);
-      if (user.default_sender_detail_address) setValue('sender_detail_address', user.default_sender_detail_address);
-      if (user.default_sender_zipcode) setValue('sender_zipcode', user.default_sender_zipcode);
-    }
-  }, [user, setValue]);
 
   // 다음 단계로
   const nextStep = async () => {
@@ -89,7 +116,7 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
     const isValid = await trigger(fieldsToValidate as any);
     
     if (isValid) {
-      setCurrentStep(prev => Math.min(prev + 1, 4));
+      setCurrentStep(prev => Math.min(prev + 1, 5));
     }
   };
 
@@ -98,154 +125,81 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
     setCurrentStep(prev => Math.max(prev - 1, 1));
   };
 
-  // Daum 우편번호 서비스 실행 (발송인용)
-  const openSenderPostcode = () => {
-    new (window as any).daum.Postcode({
-      oncomplete: function(data: any) {
-        setValue('sender_address', data.address);
-        setValue('sender_zipcode', data.zonecode);
-      }
-    }).open();
-  };
-
-  // Daum 우편번호 서비스 실행 (수취인용)
-  const openReceiverPostcode = () => {
-    new (window as any).daum.Postcode({
-      oncomplete: function(data: any) {
-        setValue('receiver_address', data.address);
-        setValue('receiver_zipcode', data.zonecode);
-      }
-    }).open();
-  };
-
-  // 단계별 필수 필드 반환
-  const getFieldsForStep = (step: number): (keyof ShippingOrderData)[] => {
+  // 단계별 검증 필드 정의
+  const getFieldsForStep = (step: number): string[] => {
     switch (step) {
-      case 1:
-        return ['product_name'];
-      case 2:
-        return ['receiver_name', 'receiver_phone', 'receiver_address', 'receiver_zipcode'];
-      case 3:
-        return ['sender_name', 'sender_phone', 'sender_address', 'sender_zipcode'];
-      default:
-        return [];
+      case 1: return ['sender_name', 'sender_addr', 'customer_name', 'customer_phone', 'customer_address'];
+      case 2: return ['building_type', 'floor_count'];
+      case 3: return ['product_name', 'package_type'];
+      case 4: return [];
+      default: return [];
     }
   };
 
-  // 폼 제출
-  const onSubmit = async (data: ShippingOrderData) => {
-    try {
-      setIsSubmitting(true);
-      const response = await shippingAPI.createOrder(data);
-      
-      setSubmitResult({
-        success: true,
-        message: '배송접수가 완료되었습니다!',
-        trackingNumber: response.trackingNumber
-      });
-      
-      // 새 주문 알림 발송 (관리자/매니저용)
-      if (onNewOrder && response.orderId) {
-        onNewOrder({
-          orderId: response.orderId,
-          customerName: data.receiver_name,
-          productName: data.package_description,
-          amount: data.package_value
-        });
-      }
-      
-      // 성공 시 대시보드로 이동
-      if (onSuccess) {
-        setTimeout(() => {
-          onSuccess();
-        }, 2000); // 2초 후 대시보드로 이동
-      }
-    } catch (error: any) {
-      setSubmitResult({
-        success: false,
-        message: error.response?.data?.message || '배송접수 처리 중 오류가 발생했습니다.'
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // QR 코드로 상품 정보 불러오기
+  // QR 코드 데이터 로드 (기존 함수 유지)
   const handleLoadFromQR = async () => {
     if (!qrCodeInput.trim()) {
-      alert('QR 코드를 입력해주세요.');
+      alert('QR 코드를 먼저 입력해주세요.');
       return;
     }
 
+    setIsLoadingQR(true);
     try {
-      setIsLoadingQR(true);
       const response = await qrcodeAPI.getProductByQRCode(qrCodeInput);
       
-      if (response.success && response.data) {
-        const { product_name, quantity, weight, size, description } = response.data;
+      if (response.success) {
+        const data = response.product;
+        setValue('product_name', data.product_name || '');
+        setValue('furniture_product_code', data.qr_code || '');
+        setValue('product_weight', data.weight || 0);
+        setValue('product_size', data.size || '');
         
-        // 폼에 데이터 자동 입력
-        setValue('product_name', product_name);
-        if (quantity) setValue('product_quantity', quantity);
-
-        alert('QR 코드 정보를 성공적으로 불러왔습니다!');
-        setQrCodeInput('');
+        alert('QR 코드 데이터가 성공적으로 로드되었습니다.');
+      } else {
+        alert('QR 코드 데이터를 불러오는데 실패했습니다: ' + response.message);
       }
     } catch (error: any) {
-      alert(error.response?.data?.error || 'QR 코드 정보를 불러올 수 없습니다.');
+      console.error('QR 코드 로드 오류:', error);
+      alert('QR 코드 데이터 로드 중 오류가 발생했습니다.');
     } finally {
       setIsLoadingQR(false);
     }
   };
 
-  // QR 코드 카메라 스캔 시작
+  // QR 스캔 기능 (기존 함수들 유지)
   const startQRCodeScan = async () => {
     try {
-      console.log('QR 스캔 시작');
-      
-      // 먼저 카메라 권한 확인
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        // 권한 확인 후 즉시 스트림 정지
         stream.getTracks().forEach(track => track.stop());
-        console.log('카메라 권한 확인됨');
       } catch (permissionError) {
-        console.error('카메라 권한 거부됨:', permissionError);
         alert('카메라 사용 권한이 필요합니다. 브라우저 설정에서 카메라 권한을 허용해주세요.');
         return;
       }
       
       setIsScanning(true);
-      
-      // DOM 엘리먼트가 렌더링될 때까지 대기
       setTimeout(() => {
         initQRScanner();
       }, 100);
       
     } catch (error) {
-      console.error('QR 스캔 시작 실패:', error);
       alert('카메라 접근에 실패했습니다. HTTPS 환경에서 사용해주세요.');
       setIsScanning(false);
     }
   };
 
-  // QR 스캐너 초기화 함수
   const initQRScanner = () => {
     try {
-      // 이전 스캐너가 있다면 정리
       if (qrScannerRef.current) {
         qrScannerRef.current.clear();
       }
 
-      // DOM 엘리먼트 존재 확인
       const element = document.getElementById('qr-reader');
       if (!element) {
-        console.error('qr-reader 엘리먼트를 찾을 수 없습니다');
         setIsScanning(false);
         return;
       }
 
-      console.log('QR 스캐너 초기화 중...');
       qrScannerRef.current = new Html5QrcodeScanner(
         "qr-reader",
         {
@@ -261,312 +215,114 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
 
       qrScannerRef.current.render(
         (decodedText) => {
-          console.log('QR 코드 인식:', decodedText);
           setQrCodeInput(decodedText);
           stopQRCodeScan();
         },
         (errorMessage) => {
-          // 특정 에러만 로그 출력
           if (errorMessage.includes('permission') || 
               errorMessage.includes('NotAllowed') ||
               errorMessage.includes('camera') ||
               errorMessage.includes('Camera')) {
-            console.error('카메라 관련 에러:', errorMessage);
             alert('카메라 접근 중 오류가 발생했습니다: ' + errorMessage);
             stopQRCodeScan();
           }
         }
       );
-      
-      console.log('QR 스캔 시작됨');
     } catch (error) {
-      console.error('QR 스캐너 초기화 실패:', error);
       alert('QR 스캐너 초기화에 실패했습니다.');
       setIsScanning(false);
     }
   };
 
-  // QR 코드 카메라 스캔 중지
   const stopQRCodeScan = () => {
-    console.log('QR 스캔 중지 시도');
-    
     try {
-      // QR 스캐너 정리
       if (qrScannerRef.current) {
-        console.log('QR 스캐너 정리');
         qrScannerRef.current.clear();
         qrScannerRef.current = null;
       }
-      
-      console.log('스캔 상태를 false로 설정');
       setIsScanning(false);
     } catch (error) {
-      console.error('QR 스캔 중지 중 오류:', error);
       setIsScanning(false);
     }
   };
 
-  // 컴포넌트 언마운트 시 스캔 정리
   useEffect(() => {
     return () => {
       stopQRCodeScan();
     };
   }, []);
 
-  // 단계 1: 발송인 정보
+  // 주소 검색 함수들
+  const openAddressSearch = (type: 'sender' | 'customer') => {
+    if (!window.daum || !window.daum.Postcode) {
+      alert('주소 검색 서비스를 로드하는 중입니다. 잠시 후 다시 시도해주세요.');
+      return;
+    }
+
+    new window.daum.Postcode({
+      oncomplete: function(data: any) {
+        const addr = data.userSelectedType === 'R' ? data.roadAddress : data.jibunAddress;
+        const zonecode = data.zonecode;
+        
+        if (type === 'sender') {
+          setValue('sender_addr', addr);
+        } else if (type === 'customer') {
+          setValue('customer_address', addr);
+        }
+      }
+    }).open();
+  };
+
+  // 폼 제출 (deliveries API 사용)
+  const onSubmit = async (data: DeliveryData) => {
+    setIsSubmitting(true);
+    try {
+      console.log('폼 제출 데이터:', data);
+      
+      // deliveries API를 사용하여 배송 생성
+      const response = await deliveriesAPI.createDelivery(data);
+      
+      console.log('배송 생성 응답:', response);
+      
+      setSubmitResult({
+        success: true,
+        message: response.message || '배송이 성공적으로 접수되었습니다.',
+        trackingNumber: response.trackingNumber
+      });
+
+      if (onNewOrder) {
+        onNewOrder({
+          orderId: response.deliveryId,
+          customerName: data.customer_name,
+          productName: data.product_name,
+          amount: 0 // deliveries 테이블에는 금액 필드가 없음
+        });
+      }
+        
+        setTimeout(() => {
+          if (onSuccess) onSuccess();
+        }, 3000);
+    } catch (error: any) {
+      setSubmitResult({
+        success: false,
+        message: error.response?.data?.message || error.message || '배송 접수 중 오류가 발생했습니다.'
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // 단계별 렌더링 함수들
   const renderStep1 = () => (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            발송인 이름 <span className="text-red-500">*</span>
-          </label>
-          <div className="relative">
-            <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              {...register('sender_name', { required: '발송인 이름은 필수입니다' })}
-              className="w-full pl-10 pr-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="이름을 입력하세요"
-              autoComplete="name"
-            />
-          </div>
-          {errors.sender_name && <p className="mt-1 text-sm text-red-600">{errors.sender_name.message}</p>}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            전화번호 <span className="text-red-500">*</span>
-          </label>
-          <div className="relative">
-            <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="tel"
-              {...register('sender_phone', { required: '전화번호는 필수입니다' })}
-              className="w-full pl-10 pr-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="010-1234-5678"
-              autoComplete="tel"
-            />
-          </div>
-          {errors.sender_phone && <p className="mt-1 text-sm text-red-600">{errors.sender_phone.message}</p>}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">이메일</label>
-          <div className="relative">
-            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="email"
-              {...register('sender_email')}
-              className="w-full pl-10 pr-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="example@email.com"
-              autoComplete="email"
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">회사명</label>
-          <div className="relative">
-            <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              {...register('sender_company')}
-              className="w-full pl-10 pr-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="회사명을 입력하세요"
-              autoComplete="organization"
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            주소 <span className="text-red-500">*</span>
-          </label>
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                {...register('sender_address', { required: '주소는 필수입니다' })}
-                className="w-full pl-10 pr-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="주소를 입력하세요"
-                autoComplete="street-address"
-                readOnly
-              />
-            </div>
-            <button
-              type="button"
-              onClick={openSenderPostcode}
-              className="px-4 py-3 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 whitespace-nowrap"
-            >
-              주소검색
-            </button>
-          </div>
-          {errors.sender_address && <p className="mt-1 text-sm text-red-600">{errors.sender_address.message}</p>}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            우편번호 <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            {...register('sender_zipcode', { required: '우편번호는 필수입니다' })}
-            className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="12345"
-            autoComplete="postal-code"
-            inputMode="numeric"
-            readOnly
-          />
-          {errors.sender_zipcode && <p className="mt-1 text-sm text-red-600">{errors.sender_zipcode.message}</p>}
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">상세주소</label>
-        <input
-          type="text"
-          {...register('sender_detail_address')}
-          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          placeholder="아파트명, 동/호수 등 상세주소"
-          autoComplete="street-address-line2"
-        />
-      </div>
-    </div>
-  );
-
-  // 단계 2: 수취인 정보 (발송인과 동일한 구조)
-  const renderStep2 = () => (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            수취인 이름 <span className="text-red-500">*</span>
-          </label>
-          <div className="relative">
-            <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              {...register('receiver_name', { required: '수취인 이름은 필수입니다' })}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="이름을 입력하세요"
-            />
-          </div>
-          {errors.receiver_name && <p className="mt-1 text-sm text-red-600">{errors.receiver_name.message}</p>}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            전화번호 <span className="text-red-500">*</span>
-          </label>
-          <div className="relative">
-            <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="tel"
-              {...register('receiver_phone', { required: '전화번호는 필수입니다' })}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="전화번호를 입력하세요"
-            />
-          </div>
-          {errors.receiver_phone && <p className="mt-1 text-sm text-red-600">{errors.receiver_phone.message}</p>}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">이메일</label>
-          <div className="relative">
-            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="email"
-              {...register('receiver_email')}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="이메일을 입력하세요"
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">회사명</label>
-          <div className="relative">
-            <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              {...register('receiver_company')}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="회사명을 입력하세요"
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            주소 <span className="text-red-500">*</span>
-          </label>
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                {...register('receiver_address', { required: '주소는 필수입니다' })}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="주소를 입력하세요"
-                readOnly
-              />
-            </div>
-            <button
-              type="button"
-              onClick={openReceiverPostcode}
-              className="px-4 py-3 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 whitespace-nowrap"
-            >
-              주소검색
-            </button>
-          </div>
-          {errors.receiver_address && <p className="mt-1 text-sm text-red-600">{errors.receiver_address.message}</p>}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            우편번호 <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            {...register('receiver_zipcode', { required: '우편번호는 필수입니다' })}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="우편번호"
-            readOnly
-          />
-          {errors.receiver_zipcode && <p className="mt-1 text-sm text-red-600">{errors.receiver_zipcode.message}</p>}
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">상세주소</label>
-        <input
-          type="text"
-          {...register('receiver_detail_address')}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          placeholder="상세주소를 입력하세요"
-        />
-      </div>
-    </div>
-  );
-
-  // 단계 3: 배송 정보
-  const renderStep3 = () => (
     <div className="space-y-6">
-      {/* 화물 정보 */}
-      <div className="bg-gray-50 rounded-lg p-4">
+      {/* QR 코드 섹션 */}
+      <div className="bg-green-50 rounded-lg p-4 border border-green-200">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-            <Package className="w-5 h-5" />
-            화물 정보
+            <QrCode className="w-5 h-5 text-green-600" />
+            QR 코드 불러오기
           </h3>
           
-          {/* QR 코드 불러오기 섹션 */}
           <div className="flex items-center gap-2">
             <input
               type="text"
@@ -580,7 +336,7 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
               type="button"
               onClick={startQRCodeScan}
               disabled={isLoadingQR || isScanning}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50"
             >
               <Camera className="w-4 h-4" />
               {isScanning ? '스캔 중...' : '촬영'}
@@ -589,13 +345,345 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
               type="button"
               onClick={handleLoadFromQR}
               disabled={isLoadingQR || isScanning}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50"
             >
               <QrCode className="w-4 h-4" />
               {isLoadingQR ? '불러오는 중...' : 'QR코드'}
             </button>
           </div>
         </div>
+      </div>
+
+      {/* 발송인 정보 */}
+      <div className="bg-gray-50 rounded-lg p-4">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          <User className="w-5 h-5" />
+          발송인 정보
+        </h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              발송인 이름 <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              {...register('sender_name', { required: '발송인 이름은 필수입니다' })}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="발송인 이름을 입력하세요"
+            />
+            {errors.sender_name && <p className="mt-1 text-sm text-red-600">{errors.sender_name.message}</p>}
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              발송인 주소 <span className="text-red-500">*</span>
+            </label>
+            <div className="flex gap-2 mb-2">
+              <input
+                type="text"
+                {...register('sender_addr', { required: '발송인 주소는 필수입니다' })}
+                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="주소를 입력하세요"
+                readOnly
+              />
+              <button
+                type="button"
+                onClick={() => openAddressSearch('sender')}
+                className="px-4 py-3 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700"
+              >
+                주소검색
+              </button>
+            </div>
+            <input
+              type="text"
+              {...register('sender_detail_addr')}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="상세주소를 입력하세요 (동, 호수, 건물명 등)"
+            />
+            {errors.sender_addr && <p className="mt-1 text-sm text-red-600">{errors.sender_addr.message}</p>}
+          </div>
+        </div>
+      </div>
+
+
+      {/* 고객 정보 */}
+      <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          <User className="w-5 h-5 text-blue-600" />
+          고객 정보 (방문지)
+        </h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              고객 이름 <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              {...register('customer_name', { required: '고객 이름은 필수입니다' })}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="방문할 고객 이름"
+            />
+            {errors.customer_name && <p className="mt-1 text-sm text-red-600">{errors.customer_name.message}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              고객 전화번호 <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="tel"
+              {...register('customer_phone', { required: '고객 전화번호는 필수입니다' })}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="010-1234-5678"
+            />
+            {errors.customer_phone && <p className="mt-1 text-sm text-red-600">{errors.customer_phone.message}</p>}
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              고객 주소 (방문지) <span className="text-red-500">*</span>
+            </label>
+            <div className="flex gap-2 mb-2">
+              <input
+                type="text"
+                {...register('customer_address', { required: '고객 주소는 필수입니다' })}
+                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="방문할 주소를 입력하세요"
+                readOnly
+              />
+              <button
+                type="button"
+                onClick={() => openAddressSearch('customer')}
+                className="px-4 py-3 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700"
+              >
+                주소검색
+              </button>
+            </div>
+            <input
+              type="text"
+              {...register('customer_detail_address')}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="상세주소를 입력하세요 (동, 호수, 건물명 등)"
+            />
+            {errors.customer_address && <p className="mt-1 text-sm text-red-600">{errors.customer_address.message}</p>}
+          </div>
+        </div>
+      </div>
+
+      {/* 기본 배송 정보 */}
+      <div className="bg-gray-50 rounded-lg p-4">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          <Package className="w-5 h-5" />
+          배송 유형
+        </h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">요청 유형</label>
+            <select
+              {...register('request_type')}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="">선택하세요</option>
+              <option value="delivery">일반배송</option>
+              <option value="installation">설치배송</option>
+              <option value="construction">시공배송</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">시공 유형</label>
+            <select
+              {...register('construction_type')}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="">선택하세요</option>
+              <option value="assembly">조립</option>
+              <option value="installation">설치</option>
+              <option value="repair">수리</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">배송 유형</label>
+            <select
+              {...register('shipment_type')}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="">선택하세요</option>
+              <option value="standard">일반</option>
+              <option value="express">특급</option>
+              <option value="scheduled">예약배송</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">방문 날짜</label>
+            <input
+              type="date"
+              {...register('visit_date')}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">방문 시간</label>
+            <input
+              type="time"
+              {...register('visit_time')}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">가구회사</label>
+            <input
+              type="text"
+              {...register('furniture_company')}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="가구회사명"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">긴급 연락처</label>
+            <input
+              type="tel"
+              {...register('emergency_contact')}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="010-0000-0000"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderStep2 = () => (
+    <div className="space-y-6">
+      {/* 건물 정보 */}
+      <div className="bg-gray-50 rounded-lg p-4">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          <Home className="w-5 h-5" />
+          건물 정보
+        </h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              건물 유형 <span className="text-red-500">*</span>
+            </label>
+            <select
+              {...register('building_type', { required: '건물 유형은 필수입니다' })}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="">선택하세요</option>
+              <option value="apartment">아파트</option>
+              <option value="villa">빌라</option>
+              <option value="house">단독주택</option>
+              <option value="officetel">오피스텔</option>
+              <option value="commercial">상가</option>
+            </select>
+            {errors.building_type && <p className="mt-1 text-sm text-red-600">{errors.building_type.message}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              층수 <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="number"
+              min="1"
+              {...register('floor_count', { required: '층수는 필수입니다', min: 1 })}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="몇 층인지 입력하세요"
+            />
+            {errors.floor_count && <p className="mt-1 text-sm text-red-600">{errors.floor_count.message}</p>}
+          </div>
+        </div>
+      </div>
+
+      {/* 현장 접근성 */}
+      <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          <Truck className="w-5 h-5 text-blue-600" />
+          현장 접근성
+        </h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <label className="flex items-center gap-3 p-3 border border-gray-300 rounded-lg hover:bg-white transition-colors cursor-pointer">
+            <input
+              type="checkbox"
+              {...register('elevator_available')}
+              className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <span className="text-gray-700">엘리베이터 이용 가능</span>
+          </label>
+
+          <label className="flex items-center gap-3 p-3 border border-gray-300 rounded-lg hover:bg-white transition-colors cursor-pointer">
+            <input
+              type="checkbox"
+              {...register('ladder_truck')}
+              className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <span className="text-gray-700">사다리차 이용 가능</span>
+          </label>
+        </div>
+      </div>
+
+      {/* 작업 유형 */}
+      <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          <Wrench className="w-5 h-5 text-yellow-600" />
+          작업 유형
+        </h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <label className="flex items-center gap-3 p-3 border border-gray-300 rounded-lg hover:bg-white transition-colors cursor-pointer">
+            <input
+              type="checkbox"
+              {...register('disposal')}
+              className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <span className="text-gray-700">폐기물 처리</span>
+          </label>
+
+          <label className="flex items-center gap-3 p-3 border border-gray-300 rounded-lg hover:bg-white transition-colors cursor-pointer">
+            <input
+              type="checkbox"
+              {...register('room_movement')}
+              className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <span className="text-gray-700">방 간 이동</span>
+          </label>
+
+          <label className="flex items-center gap-3 p-3 border border-gray-300 rounded-lg hover:bg-white transition-colors cursor-pointer">
+            <input
+              type="checkbox"
+              {...register('wall_construction')}
+              className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <span className="text-gray-700">벽체 시공</span>
+          </label>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderStep3 = () => (
+    <div className="space-y-6">
+      {/* 제품 기본 정보 */}
+      <div className="bg-gray-50 rounded-lg p-4">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          <Package className="w-5 h-5" />
+          제품 기본 정보
+        </h3>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="md:col-span-2">
@@ -612,171 +700,150 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">제품SKU (관리코드)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">가구 제품 코드</label>
             <input
               type="text"
-              {...register('product_sku')}
+              {...register('furniture_product_code')}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="SKU 코드를 입력하세요"
+              placeholder="제품 코드"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">수량</label>
-            <input
-              type="number"
-              min="1"
-              {...register('product_quantity')}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="수량을 입력하세요"
-              defaultValue={1}
-            />
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">판매저정보</label>
-            <input
-              type="text"
-              {...register('seller_info')}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="판매저 정보를 입력하세요"
-            />
-          </div>
-        </div>
-
-      </div>
-
-      {/* 배송가능 여부확인 */}
-      <div className="bg-gray-50 rounded-lg p-4">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-          <Truck className="w-5 h-5" />
-          배송가능 여부확인
-        </h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="flex items-center gap-3">
-            <input
-              type="checkbox"
-              id="has_elevator"
-              {...register('has_elevator')}
-              className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-            />
-            <label htmlFor="has_elevator" className="text-sm font-medium text-gray-700">
-              엘리베이터 이용 가능
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              배송 유형 <span className="text-red-500">*</span>
             </label>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <input
-              type="checkbox"
-              id="can_use_ladder_truck"
-              {...register('can_use_ladder_truck')}
-              className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-            />
-            <label htmlFor="can_use_ladder_truck" className="text-sm font-medium text-gray-700">
-              사다리차 이용 가능
-            </label>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">희망배송일</label>
-            <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="date"
-                {...register('preferred_delivery_date')}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
+            <select
+              {...register('package_type', { required: '배송 유형은 필수입니다' })}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="">선택하세요</option>
+              <option value="일반">일반</option>
+              <option value="쿠팡">쿠팡</option>
+              <option value="반품회수">반품회수</option>
+            </select>
+            {errors.package_type && <p className="mt-1 text-sm text-red-600">{errors.package_type.message}</p>}
           </div>
         </div>
       </div>
 
-      {/* 추가 옵션 */}
-      <div className="bg-gray-50 rounded-lg p-4">
+      {/* 제품 상세 정보 */}
+      <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
         <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-          <Shield className="w-5 h-5" />
-          추가 옵션
+          <Weight className="w-5 h-5 text-blue-600" />
+          제품 상세 정보
         </h3>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">보험료 (원)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">무게 (kg)</label>
             <input
               type="number"
               min="0"
-              {...register('insurance_amount')}
+              step="0.1"
+              {...register('product_weight')}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="보험료를 입력하세요"
+              placeholder="0.0"
             />
           </div>
-        </div>
-      </div>
 
-      {/* 특수 옵션 */}
-      <div className="bg-gray-50 rounded-lg p-4">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">특수 옵션</h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <label className="flex items-center gap-3 p-3 border border-gray-300 rounded-lg hover:bg-white transition-colors cursor-pointer">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">전체 무게 (kg)</label>
             <input
-              type="checkbox"
-              {...register('is_fragile')}
-              className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              type="number"
+              min="0"
+              step="0.1"
+              {...register('weight')}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="0.0"
             />
-            <AlertTriangle className="w-5 h-5 text-orange-500" />
-            <span className="text-gray-700">파손주의</span>
-          </label>
+          </div>
 
-          <label className="flex items-center gap-3 p-3 border border-gray-300 rounded-lg hover:bg-white transition-colors cursor-pointer">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">제품 크기</label>
             <input
-              type="checkbox"
-              {...register('is_frozen')}
-              className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              type="text"
+              {...register('product_size')}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="가로x세로x높이 (cm)"
             />
-            <Snowflake className="w-5 h-5 text-blue-500" />
-            <span className="text-gray-700">냉동보관</span>
-          </label>
+          </div>
 
-          <label className="flex items-center gap-3 p-3 border border-gray-300 rounded-lg hover:bg-white transition-colors cursor-pointer">
+          <div className="md:col-span-3">
+            <label className="block text-sm font-medium text-gray-700 mb-2">박스 크기</label>
             <input
-              type="checkbox"
-              {...register('requires_signature')}
-              className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              type="text"
+              {...register('box_size')}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="박스 크기 (가로x세로x높이 cm)"
             />
-            <FileText className="w-5 h-5 text-green-500" />
-            <span className="text-gray-700">서명확인</span>
-          </label>
-        </div>
-      </div>
-
-      {/* 메모 */}
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">배송 메모</label>
-          <textarea
-            {...register('delivery_memo')}
-            rows={3}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="배송 관련 특이사항이나 요청사항을 입력하세요"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">특별 지시사항</label>
-          <textarea
-            {...register('special_instructions')}
-            rows={3}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="기타 특별한 지시사항을 입력하세요"
-          />
+          </div>
         </div>
       </div>
     </div>
   );
 
-  // 단계 4: 완료 및 확인
   const renderStep4 = () => (
+    <div className="space-y-6">
+      {/* 가구사 요청사항 */}
+      <div className="bg-gray-50 rounded-lg p-4">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          <FileText className="w-5 h-5" />
+          가구사 요청사항
+        </h3>
+        <textarea
+          {...register('furniture_requests')}
+          rows={4}
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          placeholder="가구회사에서 전달한 특별 요청사항이나 주의사항을 입력하세요"
+        />
+      </div>
+
+      {/* 메인 메모 */}
+      <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          <FileText className="w-5 h-5 text-yellow-600" />
+          메인 메모
+        </h3>
+        <textarea
+          {...register('main_memo')}
+          rows={4}
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          placeholder="중요한 배송 정보나 특별 지시사항을 입력하세요"
+        />
+      </div>
+
+      {/* 기사님 메모 */}
+      <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          <User className="w-5 h-5 text-blue-600" />
+          기사님 메모
+        </h3>
+        <textarea
+          {...register('driver_notes')}
+          rows={3}
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          placeholder="기사님을 위한 특별 메모나 주의사항"
+        />
+      </div>
+
+      {/* 배정된 기사 */}
+      <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          <Truck className="w-5 h-5 text-green-600" />
+          배정된 기사
+        </h3>
+        <input
+          type="text"
+          {...register('assigned_driver')}
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          placeholder="배정된 기사명 (선택사항)"
+        />
+      </div>
+    </div>
+  );
+
+  const renderStep5 = () => (
     <div className="space-y-6">
       {submitResult ? (
         <div className={`p-6 rounded-lg ${submitResult.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
@@ -795,7 +862,7 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
               </p>
               {submitResult.trackingNumber && (
                 <p className="text-green-700 mt-2">
-                  <strong>운송장 번호: {submitResult.trackingNumber}</strong>
+                  <strong>추적번호: {submitResult.trackingNumber}</strong>
                 </p>
               )}
             </div>
@@ -831,28 +898,32 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <h4 className="font-semibold text-gray-800 mb-2">발송인</h4>
-                <p>{watchedValues.sender_name} ({watchedValues.sender_phone})</p>
-                <p className="text-gray-600">{watchedValues.sender_address}</p>
+                <p>{watchedValues.sender_name}</p>
+                <p className="text-gray-600">{watchedValues.sender_addr}</p>
               </div>
               
-              <div>
-                <h4 className="font-semibold text-gray-800 mb-2">수취인</h4>
-                <p>{watchedValues.receiver_name} ({watchedValues.receiver_phone})</p>
-                <p className="text-gray-600">{watchedValues.receiver_address}</p>
-              </div>
             </div>
             
             <div>
-              <h4 className="font-semibold text-gray-800 mb-2">화물 정보</h4>
-              <p>{watchedValues.package_type} - {watchedValues.package_weight}kg - {watchedValues.package_size}</p>
-              <p className="text-gray-600">배송유형: {watchedValues.delivery_type}</p>
+              <h4 className="font-semibold text-gray-800 mb-2">고객 (방문지)</h4>
+              <p>{watchedValues.customer_name} ({watchedValues.customer_phone})</p>
+              <p className="text-gray-600">{watchedValues.customer_address}</p>
+            </div>
+            
+            <div>
+              <h4 className="font-semibold text-gray-800 mb-2">제품 정보</h4>
+              <p>{watchedValues.product_name}</p>
+              <p className="text-gray-600">포장: {watchedValues.package_type}</p>
+              {watchedValues.product_weight && (
+                <p className="text-gray-600">무게: {watchedValues.product_weight}kg</p>
+              )}
             </div>
           </div>
           
           <button
             onClick={handleSubmit(onSubmit)}
             disabled={isSubmitting}
-            className="w-full mt-6 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white font-medium py-4 text-lg rounded-lg transition-colors touch-manipulation"
+            className="w-full mt-6 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white font-medium py-4 text-lg rounded-lg transition-colors"
           >
             {isSubmitting ? '접수 처리 중...' : '배송접수 완료'}
           </button>
@@ -868,7 +939,6 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
         <div 
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
           onClick={(e) => {
-            // 모달 배경 클릭 시에도 닫기
             if (e.target === e.currentTarget) {
               stopQRCodeScan();
             }
@@ -902,10 +972,7 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
             
             <div className="flex justify-center gap-2">
               <button
-                onClick={() => {
-                  console.log('스캔 중지 버튼 클릭됨');
-                  stopQRCodeScan();
-                }}
+                onClick={stopQRCodeScan}
                 className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
               >
                 스캔 중지
@@ -956,10 +1023,11 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
         </h2>
         
         <form onSubmit={handleSubmit(onSubmit)}>
-          {currentStep === 1 && renderStep3()}
+          {currentStep === 1 && renderStep1()}
           {currentStep === 2 && renderStep2()}
-          {currentStep === 3 && renderStep1()}
+          {currentStep === 3 && renderStep3()}
           {currentStep === 4 && renderStep4()}
+          {currentStep === 5 && renderStep5()}
         </form>
       </div>
 
@@ -969,21 +1037,40 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
           <button
             onClick={prevStep}
             disabled={currentStep === 1}
-            className="flex items-center gap-2 px-6 py-4 bg-gray-500 hover:bg-gray-600 disabled:bg-gray-300 text-white font-medium rounded-lg transition-colors touch-manipulation"
+            className="flex items-center gap-2 px-6 py-4 bg-gray-500 hover:bg-gray-600 disabled:bg-gray-300 text-white font-medium rounded-lg transition-colors"
           >
             <ChevronLeft className="w-5 h-5" />
-            <span className="hidden sm:inline">이전</span>
+            이전
           </button>
           
-          {currentStep < 4 ? (
+          {currentStep < 5 ? (
             <button
               onClick={nextStep}
-              className="flex items-center gap-2 px-6 py-4 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors touch-manipulation"
+              className="flex items-center gap-2 px-6 py-4 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors"
             >
-              <span className="hidden sm:inline">다음</span>
+              다음
               <ChevronRight className="w-5 h-5" />
             </button>
-          ) : null}
+          ) : (
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              onClick={() => handleSubmit(onSubmit)()}
+              className="flex items-center gap-2 px-6 py-4 bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white font-medium rounded-lg transition-colors"
+            >
+              {isSubmitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  처리 중...
+                </>
+              ) : (
+                <>
+                  <Check className="w-5 h-5" />
+                  배송 접수 완료
+                </>
+              )}
+            </button>
+          )}
         </div>
       )}
     </div>

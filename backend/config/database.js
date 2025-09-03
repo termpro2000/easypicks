@@ -236,16 +236,21 @@ async function executeWithRetry(queryFn, retries = 3, delay = 1000) {
 
 /**
  * 유니크한 운송장 번호를 생성하는 함수
- * 형식: SH + YYYYMMDD + 6자리 랜덤 문자열
- * 예시: SH20240101ABC123
+ * 형식: MD + YYYY + MM + DD + 5자리 일련번호
+ * 예시: MD2024090200001
  * @returns {string} 생성된 운송장 번호
  */
 function generateTrackingNumber() {
-  // 현재 날짜를 YYYYMMDD 형식으로 변환
-  const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-  // 6자리 랜덤 영숫자 조합 생성
-  const random = Math.random().toString(36).substr(2, 6).toUpperCase();
-  return `SH${date}${random}`;
+  const now = new Date();
+  const year = now.getFullYear().toString();
+  const month = (now.getMonth() + 1).toString().padStart(2, '0');
+  const day = now.getDate().toString().padStart(2, '0');
+  
+  // 5자리 일련번호 생성 (현재 시간 기반으로 유니크성 보장)
+  const timestamp = Date.now();
+  const serialNumber = (timestamp % 100000).toString().padStart(5, '0');
+  
+  return `MD${year}${month}${day}${serialNumber}`;
 }
 
 module.exports = {

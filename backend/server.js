@@ -6,6 +6,7 @@ require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
 const shippingRoutes = require('./routes/shipping');
+const deliveriesRoutes = require('./routes/deliveries');
 const userRoutes = require('./routes/users');
 const exportRoutes = require('./routes/exports');
 const qrcodeRoutes = require('./routes/qrcode');
@@ -65,6 +66,7 @@ app.get('/', (req, res) => {
     endpoints: {
       auth: '/api/auth',
       shipping: '/api/shipping',
+      deliveries: '/api/deliveries',
       users: '/api/users',
       exports: '/api/exports',
       qrcode: '/api/qrcode'
@@ -78,6 +80,7 @@ app.get('/health', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/shipping', shippingRoutes);
+app.use('/api/deliveries', deliveriesRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/exports', exportRoutes);
 app.use('/api/qrcode', qrcodeRoutes);

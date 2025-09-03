@@ -304,6 +304,53 @@ export const userAPI = {
 };
 
 /**
+ * 배송 관리 API 함수들 (새로운 deliveries 테이블)
+ * deliveries 테이블을 사용한 배송 생성, 조회, 수정, 추적 기능 제공
+ */
+export const deliveriesAPI = {
+  // 새 배송 생성
+  createDelivery: async (data: any) => {
+    const response = await apiClient.post('/deliveries', data);
+    return response.data;
+  },
+
+  // 배송 목록 조회 (페이지네이션, 상태 필터링)
+  getDeliveries: async (page = 1, limit = 10, status = 'all') => {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+      ...(status !== 'all' && { status })
+    });
+    const response = await apiClient.get(`/deliveries?${params}`);
+    return response.data;
+  },
+
+  // 특정 배송 상세 조회
+  getDelivery: async (id: number) => {
+    const response = await apiClient.get(`/deliveries/${id}`);
+    return response.data;
+  },
+
+  // 배송 정보 전체 업데이트
+  updateDelivery: async (id: number, data: any) => {
+    const response = await apiClient.put(`/deliveries/${id}`, data);
+    return response.data;
+  },
+
+  // 배송 상태만 업데이트
+  updateDeliveryStatus: async (id: number, status: string) => {
+    const response = await apiClient.patch(`/deliveries/${id}/status`, { status });
+    return response.data;
+  },
+
+  // 운송장 번호로 배송 추적 (공개 API)
+  trackDelivery: async (trackingNumber: string) => {
+    const response = await apiClient.get(`/deliveries/track/${trackingNumber}`);
+    return response.data;
+  }
+};
+
+/**
  * QR 코드 API
  */
 export const qrcodeAPI = {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Package, TrendingUp, Clock, CheckCircle, AlertCircle, Eye, Search, Filter, RefreshCw, Pause, Play, Truck, Download, FileSpreadsheet, FileText } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
-import { api, shippingAPI } from '../../services/api';
+import { api, deliveriesAPI } from '../../services/api';
 import type { ShippingOrder } from '../../types';
 import OrderDetailModal from './OrderDetailModal';
 
@@ -10,12 +10,10 @@ import OrderDetailModal from './OrderDetailModal';
  */
 interface DashboardStats {
   total: number;
-  접수완료: number;
-  배송준비: number;
-  배송중: number;
-  배송완료: number;
-  취소: number;
-  반송: number;
+  pending: number;
+  in_transit: number;
+  delivered: number;
+  cancelled: number;
 }
 
 /**
@@ -43,12 +41,10 @@ const Dashboard: React.FC<DashboardProps> = ({ onOrderStatusChange }) => {
   const [orders, setOrders] = useState<ShippingOrder[]>([]);
   const [stats, setStats] = useState<DashboardStats>({
     total: 0,
-    접수완료: 0,
-    배송준비: 0,
-    배송중: 0,
-    배송완료: 0,
-    취소: 0,
-    반송: 0
+    pending: 0,
+    in_transit: 0,
+    delivered: 0,
+    cancelled: 0
   });
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -127,8 +123,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onOrderStatusChange }) => {
         setLoading(true);
       }
       
-      const response = await api.get('/shipping/orders');
-      const ordersData = response.data.orders || [];
+      const response = await deliveriesAPI.getDeliveries(1, 1000); // 최대 1000개 데이터 조회
+      const ordersData = response.deliveries || [];
       
       setOrders(ordersData);
       setLastUpdated(new Date());
@@ -136,12 +132,10 @@ const Dashboard: React.FC<DashboardProps> = ({ onOrderStatusChange }) => {
       // 통계 계산
       const newStats = {
         total: ordersData.length,
-        접수완료: ordersData.filter((o: ShippingOrder) => o.status === '접수완료').length,
-        배송준비: ordersData.filter((o: ShippingOrder) => o.status === '배송준비').length,
-        배송중: ordersData.filter((o: ShippingOrder) => o.status === '배송중').length,
-        배송완료: ordersData.filter((o: ShippingOrder) => o.status === '배송완료').length,
-        취소: ordersData.filter((o: ShippingOrder) => o.status === '취소').length,
-        반송: ordersData.filter((o: ShippingOrder) => o.status === '반송').length
+        pending: ordersData.filter((o: any) => o.status === 'pending').length,
+        in_transit: ordersData.filter((o: any) => o.status === 'in_transit').length,
+        delivered: ordersData.filter((o: any) => o.status === 'delivered').length,
+        cancelled: ordersData.filter((o: any) => o.status === 'cancelled').length
       };
       setStats(newStats);
     } catch (error: any) {
@@ -159,15 +153,13 @@ const Dashboard: React.FC<DashboardProps> = ({ onOrderStatusChange }) => {
    */
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      '접수완료': { color: 'bg-yellow-100 text-yellow-800', text: '접수완료', icon: Clock },
-      '배송준비': { color: 'bg-blue-100 text-blue-800', text: '배송준비', icon: TrendingUp },
-      '배송중': { color: 'bg-orange-100 text-orange-800', text: '배송중', icon: Truck },
-      '배송완료': { color: 'bg-green-100 text-green-800', text: '배송완료', icon: CheckCircle },
-      '취소': { color: 'bg-red-100 text-red-800', text: '취소', icon: AlertCircle },
-      '반송': { color: 'bg-red-100 text-red-800', text: '반송', icon: AlertCircle }
+      'pending': { color: 'bg-yellow-100 text-yellow-800', text: '접수대기', icon: Clock },
+      'in_transit': { color: 'bg-blue-100 text-blue-800', text: '배송중', icon: Truck },
+      'delivered': { color: 'bg-green-100 text-green-800', text: '배송완료', icon: CheckCircle },
+      'cancelled': { color: 'bg-red-100 text-red-800', text: '취소', icon: AlertCircle }
     };
     
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig['접수완료'];
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig['pending'];
     const Icon = config.icon;
     
     return (
@@ -178,11 +170,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onOrderStatusChange }) => {
     );
   };
 
-  const filteredOrders = orders.filter(order => {
+  const filteredOrders = orders.filter((order: any) => {
     const matchesSearch = 
       order.tracking_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.receiver_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.sender_name?.toLowerCase().includes(searchTerm.toLowerCase());
+      order.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.sender_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.product_name?.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
     
@@ -217,7 +210,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onOrderStatusChange }) => {
 
   const handleStatusUpdate = async (orderId: number, newStatus: string) => {
     try {
-      await shippingAPI.updateOrderStatus(orderId, newStatus);
+      await deliveriesAPI.updateDeliveryStatus(orderId, newStatus);
       
       // 주문 목록 새로고침
       await fetchOrders(true);
@@ -325,8 +318,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onOrderStatusChange }) => {
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">접수완료</p>
-              <p className="text-3xl font-bold text-yellow-600">{stats.접수완료}</p>
+              <p className="text-sm text-gray-600">접수대기</p>
+              <p className="text-3xl font-bold text-yellow-600">{stats.pending}</p>
             </div>
             <Clock className="w-12 h-12 text-yellow-500" />
           </div>
@@ -336,7 +329,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onOrderStatusChange }) => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">배송중</p>
-              <p className="text-3xl font-bold text-blue-600">{stats.배송중}</p>
+              <p className="text-3xl font-bold text-blue-600">{stats.in_transit}</p>
             </div>
             <Truck className="w-12 h-12 text-blue-500" />
           </div>
@@ -346,7 +339,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onOrderStatusChange }) => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">배송완료</p>
-              <p className="text-3xl font-bold text-green-600">{stats.배송완료}</p>
+              <p className="text-3xl font-bold text-green-600">{stats.delivered}</p>
             </div>
             <CheckCircle className="w-12 h-12 text-green-500" />
           </div>
@@ -425,7 +418,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onOrderStatusChange }) => {
                   <Search className="w-5 h-5 absolute left-3 top-3 text-gray-400" />
                   <input
                     type="text"
-                    placeholder="운송장번호, 수취인, 발송인 검색..."
+                    placeholder="운송장번호, 고객명, 상품명 검색..."
                     className="w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -441,12 +434,10 @@ const Dashboard: React.FC<DashboardProps> = ({ onOrderStatusChange }) => {
                     onChange={(e) => setStatusFilter(e.target.value)}
                   >
                     <option value="all">모든 상태</option>
-                    <option value="접수완료">접수완료</option>
-                    <option value="배송준비">배송준비</option>
-                    <option value="배송중">배송중</option>
-                    <option value="배송완료">배송완료</option>
-                    <option value="취소">취소</option>
-                    <option value="반송">반송</option>
+                    <option value="pending">접수대기</option>
+                    <option value="in_transit">배송중</option>
+                    <option value="delivered">배송완료</option>
+                    <option value="cancelled">취소</option>
                   </select>
                 </div>
               </div>
@@ -463,10 +454,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onOrderStatusChange }) => {
                   운송장번호
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  발송인
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  수취인
+                  고객이름
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   상품명
@@ -485,24 +473,21 @@ const Dashboard: React.FC<DashboardProps> = ({ onOrderStatusChange }) => {
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
                     {searchTerm || statusFilter !== 'all' ? '검색 결과가 없습니다.' : '배송 주문이 없습니다.'}
                   </td>
                 </tr>
               ) : (
-                filteredOrders.map((order) => (
+                filteredOrders.map((order: any) => (
                   <tr key={order.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {order.tracking_number || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {order.sender_name}
+                      {order.customer_name || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {order.receiver_name}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {order.package_description || order.package_type || '-'}
+                      {order.product_name || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {getStatusBadge(order.status)}
@@ -533,7 +518,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onOrderStatusChange }) => {
               {searchTerm || statusFilter !== 'all' ? '검색 결과가 없습니다.' : '배송 주문이 없습니다.'}
             </div>
           ) : (
-            filteredOrders.map((order) => (
+            filteredOrders.map((order: any) => (
               <div key={order.id} className="bg-white rounded-lg shadow hover:shadow-md transition-shadow">
                 <div className="p-4">
                   {/* 카드 헤더 */}
@@ -550,18 +535,14 @@ const Dashboard: React.FC<DashboardProps> = ({ onOrderStatusChange }) => {
                   {/* 카드 내용 */}
                   <div className="space-y-2 mb-4">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-500">발송인</span>
-                      <span className="text-sm font-medium text-gray-900">{order.sender_name}</span>
+                      <span className="text-sm text-gray-500">고객이름</span>
+                      <span className="text-sm font-medium text-gray-900">{order.customer_name || '-'}</span>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-500">수취인</span>
-                      <span className="text-sm font-medium text-gray-900">{order.receiver_name}</span>
-                    </div>
-                    {(order.package_description || order.package_type) && (
+                    {order.product_name && (
                       <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-500">상품</span>
+                        <span className="text-sm text-gray-500">상품명</span>
                         <span className="text-sm font-medium text-gray-900 text-right">
-                          {order.package_description || order.package_type}
+                          {order.product_name}
                         </span>
                       </div>
                     )}

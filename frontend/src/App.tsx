@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, Package, BarChart3, Plus, Users, Search, User } from 'lucide-react';
+import { LogOut, Package, BarChart3, Plus, Users, Search, User, UserCheck } from 'lucide-react';
 import { AuthContext, useAuthProvider, useAuth } from './hooks/useAuth';
 import { useNotification } from './hooks/useNotification';
 import AuthPage from './components/auth/AuthPage';
@@ -7,6 +7,7 @@ import ShippingOrderForm from './components/shipping/ShippingOrderForm';
 import Dashboard from './components/dashboard/Dashboard';
 import UserManagement from './components/admin/UserManagement';
 import TrackingPage from './components/tracking/TrackingPage';
+import DriverAssignment from './components/assignment/DriverAssignment';
 import ToastContainer from './components/notifications/ToastContainer';
 import NotificationPermission from './components/notifications/NotificationPermission';
 import UserProfile from './components/profile/UserProfile';
@@ -21,7 +22,7 @@ const AppContent: React.FC = () => {
     notifyOrderStatusChange,
     notifyNewOrder
   } = useNotification();
-  type PageType = 'dashboard' | 'new-order' | 'users' | 'tracking';
+  type PageType = 'dashboard' | 'new-order' | 'users' | 'tracking' | 'assignment';
   const [currentPage, setCurrentPage] = useState<PageType>('dashboard');
   const [showPermissionRequest, setShowPermissionRequest] = useState(false);
   const [showUserProfile, setShowUserProfile] = useState(false);
@@ -126,6 +127,21 @@ const AppContent: React.FC = () => {
                 <Search className="w-5 h-5" />
                 <span className="hidden md:inline">배송 추적</span>
               </button>
+
+              {/* 관리자/매니저만 배정 메뉴 표시 */}
+              {(user?.role === 'admin' || user?.role === 'manager') && (
+                <button
+                  onClick={() => setCurrentPage('assignment' as PageType)}
+                  className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg transition-colors touch-manipulation ${
+                    currentPage === 'assignment'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  }`}
+                >
+                  <UserCheck className="w-5 h-5" />
+                  <span className="hidden md:inline">배정</span>
+                </button>
+              )}
               
               {/* 테스트용 알림 버튼 (개발 중) */}
               {(user?.role === 'admin' || user?.role === 'manager') && (
@@ -229,6 +245,8 @@ const AppContent: React.FC = () => {
             />
           ) : currentPage === 'users' ? (
             <UserManagement />
+          ) : currentPage === 'assignment' ? (
+            <DriverAssignment />
           ) : (currentPage as string) === 'tracking' ? (
             <TrackingPage onNavigateBack={() => setCurrentPage('dashboard' as PageType)} />
           ) : (
