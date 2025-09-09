@@ -18,14 +18,15 @@ async function createDelivery(req, res) {
 
     const {
       // 기본 배송 정보
-      sender_name, sender_address, receiver_name, receiver_address, receiver_phone,
-      package_type, weight, status = 'pending',
+      sender_name, sender_address, weight, status = 'pending',
+      
+      // 고객 정보 (방문지)
+      customer_name, customer_phone, customer_address,
       
       // 확장 필드들 
-      request_type, construction_type, shipment_type,
+      request_type, construction_type,
       visit_date, visit_time, assigned_driver,
       furniture_company, main_memo, emergency_contact,
-      customer_name, customer_phone, customer_address,
       building_type, floor_count, elevator_available,
       ladder_truck, disposal, room_movement, wall_construction,
       product_name, furniture_product_code, product_weight, product_size,
@@ -33,14 +34,14 @@ async function createDelivery(req, res) {
       installation_photos, customer_signature,
       
       // 추가 필드들 (실제 DB 스키마에 있는 것들)
-      delivery_fee, special_instructions, delivery_time_preference,
+      delivery_fee, special_instructions,
       fragile, insurance_value, cod_amount,
       driver_id, driver_name
     } = req.body;
 
     // 필수 필드 검증
     const requiredFields = [
-      'sender_name', 'sender_address'
+      'sender_name', 'sender_address', 'customer_name', 'customer_phone', 'customer_address'
     ];
 
     const missingFields = requiredFields.filter(field => !req.body[field]);
@@ -54,19 +55,64 @@ async function createDelivery(req, res) {
     // 운송장 번호 생성
     const tracking_number = generateTrackingNumber();
 
-    // 배송 정보 삽입 (필수 필드들)
+    // 배송 정보 삽입 (모든 필드들)
     const [result] = await pool.execute(`
       INSERT INTO deliveries (
-        tracking_number, sender_name, sender_address, 
-        receiver_name, receiver_address, receiver_phone, status,
-        customer_name, customer_phone, customer_address
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        tracking_number, sender_name, sender_address, weight, status,
+        request_type, construction_type, visit_date, visit_time, assigned_driver,
+        furniture_company, main_memo, emergency_contact, customer_name, customer_phone, 
+        customer_address, building_type, floor_count, elevator_available, ladder_truck,
+        disposal, room_movement, wall_construction, product_name, furniture_product_code,
+        product_weight, product_size, box_size, furniture_requests, driver_notes,
+        installation_photos, customer_signature, delivery_fee, special_instructions,
+        fragile, insurance_value, cod_amount, driver_id, driver_name, estimated_delivery,
+        actual_delivery, delivery_attempts, last_location, detail_notes
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
-      tracking_number, sender_name, sender_address, 
-      receiver_name || customer_name || 'Unknown', 
-      receiver_address || customer_address || 'Unknown',
-      receiver_phone || customer_phone || 'Unknown', status,
-      customer_name || 'Unknown', customer_phone || 'Unknown', customer_address || 'Unknown'
+      tracking_number, 
+      sender_name, 
+      sender_address, 
+      weight || null, 
+      status,
+      request_type || null, 
+      construction_type || null, 
+      visit_date || null, 
+      visit_time || null, 
+      assigned_driver || null,
+      furniture_company || null, 
+      main_memo || null, 
+      emergency_contact || null, 
+      customer_name, 
+      customer_phone, 
+      customer_address, 
+      building_type || null, 
+      floor_count || null, 
+      elevator_available || null, 
+      ladder_truck || null,
+      disposal || null, 
+      room_movement || null, 
+      wall_construction || null, 
+      product_name || null, 
+      furniture_product_code || null,
+      product_weight || null, 
+      product_size || null, 
+      box_size || null, 
+      furniture_requests || null, 
+      driver_notes || null,
+      installation_photos || null, 
+      customer_signature || null, 
+      delivery_fee || null, 
+      special_instructions || null,
+      fragile || false, 
+      insurance_value || null, 
+      cod_amount || null, 
+      driver_id || null, 
+      driver_name || null, 
+      null, // estimated_delivery
+      null, // actual_delivery
+      0,    // delivery_attempts
+      null, // last_location
+      null  // detail_notes
     ]);
 
     res.status(201).json({
@@ -192,9 +238,8 @@ async function getDelivery(req, res) {
 
     const { id } = req.params;
 
-    const [deliveries] = await pool.execute(
-      'SELECT * FROM deliveries WHERE id = ?',
-      [id]
+    const [deliveries] = await executeWithRetry(() =>
+      pool.execute('SELECT * FROM deliveries WHERE id = ?', [id])
     );
 
     if (deliveries.length === 0) {
@@ -206,13 +251,16 @@ async function getDelivery(req, res) {
 
     // installation_photos가 JSON 문자열인 경우 파싱
     const delivery = deliveries[0];
-    if (delivery.installation_photos) {
+    if (delivery.installation_photos && delivery.installation_photos !== '') {
       try {
         delivery.installation_photos = JSON.parse(delivery.installation_photos);
       } catch (e) {
-        // JSON 파싱 실패 시 원래 값 유지
+        // JSON 파싱 실패 시 빈 배열로 설정
         console.warn('installation_photos JSON 파싱 실패:', e);
+        delivery.installation_photos = [];
       }
+    } else {
+      delivery.installation_photos = [];
     }
 
     res.json({ delivery });
@@ -412,7 +460,7 @@ async function updateDelivery(req, res) {
     const allowedFields = [
       'tracking_number', 'sender_name', 'sender_address',
       'receiver_name', 'receiver_address', 'receiver_phone',
-      'package_type', 'weight', 'status',
+      'weight', 'status',
       'request_type', 'construction_type', 'shipment_type',
       'visit_date', 'visit_time', 'assigned_driver',
       'furniture_company', 'main_memo', 'emergency_contact',

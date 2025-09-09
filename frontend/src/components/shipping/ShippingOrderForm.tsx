@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
 import { 
   User, Phone, Mail, Building, MapPin, Package, Truck, 
   Calendar, Clock, AlertTriangle, Snowflake, FileText, 
@@ -7,8 +8,9 @@ import {
   Home, Wrench, Weight, Box, Ruler, Settings, Image, PenTool
 } from 'lucide-react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
-import { shippingAPI, deliveriesAPI, qrcodeAPI } from '../../services/api';
+import { shippingAPI, deliveriesAPI, qrcodeAPI, configAPI, requestTypesAPI } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
+import SimpleNaverMap from '../map/SimpleNaverMap';
 
 // Deliveries 테이블에 맞는 데이터 타입
 interface DeliveryData {
@@ -16,11 +18,10 @@ interface DeliveryData {
   sender_name: string;
   sender_address: string;
   sender_detail_address?: string;
-  package_type: string;
   weight?: number;
   status: string;
   
-  // 확장 필드들 (27개 추가 필드)
+  // 확장 필드들 (업데이트된 필드들 포함)
   request_type?: string;
   construction_type?: string;
   shipment_type?: string;
@@ -50,6 +51,13 @@ interface DeliveryData {
   driver_notes?: string;
   installation_photos?: string; // JSON string
   customer_signature?: string; // Base64 string
+  delivery_fee?: number;
+  special_instructions?: string;
+  fragile?: boolean;
+  insurance_value?: number;
+  cod_amount?: number;
+  estimated_delivery?: string;
+  detail_notes?: string;
 }
 
 const STEPS = [
@@ -72,12 +80,15 @@ interface ShippingOrderFormProps {
 
 const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewOrder }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitResult, setSubmitResult] = useState<{ success: boolean; message: string; trackingNumber?: string } | null>(null);
   const [qrCodeInput, setQrCodeInput] = useState('');
   const [isLoadingQR, setIsLoadingQR] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
+  const [requestTypes, setRequestTypes] = useState<string[]>([]);
+  const [isLoadingRequestTypes, setIsLoadingRequestTypes] = useState(false);
   const qrScannerRef = useRef<Html5QrcodeScanner | null>(null);
 
   // Daum 우편번호 서비스 초기화
@@ -95,6 +106,29 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
     };
   }, []);
 
+  // 의뢰종류 목록 로드
+  useEffect(() => {
+    const loadRequestTypes = async () => {
+      setIsLoadingRequestTypes(true);
+      try {
+        const response = await requestTypesAPI.getRequestTypes();
+        if (response.success && response.data) {
+          setRequestTypes(response.data.map((item: any) => item.name));
+        } else {
+          throw new Error('의뢰종류 데이터를 불러올 수 없습니다.');
+        }
+      } catch (error) {
+        console.error('의뢰종류 목록 로드 실패:', error);
+        // 기본값으로 설정
+        setRequestTypes(['일반', '회수', '조치', '쿠팡', '네이버']);
+      } finally {
+        setIsLoadingRequestTypes(false);
+      }
+    };
+
+    loadRequestTypes();
+  }, []);
+
   const { register, handleSubmit, formState: { errors }, watch, trigger, setValue } = useForm<DeliveryData>({
     defaultValues: {
       status: 'pending',
@@ -108,6 +142,48 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
   });
 
   const watchedValues = watch();
+
+  // 사용자 정보에서 발송인 기본값 설정
+  useEffect(() => {
+    if (user) {
+      console.log('사용자 정보:', user);
+      
+      // 발송인 이름 설정
+      if (user.default_sender_name) {
+        setValue('sender_name', user.default_sender_name);
+      } else if (user.name) {
+        setValue('sender_name', user.name); // 기본값으로 사용자 이름 사용
+      }
+
+      // 발송인 주소 설정
+      if (user.default_sender_address) {
+        setValue('sender_address', user.default_sender_address);
+      }
+
+      // 발송인 상세주소 설정
+      if (user.default_sender_detail_address) {
+        setValue('sender_detail_address', user.default_sender_detail_address);
+      }
+
+      // 추가로 회사명이 있다면 furniture_company 필드에도 설정
+      if (user.default_sender_company || user.company) {
+        setValue('furniture_company', user.default_sender_company || user.company);
+      }
+
+      // 연락처가 있다면 emergency_contact에도 설정 (선택사항)
+      if (user.default_sender_phone || user.phone) {
+        setValue('emergency_contact', user.default_sender_phone || user.phone);
+      }
+
+      console.log('✅ 발송인 정보 자동 설정 완료:', {
+        sender_name: user.default_sender_name || user.name,
+        sender_address: user.default_sender_address,
+        sender_detail_address: user.default_sender_detail_address,
+        furniture_company: user.default_sender_company || user.company,
+        emergency_contact: user.default_sender_phone || user.phone
+      });
+    }
+  }, [user, setValue]);
 
 
   // 다음 단계로
@@ -130,7 +206,7 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
     switch (step) {
       case 1: return ['sender_name', 'sender_addr', 'customer_name', 'customer_phone', 'customer_address'];
       case 2: return ['building_type', 'floor_count'];
-      case 3: return ['product_name', 'package_type'];
+      case 3: return ['product_name'];
       case 4: return [];
       default: return [];
     }
@@ -299,9 +375,11 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
         });
       }
         
-        setTimeout(() => {
-          if (onSuccess) onSuccess();
-        }, 3000);
+      // 1.5초 후 새 배송접수 화면으로 리셋 (성공 메시지를 잠깐 보여주고)
+      setTimeout(() => {
+        // 폼 초기화 및 첫 단계로 돌아가기
+        window.location.reload(); // 완전한 리셋을 위해
+      }, 1500);
     } catch (error: any) {
       setSubmitResult({
         success: false,
@@ -356,10 +434,13 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
 
       {/* 발송인 정보 */}
       <div className="bg-gray-50 rounded-lg p-4">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+        <h3 className="text-lg font-semibold text-gray-800 mb-2 flex items-center gap-2">
           <User className="w-5 h-5" />
           발송인 정보
         </h3>
+        <p className="text-sm text-blue-600 mb-4 bg-blue-50 p-2 rounded">
+          💡 내 정보에서 설정한 기본 발송인 정보가 자동으로 입력됩니다. 수정이 필요한 경우 직접 변경하세요.
+        </p>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -464,10 +545,25 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
             <input
               type="text"
               {...register('customer_detail_address')}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mb-3"
               placeholder="상세주소를 입력하세요 (동, 호수, 건물명 등)"
             />
             {errors.customer_address && <p className="mt-1 text-sm text-red-600">{errors.customer_address.message}</p>}
+            
+            {/* 네이버 지도 */}
+            {watchedValues.customer_address && (
+              <div className="mt-3">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <MapPin className="w-4 h-4 inline mr-1" />
+                  고객 주소 위치
+                </label>
+                <SimpleNaverMap 
+                  address={watchedValues.customer_address}
+                  height="200px"
+                  zoom={16}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -479,20 +575,26 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
           배송 유형
         </h3>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">요청 유형</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">의뢰종류</label>
             <select
               {...register('request_type')}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              disabled={isLoadingRequestTypes}
             >
               <option value="">선택하세요</option>
-              <option value="delivery">일반배송</option>
-              <option value="installation">설치배송</option>
-              <option value="construction">시공배송</option>
+              {isLoadingRequestTypes ? (
+                <option disabled>로딩 중...</option>
+              ) : (
+                requestTypes.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))
+              )}
             </select>
           </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">시공 유형</label>
             <select
@@ -500,25 +602,12 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="">선택하세요</option>
-              <option value="assembly">조립</option>
-              <option value="installation">설치</option>
-              <option value="repair">수리</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">배송 유형</label>
-            <select
-              {...register('shipment_type')}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="">선택하세요</option>
-              <option value="standard">일반</option>
-              <option value="express">특급</option>
-              <option value="scheduled">예약배송</option>
+              <option value="1인시공">1인시공</option>
+              <option value="2인시공">2인시공</option>
             </select>
           </div>
         </div>
+
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
           <div>
@@ -709,21 +798,6 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              배송 유형 <span className="text-red-500">*</span>
-            </label>
-            <select
-              {...register('package_type', { required: '배송 유형은 필수입니다' })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="">선택하세요</option>
-              <option value="일반">일반</option>
-              <option value="쿠팡">쿠팡</option>
-              <option value="반품회수">반품회수</option>
-            </select>
-            {errors.package_type && <p className="mt-1 text-sm text-red-600">{errors.package_type.message}</p>}
-          </div>
         </div>
       </div>
 
@@ -840,6 +914,119 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
           placeholder="배정된 기사명 (선택사항)"
         />
       </div>
+
+      {/* 배송 비용 및 특별 옵션 */}
+      <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          <Shield className="w-5 h-5 text-purple-600" />
+          배송 비용 및 옵션
+        </h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">배송비 (원)</label>
+            <input
+              type="number"
+              min="0"
+              {...register('delivery_fee')}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="배송비를 입력하세요"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">보험가치 (원)</label>
+            <input
+              type="number"
+              min="0"
+              {...register('insurance_value')}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="보험가치를 입력하세요"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">착불금액 (원)</label>
+            <input
+              type="number"
+              min="0"
+              {...register('cod_amount')}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="착불금액을 입력하세요"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">배송 시간 선호도</label>
+            <select
+              {...register('delivery_time_preference')}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="">선택하세요</option>
+              <option value="오전(09:00~12:00)">오전(09:00~12:00)</option>
+              <option value="오후(12:00~18:00)">오후(12:00~18:00)</option>
+              <option value="저녁(18:00~21:00)">저녁(18:00~21:00)</option>
+              <option value="주말">주말</option>
+              <option value="평일">평일</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="mt-4">
+          <label className="flex items-center gap-3 p-3 border border-gray-300 rounded-lg hover:bg-white transition-colors cursor-pointer">
+            <input
+              type="checkbox"
+              {...register('fragile')}
+              className="w-5 h-5 text-red-600 border-gray-300 rounded focus:ring-red-500"
+            />
+            <span className="text-gray-700 flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-red-500" />
+              깨지기 쉬운 물품 (취급주의)
+            </span>
+          </label>
+        </div>
+      </div>
+
+      {/* 특별 지시사항 */}
+      <div className="bg-orange-50 rounded-lg p-4 border border-orange-200">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          <FileText className="w-5 h-5 text-orange-600" />
+          특별 지시사항
+        </h3>
+        <textarea
+          {...register('special_instructions')}
+          rows={3}
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          placeholder="특별한 배송 지시사항이나 주의사항을 입력하세요"
+        />
+      </div>
+
+      {/* 예상 배송일 */}
+      <div className="bg-indigo-50 rounded-lg p-4 border border-indigo-200">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          <Calendar className="w-5 h-5 text-indigo-600" />
+          예상 배송일
+        </h3>
+        <input
+          type="datetime-local"
+          {...register('estimated_delivery')}
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        />
+      </div>
+
+      {/* 상세 메모 */}
+      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          <PenTool className="w-5 h-5 text-gray-600" />
+          상세 메모
+        </h3>
+        <textarea
+          {...register('detail_notes')}
+          rows={4}
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          placeholder="추가적인 상세 메모나 기타 정보를 입력하세요"
+        />
+      </div>
     </div>
   );
 
@@ -899,7 +1086,7 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
               <div>
                 <h4 className="font-semibold text-gray-800 mb-2">발송인</h4>
                 <p>{watchedValues.sender_name}</p>
-                <p className="text-gray-600">{watchedValues.sender_addr}</p>
+                <p className="text-gray-600">{watchedValues.sender_address}</p>
               </div>
               
             </div>
@@ -913,7 +1100,6 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
             <div>
               <h4 className="font-semibold text-gray-800 mb-2">제품 정보</h4>
               <p>{watchedValues.product_name}</p>
-              <p className="text-gray-600">포장: {watchedValues.package_type}</p>
               {watchedValues.product_weight && (
                 <p className="text-gray-600">무게: {watchedValues.product_weight}kg</p>
               )}

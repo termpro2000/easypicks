@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, Package, BarChart3, Plus, Users, Search, User, UserCheck } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
+import { LogOut, Package, BarChart3, Plus, Users, Search, User, UserCheck, Package2 } from 'lucide-react';
+import DeliveryDetailView from './components/delivery/DeliveryDetailView';
 import { AuthContext, useAuthProvider, useAuth } from './hooks/useAuth';
 import { useNotification } from './hooks/useNotification';
 import AuthPage from './components/auth/AuthPage';
 import ShippingOrderForm from './components/shipping/ShippingOrderForm';
 import Dashboard from './components/dashboard/Dashboard';
 import UserManagement from './components/admin/UserManagement';
+import ProductManagement from './components/products/ProductManagement';
 import TrackingPage from './components/tracking/TrackingPage';
 import DriverAssignment from './components/assignment/DriverAssignment';
 import ToastContainer from './components/notifications/ToastContainer';
@@ -14,6 +17,7 @@ import UserProfile from './components/profile/UserProfile';
 
 const AppContent: React.FC = () => {
   const { user, isLoading, isAuthenticated, logout } = useAuth();
+  const location = useLocation();
   const {
     permission,
     toasts,
@@ -22,7 +26,7 @@ const AppContent: React.FC = () => {
     notifyOrderStatusChange,
     notifyNewOrder
   } = useNotification();
-  type PageType = 'dashboard' | 'new-order' | 'users' | 'tracking' | 'assignment';
+  type PageType = 'dashboard' | 'new-order' | 'users' | 'products' | 'tracking' | 'assignment';
   const [currentPage, setCurrentPage] = useState<PageType>('dashboard');
   const [showPermissionRequest, setShowPermissionRequest] = useState(false);
   const [showUserProfile, setShowUserProfile] = useState(false);
@@ -59,6 +63,15 @@ const AppContent: React.FC = () => {
     );
   }
 
+  // 배송 상세보기 페이지 확인
+  if (location.pathname.startsWith('/delivery/')) {
+    console.log('Delivery detail page detected:', location.pathname);
+    if (!isAuthenticated) {
+      return <AuthPage />;
+    }
+    return <DeliveryDetailView />;
+  }
+
   // 추적 페이지는 인증없이 접근 가능
   if (currentPage === 'tracking') {
     return <TrackingPage onNavigateBack={isAuthenticated ? () => setCurrentPage('dashboard' as PageType) : undefined} />;
@@ -81,7 +94,8 @@ const AppContent: React.FC = () => {
       {/* 헤더 */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+          {/* 첫 번째 줄: 이지픽스 브랜드와 사용자 정보 */}
+          <div className="flex justify-between items-center h-16 border-b border-gray-100">
             <div className="flex items-center gap-3">
               <Package className="w-8 h-8 text-blue-500" />
               <div>
@@ -90,7 +104,64 @@ const AppContent: React.FC = () => {
               </div>
             </div>
             
-            {/* 네비게이션 메뉴 */}
+            <div className="flex items-center gap-2 sm:gap-4">
+              <div className="text-right hidden sm:block">
+                <div className="flex items-center gap-2">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{user?.name}님</p>
+                    <p className="text-xs text-gray-500">@{user?.username}</p>
+                  </div>
+                  {user?.role && (
+                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                      user.role === 'admin' 
+                        ? 'bg-red-100 text-red-800' 
+                        : user.role === 'manager'
+                        ? 'bg-blue-100 text-blue-800'
+                        : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {user.role === 'admin' ? '관리자' : user.role === 'manager' ? '매니저' : '사용자'}
+                    </span>
+                  )}
+                </div>
+              </div>
+              
+              {/* 모바일에서는 역할 배지만 표시 */}
+              <div className="sm:hidden">
+                {user?.role && (
+                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                    user.role === 'admin' 
+                      ? 'bg-red-100 text-red-800' 
+                      : user.role === 'manager'
+                      ? 'bg-blue-100 text-blue-800'
+                      : 'bg-gray-100 text-gray-800'
+                  }`}>
+                    {user.role === 'admin' ? '관리자' : user.role === 'manager' ? '매니저' : '사용자'}
+                  </span>
+                )}
+              </div>
+              
+              <button
+                onClick={() => setShowUserProfile(true)}
+                className="flex items-center gap-2 px-3 sm:px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors touch-manipulation"
+                title="내정보"
+              >
+                <User className="w-5 h-5" />
+                <span className="hidden sm:inline">내정보</span>
+              </button>
+              
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 px-3 sm:px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors touch-manipulation"
+                title="로그아웃"
+              >
+                <LogOut className="w-5 h-5" />
+                <span className="hidden sm:inline">로그아웃</span>
+              </button>
+            </div>
+          </div>
+          
+          {/* 두 번째 줄: 네비게이션 메뉴 */}
+          <div className="flex justify-center items-center h-14">
             <nav className="flex items-center gap-1 sm:gap-2">
               <button
                 onClick={() => setCurrentPage('dashboard' as PageType)}
@@ -175,62 +246,22 @@ const AppContent: React.FC = () => {
                   <span className="hidden md:inline">사용자 관리</span>
                 </button>
               )}
+              
+              {/* 관리자/매니저만 상품 관리 메뉴 표시 */}
+              {(user?.role === 'admin' || user?.role === 'manager') && (
+                <button
+                  onClick={() => setCurrentPage('products' as PageType)}
+                  className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg transition-colors touch-manipulation ${
+                    currentPage === 'products'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  }`}
+                >
+                  <Package2 className="w-5 h-5" />
+                  <span className="hidden md:inline">상품 관리</span>
+                </button>
+              )}
             </nav>
-            
-            <div className="flex items-center gap-2 sm:gap-4">
-              <div className="text-right hidden sm:block">
-                <div className="flex items-center gap-2">
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{user?.name}님</p>
-                    <p className="text-xs text-gray-500">@{user?.username}</p>
-                  </div>
-                  {user?.role && (
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                      user.role === 'admin' 
-                        ? 'bg-red-100 text-red-800' 
-                        : user.role === 'manager'
-                        ? 'bg-blue-100 text-blue-800'
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {user.role === 'admin' ? '관리자' : user.role === 'manager' ? '매니저' : '사용자'}
-                    </span>
-                  )}
-                </div>
-              </div>
-              
-              {/* 모바일에서는 역할 배지만 표시 */}
-              <div className="sm:hidden">
-                {user?.role && (
-                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                    user.role === 'admin' 
-                      ? 'bg-red-100 text-red-800' 
-                      : user.role === 'manager'
-                      ? 'bg-blue-100 text-blue-800'
-                      : 'bg-gray-100 text-gray-800'
-                  }`}>
-                    {user.role === 'admin' ? '관리자' : user.role === 'manager' ? '매니저' : '사용자'}
-                  </span>
-                )}
-              </div>
-              
-              <button
-                onClick={() => setShowUserProfile(true)}
-                className="flex items-center gap-2 px-3 sm:px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors touch-manipulation"
-                title="내정보"
-              >
-                <User className="w-5 h-5" />
-                <span className="hidden sm:inline">내정보</span>
-              </button>
-              
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 px-3 sm:px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors touch-manipulation"
-                title="로그아웃"
-              >
-                <LogOut className="w-5 h-5" />
-                <span className="hidden sm:inline">로그아웃</span>
-              </button>
-            </div>
           </div>
         </div>
       </header>
@@ -245,6 +276,8 @@ const AppContent: React.FC = () => {
             />
           ) : currentPage === 'users' ? (
             <UserManagement />
+          ) : currentPage === 'products' ? (
+            <ProductManagement />
           ) : currentPage === 'assignment' ? (
             <DriverAssignment />
           ) : (currentPage as string) === 'tracking' ? (
