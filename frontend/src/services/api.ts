@@ -12,7 +12,7 @@ import type {
 /**
  * API 베이스 URL 설정 (환경변수에서 가져오거나 기본값 사용)
  */
-const API_BASE_URL = 'http://localhost:3000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 /**
  * 로그인 세션 데이터 인터페이스
