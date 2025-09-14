@@ -16,7 +16,7 @@ router.post('/login', authController.login);
 router.post('/logout', authController.logout);
 
 // 현재 사용자 정보
-router.get('/me', authController.me);
+router.get('/me', authenticateToken, authController.me);
 
 // JWT 토큰 검증 테스트 엔드포인트
 router.get('/test-jwt', authenticateToken, (req, res) => {
