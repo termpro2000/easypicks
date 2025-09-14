@@ -3,10 +3,11 @@ import { useForm } from 'react-hook-form';
 import { 
   User, Phone, Mail, Building, MapPin, Package, Truck, 
   Calendar, Clock, AlertTriangle, FileText, Shield, 
-  Home, Wrench, Weight, Box, Settings, ArrowLeft, Check, X
+  Home, Wrench, Weight, Box, Settings, ArrowLeft, Check, X, Search
 } from 'lucide-react';
 import { deliveriesAPI, requestTypesAPI } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
+import ProductSelectionModal from './ProductSelectionModal';
 
 interface DeliveryData {
   sender_name: string;
@@ -87,6 +88,7 @@ const PartnerShippingForm: React.FC<PartnerShippingFormProps> = ({ onNavigateBac
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitResult, setSubmitResult] = useState<{ success: boolean; message: string; trackingNumber?: string } | null>(null);
   const [requestTypes, setRequestTypes] = useState<string[]>([]);
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
 
   // Daum 우편번호 서비스 초기화
   useEffect(() => {
@@ -180,6 +182,21 @@ const PartnerShippingForm: React.FC<PartnerShippingFormProps> = ({ onNavigateBac
         }
       }
     }).open();
+  };
+
+  // 상품 선택 핸들러
+  const handleSelectProduct = (product: any) => {
+    setValue('product_name', product.name);
+    if (product.maincode) {
+      setValue('furniture_product_code', product.maincode);
+    }
+    // 상품의 무게와 크기 정보도 설정
+    if (product.weight) {
+      setValue('weight', product.weight);
+    }
+    if (product.size) {
+      setValue('size', product.size);
+    }
   };
 
   // 폼 제출
@@ -598,12 +615,23 @@ const PartnerShippingForm: React.FC<PartnerShippingFormProps> = ({ onNavigateBac
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <InfoCell label="제품명" icon={Package} required error={errors.product_name?.message}>
-                <input
-                  type="text"
-                  {...register('product_name', { required: '제품명은 필수입니다' })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="제품명을 입력하세요"
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    {...register('product_name', { required: '제품명은 필수입니다' })}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="제품명을 입력하세요"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setIsProductModalOpen(true)}
+                    className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-1"
+                    title="상품 조회"
+                  >
+                    <Search className="w-4 h-4" />
+                    조회
+                  </button>
+                </div>
               </InfoCell>
 
               <InfoCell label="제품 코드" icon={FileText}>
@@ -809,6 +837,13 @@ const PartnerShippingForm: React.FC<PartnerShippingFormProps> = ({ onNavigateBac
           </div>
         </form>
       </main>
+
+      {/* 상품 선택 모달 */}
+      <ProductSelectionModal
+        isOpen={isProductModalOpen}
+        onClose={() => setIsProductModalOpen(false)}
+        onSelectProduct={handleSelectProduct}
+      />
     </div>
   );
 };

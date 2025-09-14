@@ -1,19 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Package, TrendingUp, Clock, CheckCircle, AlertCircle, Eye, Search, Filter, RefreshCw, Pause, Play, Truck, Download, FileSpreadsheet, FileText } from 'lucide-react';
+import { Package, TrendingUp, Clock, CheckCircle, AlertCircle, Search, Filter, RefreshCw, Pause, Play, Truck, Download, FileSpreadsheet, FileText, Eye, User, Building } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { api, deliveriesAPI } from '../../services/api';
+import { api, deliveriesAPI, userAPI } from '../../services/api';
 import type { ShippingOrder } from '../../types';
-import OrderDetailModal from './OrderDetailModal';
+import CompanySelectionModal from '../admin/CompanySelectionModal';
+// OrderDetailModal import 제거됨
 
 /**
  * 대시보드 통계 데이터 인터페이스
  */
 interface DashboardStats {
   total: number;
-  pending: number;
-  in_transit: number;
-  delivered: number;
-  cancelled: number;
+  접수완료: number;
+  창고입고: number;
+  기사상차: number;
+  배송완료: number;
+  반품접수: number;
+  수거완료: number;
+  주문취소: number;
 }
 
 /**
@@ -29,6 +34,19 @@ interface DashboardProps {
   }) => void;
 }
 
+interface UserOption {
+  id: string;
+  name: string;
+  username: string;
+  company?: string;
+  phone?: string;
+  default_sender_name?: string;
+  default_sender_address?: string;
+  default_sender_detail_address?: string;
+  default_sender_company?: string;
+  default_sender_phone?: string;
+}
+
 /**
  * 배송 관리 대시보드 컴포넌트
  * 주문 목록 조회, 통계 표시, 실시간 업데이트, 데이터 내보내기 기능 제공
@@ -38,19 +56,27 @@ interface DashboardProps {
  */
 const Dashboard: React.FC<DashboardProps> = ({ onOrderStatusChange }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  
+  // 파트너사 선택 상태
+  const [selectedUser, setSelectedUser] = useState<UserOption | null>(null);
+  const [isCompanyModalOpen, setIsCompanyModalOpen] = useState(false);
   const [orders, setOrders] = useState<ShippingOrder[]>([]);
   const [stats, setStats] = useState<DashboardStats>({
     total: 0,
-    pending: 0,
-    in_transit: 0,
-    delivered: 0,
-    cancelled: 0
+    접수완료: 0,
+    창고입고: 0,
+    기사상차: 0,
+    배송완료: 0,
+    반품접수: 0,
+    수거완료: 0,
+    주문취소: 0
   });
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [selectedOrder, setSelectedOrder] = useState<ShippingOrder | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  // selectedOrder 상태 제거됨
+  // isModalOpen 상태 제거됨
   const [isAutoRefreshEnabled, setIsAutoRefreshEnabled] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -132,10 +158,15 @@ const Dashboard: React.FC<DashboardProps> = ({ onOrderStatusChange }) => {
       // 통계 계산
       const newStats = {
         total: ordersData.length,
-        pending: ordersData.filter((o: any) => o.status === 'pending').length,
-        in_transit: ordersData.filter((o: any) => o.status === 'in_transit').length,
-        delivered: ordersData.filter((o: any) => o.status === 'delivered').length,
-        cancelled: ordersData.filter((o: any) => o.status === 'cancelled').length
+        접수완료: ordersData.filter((o: any) => o.status === '접수완료').length,
+        배차완료: ordersData.filter((o: any) => o.status === '배차완료').length,
+        배송중: ordersData.filter((o: any) => o.status === '배송중').length,
+        배송완료: ordersData.filter((o: any) => o.status === '배송완료').length,
+        배송취소: ordersData.filter((o: any) => o.status === '배송취소').length,
+        수거중: ordersData.filter((o: any) => o.status === '수거중').length,
+        수거완료: ordersData.filter((o: any) => o.status === '수거완료').length,
+        조처완료: ordersData.filter((o: any) => o.status === '조처완료').length,
+        배송연기: ordersData.filter((o: any) => o.status === '배송연기').length
       };
       setStats(newStats);
     } catch (error: any) {
@@ -148,18 +179,21 @@ const Dashboard: React.FC<DashboardProps> = ({ onOrderStatusChange }) => {
 
   /**
    * 주문 상태에 따른 배지 스타일과 아이콘을 반환
-   * @param status - 주문 상태 (접수완료, 배솨준비, 배송중, 배송완료, 취소, 반송)
+   * @param status - 주문 상태 (접수완료, 창고입고, 기사상차, 배송완료, 반품접수, 수거완료, 주문취소)
    * @returns JSX 요소
    */
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      'pending': { color: 'bg-yellow-100 text-yellow-800', text: '접수대기', icon: Clock },
-      'in_transit': { color: 'bg-blue-100 text-blue-800', text: '배송중', icon: Truck },
-      'delivered': { color: 'bg-green-100 text-green-800', text: '배송완료', icon: CheckCircle },
-      'cancelled': { color: 'bg-red-100 text-red-800', text: '취소', icon: AlertCircle }
+      '접수완료': { color: 'bg-yellow-100 text-yellow-800', text: '접수완료', icon: Clock },
+      '창고입고': { color: 'bg-blue-100 text-blue-800', text: '창고입고', icon: Package },
+      '기사상차': { color: 'bg-purple-100 text-purple-800', text: '기사상차', icon: Truck },
+      '배송완룼': { color: 'bg-green-100 text-green-800', text: '배송완룼', icon: CheckCircle },
+      '반품접수': { color: 'bg-orange-100 text-orange-800', text: '반품접수', icon: TrendingUp },
+      '수거완룼': { color: 'bg-indigo-100 text-indigo-800', text: '수거완룼', icon: CheckCircle },
+      '주문취소': { color: 'bg-red-100 text-red-800', text: '주문취소', icon: AlertCircle }
     };
     
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig['pending'];
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig['접수완료'];
     const Icon = config.icon;
     
     return (
@@ -183,13 +217,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onOrderStatusChange }) => {
   });
 
   const handleOrderClick = (order: ShippingOrder) => {
-    setSelectedOrder(order);
-    setIsModalOpen(true);
-  };
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setSelectedOrder(null);
+    console.log('상세보기 클릭:', order.id);
+    navigate(`/delivery/${order.id}`);
   };
 
   const handleManualRefresh = () => {
@@ -215,20 +244,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onOrderStatusChange }) => {
       // 주문 목록 새로고침
       await fetchOrders(true);
       
-      // 선택된 주문 업데이트
-      if (selectedOrder && selectedOrder.id === orderId) {
-        setSelectedOrder({ ...selectedOrder, status: newStatus });
-      }
-      
-      // 알림 발송
-      if (onOrderStatusChange && selectedOrder) {
-        onOrderStatusChange({
-          orderId: orderId,
-          status: newStatus,
-          customerName: selectedOrder.receiver_name,
-          trackingNumber: selectedOrder.tracking_number
-        });
-      }
+      // selectedOrder 관련 코드 제거됨
       
     } catch (error: any) {
       console.error('상태 업데이트 실패:', error);
@@ -282,6 +298,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onOrderStatusChange }) => {
     }
   };
 
+  // 파트너사 선택 함수
+  const handleCompanySelect = (company: UserOption) => {
+    setSelectedUser(company);
+    setIsCompanyModalOpen(false);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
@@ -295,12 +317,85 @@ const Dashboard: React.FC<DashboardProps> = ({ onOrderStatusChange }) => {
 
   return (
     <div className="space-y-6">
-      {/* 환영 메시지 */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-6 text-white">
-        <h2 className="text-2xl font-bold mb-2">안녕하세요, {user?.name}님! 👋</h2>
-        <p className="text-blue-100">
-          이지픽스와 함께 효율적인 배송 관리를 시작하세요.
-        </p>
+      {/* 파트너사 선택 섹션 */}
+      <div className="bg-red-50 rounded-xl shadow-lg border-2 border-red-200 p-6">
+        <h2 className="text-xl font-bold text-red-800 mb-6 flex items-center gap-2">
+          <User className="w-6 h-6 text-red-600" />
+          파트너사 선택 (관리자 전용)
+        </h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-white rounded-lg border border-gray-200 p-4 hover:border-blue-300 transition-colors">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Building className="w-4 h-4 text-blue-600" />
+              </div>
+              <h3 className="font-medium text-gray-900">
+                발송 업체 선택
+                <span className="text-red-500 ml-1">*</span>
+              </h3>
+            </div>
+            <div className="space-y-2">
+              <div className="space-y-3">
+                {/* 회사 선택 버튼 */}
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsCompanyModalOpen(true)}
+                    className="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-left hover:border-blue-500 hover:bg-blue-50 transition-colors flex items-center justify-between"
+                  >
+                    <span className="text-gray-700">
+                      {selectedUser ? 
+                        `${selectedUser.default_sender_company || selectedUser.company || '업체명 없음'} (${selectedUser.name})` 
+                        : '발송업체를 선택하세요'}
+                    </span>
+                    <Search className="w-5 h-5 text-gray-400" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsCompanyModalOpen(true)}
+                    className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                  >
+                    <Search className="w-4 h-4" />
+                    조회
+                  </button>
+                </div>
+                
+                {/* 선택된 파트너사 정보 표시 */}
+                {selectedUser && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 className="font-medium text-blue-900 mb-3 flex items-center gap-2">
+                      <Building className="w-4 h-4" />
+                      선택된 발송업체
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <span className="text-blue-700 font-medium">업체명:</span>
+                        <span className="ml-2 text-blue-800">
+                          {selectedUser.default_sender_company || selectedUser.company || '업체명 없음'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-blue-700 font-medium">담당자:</span>
+                        <span className="ml-2 text-blue-800">{selectedUser.name}</span>
+                      </div>
+                      <div>
+                        <span className="text-blue-700 font-medium">전화번호:</span>
+                        <span className="ml-2 text-blue-800">{selectedUser.phone || '없음'}</span>
+                      </div>
+                      <div>
+                        <span className="text-blue-700 font-medium">전체 주소:</span>
+                        <span className="ml-2 text-blue-800">
+                          {selectedUser.default_sender_address || '주소 없음'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* 통계 카드 */}
@@ -318,8 +413,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onOrderStatusChange }) => {
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">접수대기</p>
-              <p className="text-3xl font-bold text-yellow-600">{stats.pending}</p>
+              <p className="text-sm text-gray-600">접수완료</p>
+              <p className="text-3xl font-bold text-yellow-600">{stats.접수완료}</p>
             </div>
             <Clock className="w-12 h-12 text-yellow-500" />
           </div>
@@ -328,10 +423,10 @@ const Dashboard: React.FC<DashboardProps> = ({ onOrderStatusChange }) => {
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">배송중</p>
-              <p className="text-3xl font-bold text-blue-600">{stats.in_transit}</p>
+              <p className="text-sm text-gray-600">배차완료</p>
+              <p className="text-3xl font-bold text-blue-600">{stats.배차완료}</p>
             </div>
-            <Truck className="w-12 h-12 text-blue-500" />
+            <Package className="w-12 h-12 text-blue-500" />
           </div>
         </div>
 
@@ -339,7 +434,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onOrderStatusChange }) => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">배송완료</p>
-              <p className="text-3xl font-bold text-green-600">{stats.delivered}</p>
+              <p className="text-3xl font-bold text-green-600">{stats.배송완료}</p>
             </div>
             <CheckCircle className="w-12 h-12 text-green-500" />
           </div>
@@ -434,10 +529,13 @@ const Dashboard: React.FC<DashboardProps> = ({ onOrderStatusChange }) => {
                     onChange={(e) => setStatusFilter(e.target.value)}
                   >
                     <option value="all">모든 상태</option>
-                    <option value="pending">접수대기</option>
-                    <option value="in_transit">배송중</option>
-                    <option value="delivered">배송완료</option>
-                    <option value="cancelled">취소</option>
+                    <option value="접수완료">접수완료</option>
+                    <option value="창고입고">창고입고</option>
+                    <option value="기사상차">기사상차</option>
+                    <option value="배송완료">배송완료</option>
+                    <option value="반품접수">반품접수</option>
+                    <option value="수거완료">수거완료</option>
+                    <option value="주문취소">주문취소</option>
                   </select>
                 </div>
               </div>
@@ -658,17 +756,16 @@ const Dashboard: React.FC<DashboardProps> = ({ onOrderStatusChange }) => {
         </div>
       )}
 
-      {/* 주문 상세 모달 */}
-      <OrderDetailModal
-        order={selectedOrder}
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        onStatusUpdate={(user?.role === 'admin' || user?.role === 'manager') ? handleStatusUpdate : undefined}
-        onTrackingAssigned={() => {
-          // 운송장 할당 후 데이터 새로고침
-          fetchOrders(true);
-        }}
-      />
+      {/* 파트너사 선택 모달 */}
+      {isCompanyModalOpen && (
+        <CompanySelectionModal
+          isOpen={isCompanyModalOpen}
+          onClose={() => setIsCompanyModalOpen(false)}
+          onSelectCompany={handleCompanySelect}
+        />
+      )}
+
+      {/* 주문 상세 모달 제거됨 */}
     </div>
   );
 };

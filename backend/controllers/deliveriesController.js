@@ -55,64 +55,22 @@ async function createDelivery(req, res) {
     // 운송장 번호 생성
     const tracking_number = generateTrackingNumber();
 
-    // 배송 정보 삽입 (모든 필드들)
+    // 배송 정보 삽입 (필수 필드만 사용)
     const [result] = await pool.execute(`
       INSERT INTO deliveries (
-        tracking_number, sender_name, sender_address, weight, status,
-        request_type, construction_type, visit_date, visit_time, assigned_driver,
-        furniture_company, main_memo, emergency_contact, customer_name, customer_phone, 
-        customer_address, building_type, floor_count, elevator_available, ladder_truck,
-        disposal, room_movement, wall_construction, product_name, furniture_product_code,
-        product_weight, product_size, box_size, furniture_requests, driver_notes,
-        installation_photos, customer_signature, delivery_fee, special_instructions,
-        fragile, insurance_value, cod_amount, driver_id, driver_name, estimated_delivery,
-        actual_delivery, delivery_attempts, last_location, detail_notes
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        tracking_number, sender_name, sender_address, customer_name, customer_address, customer_phone, 
+        status, product_name, weight
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       tracking_number, 
       sender_name, 
-      sender_address, 
-      weight || null, 
-      status,
-      request_type || null, 
-      construction_type || null, 
-      visit_date || null, 
-      visit_time || null, 
-      assigned_driver || null,
-      furniture_company || null, 
-      main_memo || null, 
-      emergency_contact || null, 
-      customer_name, 
-      customer_phone, 
-      customer_address, 
-      building_type || null, 
-      floor_count || null, 
-      elevator_available || null, 
-      ladder_truck || null,
-      disposal || null, 
-      room_movement || null, 
-      wall_construction || null, 
-      product_name || null, 
-      furniture_product_code || null,
-      product_weight || null, 
-      product_size || null, 
-      box_size || null, 
-      furniture_requests || null, 
-      driver_notes || null,
-      installation_photos || null, 
-      customer_signature || null, 
-      delivery_fee || null, 
-      special_instructions || null,
-      fragile || false, 
-      insurance_value || null, 
-      cod_amount || null, 
-      driver_id || null, 
-      driver_name || null, 
-      null, // estimated_delivery
-      null, // actual_delivery
-      0,    // delivery_attempts
-      null, // last_location
-      null  // detail_notes
+      sender_address,
+      customer_name,
+      customer_address,
+      customer_phone,
+      status || 'pending',
+      product_name || '상품',
+      parseFloat(weight) || null
     ]);
 
     res.status(201).json({
@@ -152,13 +110,31 @@ async function getDeliveries(req, res) {
     const offset = (page - 1) * limit;
     const status = req.query.status;
 
-    // WHERE 조건 구성
+    // WHERE 조건 구성 (역할별 필터링)
     let whereCondition = '';
     let params = [];
     
-    if (status && status !== 'all') {
-      whereCondition = 'WHERE status = ?';
-      params.push(status);
+    if (user.role === 'driver') {
+      // 기사는 자신에게 배정된 배송만 조회
+      if (status && status !== 'all') {
+        whereCondition = 'WHERE driver_id = ? AND status = ?';
+        params.push(user.id, status);
+      } else {
+        whereCondition = 'WHERE driver_id = ?';
+        params.push(user.id);
+      }
+    } else if (user.role === 'user') {
+      // user 권한인 경우 본인이 생성한 배송만 조회 (user_id 컬럼이 없으므로 모든 배송 조회)
+      if (status && status !== 'all') {
+        whereCondition = 'WHERE status = ?';
+        params.push(status);
+      }
+    } else {
+      // 관리자/매니저는 모든 배송 조회
+      if (status && status !== 'all') {
+        whereCondition = 'WHERE status = ?';
+        params.push(status);
+      }
     }
 
     // 총 개수 조회
@@ -172,8 +148,8 @@ async function getDeliveries(req, res) {
     const listQuery = `
       SELECT 
         id, tracking_number, status,
-        sender_name, customer_name,
-        product_name, visit_date, assigned_driver,
+        sender_name, sender_address, customer_name, customer_phone, customer_address,
+        product_name, visit_date, driver_id,
         created_at, updated_at
       FROM deliveries 
       ${whereCondition}
@@ -238,14 +214,24 @@ async function getDelivery(req, res) {
 
     const { id } = req.params;
 
+    // user 권한인 경우 본인이 생성한 배송만 조회 가능
+    let query = 'SELECT * FROM deliveries WHERE id = ?';
+    let params = [id];
+    
+    // user_id 컬럼이 존재하지 않으므로 모든 사용자가 조회 가능
+    // if (user.role === 'user') {
+    //   query = 'SELECT * FROM deliveries WHERE id = ? AND user_id = ?';
+    //   params = [id, user.id];
+    // }
+
     const [deliveries] = await executeWithRetry(() =>
-      pool.execute('SELECT * FROM deliveries WHERE id = ?', [id])
+      pool.execute(query, params)
     );
 
     if (deliveries.length === 0) {
       return res.status(404).json({
         error: 'Not Found',
-        message: '배송 정보를 찾을 수 없습니다.'
+        message: '배송 정보를 찾을 수 없거나 접근 권한이 없습니다.'
       });
     }
 
@@ -459,10 +445,8 @@ async function updateDelivery(req, res) {
     // 업데이트할 필드 구성 (실제 deliveries 테이블 스키마에 맞춤)
     const allowedFields = [
       'tracking_number', 'sender_name', 'sender_address',
-      'receiver_name', 'receiver_address', 'receiver_phone',
-      'weight', 'status',
-      'request_type', 'construction_type', 'shipment_type',
-      'visit_date', 'visit_time', 'assigned_driver',
+      'weight', 'status', 'driver_id',
+      'request_type', 'construction_type', 'visit_date', 'visit_time',
       'furniture_company', 'main_memo', 'emergency_contact',
       'customer_name', 'customer_phone', 'customer_address',
       'building_type', 'floor_count', 'elevator_available',
@@ -470,10 +454,8 @@ async function updateDelivery(req, res) {
       'product_name', 'furniture_product_code', 'product_weight', 'product_size',
       'box_size', 'furniture_requests', 'driver_notes',
       'installation_photos', 'customer_signature',
-      'delivery_fee', 'special_instructions', 'delivery_time_preference',
-      'fragile', 'insurance_value', 'cod_amount',
-      'driver_id', 'driver_name', 'estimated_delivery', 'actual_delivery',
-      'delivery_attempts', 'last_location', 'detail_notes'
+      'delivery_fee', 'special_instructions', 'fragile', 'insurance_value', 'cod_amount',
+      'estimated_delivery', 'actual_delivery', 'delivery_attempts', 'last_location', 'detail_notes'
     ];
 
     const setClause = [];
@@ -490,6 +472,79 @@ async function updateDelivery(req, res) {
         }
       }
     });
+
+    // driver_id가 업데이트되는 경우 (기사 배정), visit_date 자동 설정 및 status 업데이트 로직
+    if (updateData.driver_id) {
+      // 기사 배정 시 status를 '배차완료'로 설정
+      if (!setClause.includes('status = ?')) {
+        setClause.push('status = ?');
+        values.push('배차완료');
+        console.log('[기사 배정] status를 배차완료로 설정');
+      }
+      console.log(`[기사 배정 디버깅] updateData.visit_date:`, updateData.visit_date);
+      
+      // 현재 데이터베이스에서 visit_date와 주소 정보 확인
+      const [currentDelivery] = await pool.execute(
+        'SELECT visit_date, sender_address, customer_address FROM deliveries WHERE id = ?',
+        [id]
+      );
+      const dbVisitDate = currentDelivery[0]?.visit_date;
+      const senderAddress = currentDelivery[0]?.sender_address;
+      const customerAddress = currentDelivery[0]?.customer_address;
+      console.log(`[기사 배정 디버깅] DB의 현재 visit_date:`, dbVisitDate);
+      
+      const currentVisitDate = updateData.visit_date || dbVisitDate;
+      const today = new Date();
+      const tomorrow = new Date(today);
+      tomorrow.setDate(today.getDate() + 1);
+      const tomorrowStr = tomorrow.toISOString().split('T')[0]; // YYYY-MM-DD 형식
+      
+      console.log(`[기사 배정 디버깅] 오늘: ${today.toISOString().split('T')[0]}, 내일: ${tomorrowStr}`);
+      console.log(`[기사 배정 디버깅] currentVisitDate:`, currentVisitDate);
+      console.log(`[기사 배정 디버깅] 조건 체크: !currentVisitDate=${!currentVisitDate}, 과거 날짜=${currentVisitDate ? new Date(currentVisitDate) <= today : 'N/A'}`);
+      
+      // visit_date가 없거나 현재 날짜보다 작으면 내일 날짜로 설정
+      if (!currentVisitDate || new Date(currentVisitDate) <= today) {
+        console.log(`[기사 배정] visit_date 자동 설정: ${tomorrowStr}`);
+        
+        // visit_date가 이미 setClause에 있는지 확인
+        const visitDateIndex = setClause.findIndex(clause => clause.startsWith('visit_date'));
+        if (visitDateIndex >= 0) {
+          // 기존 visit_date 값 교체
+          values[visitDateIndex] = tomorrowStr;
+          console.log(`[기사 배정 디버깅] 기존 visit_date 값 교체됨`);
+        } else {
+          // 새로 visit_date 추가
+          setClause.push('visit_date = ?');
+          values.push(tomorrowStr);
+          console.log(`[기사 배정 디버깅] 새로운 visit_date 추가됨`);
+        }
+      } else {
+        console.log(`[기사 배정] visit_date 변경하지 않음 (현재값: ${currentVisitDate})`);
+      }
+
+      // 거리 계산 로직
+      if (senderAddress && customerAddress) {
+        try {
+          console.log(`[기사 배정] 거리 계산 시작`);
+          const { calculateDistance } = require('../utils/distanceCalculator');
+          const distance = await calculateDistance(senderAddress, customerAddress);
+          
+          console.log(`[기사 배정] 계산된 거리: ${distance}km`);
+          
+          // distance 필드 업데이트
+          setClause.push('distance = ?');
+          values.push(distance);
+          
+          console.log(`[기사 배정] distance 필드 추가됨: ${distance}km`);
+        } catch (error) {
+          console.error('[기사 배정] 거리 계산 오류:', error);
+          // 거리 계산 실패 시에도 기사 배정은 계속 진행
+        }
+      } else {
+        console.log(`[기사 배정] 주소 정보 없음 - 거리 계산 생략`);
+      }
+    }
 
     if (setClause.length === 0) {
       return res.status(400).json({

@@ -84,25 +84,54 @@ async function createShippingOrder(req, res) {
     console.log('INSERT 파라미터 개수:', params.length);
     console.log('INSERT 파라미터 값들:', params);
 
-    // 배송 접수 생성
+    // deliveries 테이블에만 저장 (shipping_orders 테이블 사용하지 않음)
     const [result] = await pool.execute(`
-      INSERT INTO shipping_orders (
-        user_id, tracking_number,
-        
-        sender_name, sender_phone, sender_email, sender_company,
-        sender_address, sender_detail_address, sender_zipcode,
-        
-        receiver_name, receiver_phone, receiver_email, receiver_company,
-        receiver_address, receiver_detail_address, receiver_zipcode,
-        
-        product_name, product_sku, product_quantity, seller_info,
-        has_elevator, can_use_ladder_truck, preferred_delivery_date,
-        
-        is_fragile, is_frozen, requires_signature, insurance_amount,
-        
-        delivery_memo, special_instructions
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, params);
+      INSERT INTO deliveries (
+        tracking_number, sender_name, sender_address, customer_name, customer_phone, 
+        customer_address, product_name, status, request_type, package_type, weight,
+        construction_type, visit_date, visit_time, furniture_company, main_memo,
+        emergency_contact, building_type, floor_count, elevator_available, ladder_truck,
+        disposal, room_movement, wall_construction, furniture_product_code, product_weight,
+        product_size, box_size, furniture_requests, driver_notes, delivery_fee,
+        special_instructions, fragile, insurance_value, cod_amount
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      tracking_number,
+      sender_name,
+      sender_address + (sender_detail_address ? ' ' + sender_detail_address : ''),
+      receiver_name, // customer_name으로 매핑
+      receiver_phone, // customer_phone으로 매핑  
+      receiver_address + (receiver_detail_address ? ' ' + receiver_detail_address : ''), // customer_address로 매핑
+      product_name,
+      '접수완료', // status
+      '배송접수', // request_type
+      null, // package_type
+      null, // weight
+      null, // construction_type
+      preferred_delivery_date || null, // visit_date
+      null, // visit_time
+      sender_company || null, // furniture_company
+      delivery_memo || null, // main_memo
+      null, // emergency_contact
+      null, // building_type
+      null, // floor_count
+      has_elevator ? '있음' : '없음', // elevator_available
+      can_use_ladder_truck ? '필요' : '불필요', // ladder_truck
+      null, // disposal
+      null, // room_movement
+      null, // wall_construction
+      product_sku || null, // furniture_product_code
+      null, // product_weight
+      null, // product_size
+      null, // box_size
+      null, // furniture_requests
+      null, // driver_notes
+      null, // delivery_fee
+      special_instructions || null,
+      is_fragile || false, // fragile
+      insurance_amount || null, // insurance_value
+      null // cod_amount
+    ]);
 
     res.status(201).json({
       message: '배송 접수가 완료되었습니다.',
@@ -145,28 +174,28 @@ async function getShippingOrders(req, res) {
     const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
 
-    // 총 개수 조회 (재시도 로직 적용)
+    // 총 개수 조회 (deliveries 테이블에서)
     const [countResult] = await executeWithRetry(() => 
       pool.execute(
-        'SELECT COUNT(*) as total FROM shipping_orders WHERE user_id = ?',
-        [user.id]
+        'SELECT COUNT(*) as total FROM deliveries WHERE request_type = ?',
+        ['배송접수']
       )
     );
     const total = countResult[0].total;
 
-    // 배송 접수 목록 조회 (재시도 로직 적용)
+    // 배송 접수 목록 조회 (deliveries 테이블에서)
     const [orders] = await executeWithRetry(() => 
       pool.execute(`
         SELECT 
           id, tracking_number, status,
-          sender_name, receiver_name,
-          product_name, seller_info,
+          sender_name, customer_name as receiver_name,
+          product_name,
           created_at, updated_at
-        FROM shipping_orders 
-        WHERE user_id = ?
+        FROM deliveries 
+        WHERE request_type = ?
         ORDER BY created_at DESC
         LIMIT ? OFFSET ?
-      `, [user.id, limit, offset])
+      `, ['배송접수', limit, offset])
     );
 
     res.json({
@@ -211,8 +240,8 @@ async function getShippingOrder(req, res) {
     const { id } = req.params;
 
     const [orders] = await pool.execute(
-      'SELECT * FROM shipping_orders WHERE id = ? AND user_id = ?',
-      [id, user.id]
+      'SELECT * FROM deliveries WHERE id = ? AND request_type = ?',
+      [id, '배송접수']
     );
 
     if (orders.length === 0) {
@@ -233,41 +262,6 @@ async function getShippingOrder(req, res) {
   }
 }
 
-// 운송장 번호로 배송 추적 (공개 API)
-async function trackShipment(req, res) {
-  try {
-    const { trackingNumber } = req.params;
-
-    const [orders] = await pool.execute(`
-      SELECT 
-        tracking_number, status, 
-        sender_name, receiver_name, receiver_address,
-        product_name, seller_info,
-        created_at, updated_at
-      FROM shipping_orders 
-      WHERE tracking_number = ?
-    `, [trackingNumber]);
-
-    if (orders.length === 0) {
-      return res.status(404).json({
-        error: 'Not Found',
-        message: '해당 운송장 번호를 찾을 수 없습니다.'
-      });
-    }
-
-    res.json({ 
-      tracking: orders[0],
-      message: '배송 정보가 조회되었습니다.'
-    });
-
-  } catch (error) {
-    console.error('배송 추적 오류:', error);
-    res.status(500).json({
-      error: 'Internal Server Error',
-      message: '배송 추적 중 오류가 발생했습니다.'
-    });
-  }
-}
 
 /**
  * 배송 접수의 상태를 업데이트하는 함수
@@ -297,7 +291,7 @@ async function updateShippingOrderStatus(req, res) {
     console.log('상태 업데이트 요청:', { id, status, userId: req.session?.user?.id });
 
     // 유효한 상태값 확인
-    const validStatuses = ['접수완료', '배송준비', '배송중', '배송완료', '취소', '반송'];
+    const validStatuses = ['접수완료', '창고입고', '기사상차', '배송완료', '반품접수', '수거완료', '주문취소'];
     if (!validStatuses.includes(status)) {
       console.log('유효하지 않은 상태값:', status, '유효한 값:', validStatuses);
       return res.status(400).json({
@@ -306,10 +300,10 @@ async function updateShippingOrderStatus(req, res) {
       });
     }
 
-    // 주문이 존재하는지 확인 (관리자는 모든 주문에 접근 가능)
+    // 주문이 존재하는지 확인 (deliveries 테이블에서)
     const [existingOrder] = await pool.execute(
-      'SELECT id FROM shipping_orders WHERE id = ?',
-      [id]
+      'SELECT id FROM deliveries WHERE id = ? AND request_type = ?',
+      [id, '배송접수']
     );
 
     if (existingOrder.length === 0) {
@@ -319,17 +313,17 @@ async function updateShippingOrderStatus(req, res) {
       });
     }
 
-    // 상태 업데이트
+    // 상태 업데이트 (deliveries 테이블에서)
     const [updateResult] = await pool.execute(
-      'UPDATE shipping_orders SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      'UPDATE deliveries SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
       [status, id]
     );
     
     console.log('업데이트 결과:', updateResult);
 
-    // 업데이트된 주문 정보 반환
+    // 업데이트된 주문 정보 반환 (deliveries 테이블에서)
     const [updatedOrder] = await pool.execute(
-      'SELECT * FROM shipping_orders WHERE id = ?',
+      'SELECT * FROM deliveries WHERE id = ?',
       [id]
     );
     
@@ -361,15 +355,15 @@ async function trackShipment(req, res) {
       });
     }
 
-    // 운송장 번호로 주문 조회 (공개 정보만)
+    // 운송장 번호로 주문 조회 (deliveries 테이블에서)
     const [orders] = await pool.execute(`
       SELECT 
-        id, tracking_number, status, tracking_company, estimated_delivery,
-        sender_name, sender_phone, receiver_name, receiver_phone,
-        CONCAT(receiver_address, ' ', COALESCE(receiver_detail_address, '')) as recipient_address_full, 
-        product_name, product_quantity, product_sku,
+        id, tracking_number, status, estimated_delivery,
+        sender_name, customer_name as receiver_name, customer_phone as receiver_phone,
+        customer_address as recipient_address_full,
+        product_name,
         created_at, updated_at
-      FROM shipping_orders 
+      FROM deliveries 
       WHERE tracking_number = ?
     `, [trackingNumber]);
 
@@ -388,25 +382,25 @@ async function trackShipment(req, res) {
         status: '접수완료',
         timestamp: order.created_at,
         location: '집하점',
-        description: '배송 접수가 완료되었습니다.'
+        description: '배송 접수 대기 중입니다.'
       }
     ];
 
-    if (['배송준비', '배송중', '배송완료'].includes(order.status)) {
+    if (['창고입고', '기사상차', '배송완료'].includes(order.status)) {
       statusHistory.push({
-        status: '배송준비',
+        status: '창고입고',
         timestamp: order.updated_at,
         location: '물류센터',
-        description: '배송 준비 중입니다.'
+        description: '창고에 입고되었습니다.'
       });
     }
 
-    if (['배송중', '배송완료'].includes(order.status)) {
+    if (['기사상차', '배송완료'].includes(order.status)) {
       statusHistory.push({
-        status: '배송중',
+        status: '기사상차',
         timestamp: order.updated_at,
         location: '배송 중',
-        description: '상품이 배송 중입니다.'
+        description: '기사가 상품을 상차하였습니다.'
       });
     }
 
@@ -499,7 +493,7 @@ async function assignTrackingNumber(req, res) {
     await pool.execute(`
       UPDATE shipping_orders 
       SET tracking_number = ?, tracking_company = ?, estimated_delivery = ?, 
-          status = '배송준비', updated_at = CURRENT_TIMESTAMP 
+          status = '창고입고', updated_at = CURRENT_TIMESTAMP 
       WHERE id = ?
     `, [tracking_number, tracking_company || null, estimated_delivery || null, id]);
 

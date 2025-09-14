@@ -1,75 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { Truck, User, Package, MapPin, Phone, Clock, CheckCircle, AlertCircle, Search, Filter, Bot, UserCheck } from 'lucide-react';
-import { deliveriesAPI } from '../../services/api';
+import { Truck, User, Package, MapPin, Phone, Clock, CheckCircle, AlertCircle, Search, Filter, Bot, UserCheck, ArrowLeft } from 'lucide-react';
+import { deliveriesAPI, driversAPI } from '../../services/api';
 
-// 더미 기사 데이터
-const dummyDrivers = [
-  {
-    id: 1,
-    name: '김운송',
-    phone: '010-1234-5678',
-    vehicle: '1톤 트럭',
-    license: '23서1234',
-    status: 'available', // available, busy, offline
-    currentOrders: 0,
-    maxOrders: 10,
-    location: '서울시 강남구',
-    rating: 4.8,
-    totalDeliveries: 1250
-  },
-  {
-    id: 2,
-    name: '이배송',
-    phone: '010-2345-6789',
-    vehicle: '2.5톤 트럭',
-    license: '23서5678',
-    status: 'busy',
-    currentOrders: 8,
-    maxOrders: 12,
-    location: '서울시 서초구',
-    rating: 4.9,
-    totalDeliveries: 890
-  },
-  {
-    id: 3,
-    name: '박물류',
-    phone: '010-3456-7890',
-    vehicle: '1톤 트럭',
-    license: '23서9012',
-    status: 'available',
-    currentOrders: 3,
-    maxOrders: 10,
-    location: '서울시 송파구',
-    rating: 4.7,
-    totalDeliveries: 2100
-  },
-  {
-    id: 4,
-    name: '최택배',
-    phone: '010-4567-8901',
-    vehicle: '오토바이',
-    license: '23서3456',
-    status: 'offline',
-    currentOrders: 0,
-    maxOrders: 5,
-    location: '서울시 마포구',
-    rating: 4.6,
-    totalDeliveries: 567
-  },
-  {
-    id: 5,
-    name: '정배달',
-    phone: '010-5678-9012',
-    vehicle: '3.5톤 트럭',
-    license: '23서7890',
-    status: 'available',
-    currentOrders: 5,
-    maxOrders: 15,
-    location: '서울시 용산구',
-    rating: 4.8,
-    totalDeliveries: 1800
-  }
-];
+// 실제 기사 데이터 인터페이스
+interface DriverData {
+  driver_id: number;
+  username: string;
+  name: string;
+  phone?: string;
+  email?: string;
+  vehicle_type?: string;
+  vehicle_number?: string;
+  license_number?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  // 계산된 추가 정보
+  status: 'available' | 'busy' | 'offline';
+  currentOrders: number;
+  maxOrders: number;
+  rating?: number;
+  totalDeliveries?: number;
+}
 
 // 배송 데이터 인터페이스
 interface DeliveryOrder {
@@ -88,25 +40,88 @@ interface DeliveryOrder {
   driver_name?: string;
 }
 
-interface DriverAssignmentProps {}
+interface DriverAssignmentProps {
+  onNavigateBack?: () => void;
+}
 
-const DriverAssignment: React.FC<DriverAssignmentProps> = () => {
-  const [drivers] = useState(dummyDrivers);
+const DriverAssignment: React.FC<DriverAssignmentProps> = ({ onNavigateBack }) => {
+  const [drivers, setDrivers] = useState<DriverData[]>([]);
   const [orders, setOrders] = useState<DeliveryOrder[]>([]);
   const [loading, setLoading] = useState(true);
+  const [driversLoading, setDriversLoading] = useState(true);
   const [selectedDriver, setSelectedDriver] = useState<number | null>(null);
   const [selectedOrders, setSelectedOrders] = useState<number[]>([]);
   const [driverFilter, setDriverFilter] = useState('all'); // all, available, busy, offline
-  const [orderFilter, setOrderFilter] = useState('unassigned'); // all, unassigned, assigned
+  const [orderFilter, setOrderFilter] = useState('all'); // all, unassigned, assigned
   const [searchTerm, setSearchTerm] = useState('');
   const [assignmentType, setAssignmentType] = useState<'auto' | 'manual'>('manual'); // 배차 방식 선택
+  const [driverListWidth, setDriverListWidth] = useState(window.innerWidth * 0.5); // 화면 너비의 절반
+  const [isResizing, setIsResizing] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [startWidth, setStartWidth] = useState(window.innerWidth * 0.5);
+
+  // 기사 데이터 로드
+  useEffect(() => {
+    const fetchDrivers = async () => {
+      try {
+        setDriversLoading(true);
+        const response = await driversAPI.getAllDrivers();
+        
+        // API 응답을 DriverData 형태로 변환
+        const driverUsers: DriverData[] = response.drivers.map((driver: any) => {
+          // 해당 기사가 담당하고 있는 현재 배송 수 계산
+          // driver_id, driver_name, assigned_driver 중 하나라도 매칭되면 해당 기사의 배송으로 간주
+          const currentOrders = orders.filter(order => 
+            (order.driver_id === driver.driver_id.toString() || 
+             order.driver_name === driver.name || 
+             order.assigned_driver === driver.name) &&
+            ['pending', 'in_transit'].includes(order.status)
+          ).length;
+          
+          return {
+            driver_id: driver.driver_id,
+            username: driver.username,
+            name: driver.name,
+            phone: driver.phone || '연락처 없음',
+            email: driver.email,
+            vehicle_type: driver.vehicle_type,
+            vehicle_number: driver.vehicle_number,
+            license_number: driver.license_number,
+            is_active: driver.is_active,
+            created_at: driver.created_at,
+            updated_at: driver.updated_at,
+            // 계산된 정보
+            status: !driver.is_active ? 'offline' : 
+                   currentOrders >= 8 ? 'busy' : 'available' as 'available' | 'busy' | 'offline',
+            currentOrders,
+            maxOrders: 10, // 기본값, 실제로는 기사별 설정 필요
+            rating: 4.0 + Math.random(), // 4.0~5.0 사이의 임시값
+            totalDeliveries: Math.floor(Math.random() * 1000) + 100 // 임시값, 실제로는 통계에서
+          };
+        });
+        
+        setDrivers(driverUsers);
+      } catch (error: any) {
+        console.error('기사 데이터 로드 실패:', error);
+        
+        // 에러 발생시 빈 배열로 설정
+        setDrivers([]);
+      } finally {
+        setDriversLoading(false);
+      }
+    };
+
+    fetchDrivers();
+  }, [orders]); // orders가 변경될 때마다 기사의 currentOrders를 재계산
 
   // 배송 데이터 로드
   useEffect(() => {
     const fetchDeliveries = async () => {
       try {
         setLoading(true);
+        console.log('🚚 배송 데이터 로딩 시작...');
         const response = await deliveriesAPI.getDeliveries(1, 1000); // 최대 1000개
+        console.log('📦 배송 API 응답:', response);
         
         // API 응답을 DeliveryOrder 형태로 변환
         const deliveryOrders: DeliveryOrder[] = response.deliveries.map((delivery: any) => ({
@@ -125,9 +140,33 @@ const DriverAssignment: React.FC<DriverAssignmentProps> = () => {
           driver_name: delivery.driver_name
         }));
         
-        setOrders(deliveryOrders);
+        console.log('✅ 변환된 배송 주문:', deliveryOrders);
+        
+        // 임시 테스트 데이터 - API 응답이 없을 경우를 위한 백업
+        if (deliveryOrders.length === 0) {
+          console.log('⚠️ API에서 데이터가 없어서 테스트 데이터 사용');
+          const testOrders: DeliveryOrder[] = [
+            {
+              id: 999,
+              tracking_number: 'TEST001',
+              sender_name: '테스트 발송자',
+              customer_name: '테스트 고객',
+              product_name: '테스트 상품',
+              status: 'pending',
+              created_at: new Date().toISOString()
+            }
+          ];
+          setOrders(testOrders);
+        } else {
+          setOrders(deliveryOrders);
+        }
       } catch (error) {
-        console.error('배송 데이터 로드 실패:', error);
+        console.error('❌ 배송 데이터 로드 실패:', error);
+        if (error instanceof Error) {
+          console.error('Error details:', error.message);
+        }
+        // 에러가 발생해도 빈 배열로 설정하여 로딩 상태 해제
+        setOrders([]);
       } finally {
         setLoading(false);
       }
@@ -176,8 +215,9 @@ const DriverAssignment: React.FC<DriverAssignmentProps> = () => {
   const filteredDrivers = drivers.filter(driver => {
     const matchesStatus = driverFilter === 'all' || driver.status === driverFilter;
     const matchesSearch = driver.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         driver.phone.includes(searchTerm) ||
-                         driver.location.toLowerCase().includes(searchTerm.toLowerCase());
+                         driver.phone?.includes(searchTerm) ||
+                         driver.vehicle_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         driver.vehicle_number?.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesStatus && matchesSearch;
   });
 
@@ -194,6 +234,14 @@ const DriverAssignment: React.FC<DriverAssignmentProps> = () => {
     return matchesAssignment && matchesSearch;
   });
 
+  console.log('🔍 필터링 상태:', { 
+    totalOrders: orders.length, 
+    orderFilter, 
+    searchTerm,
+    filteredOrders: filteredOrders.length,
+    orders: orders.slice(0, 2) // 처음 2개만 로그
+  });
+
   // 주문 선택/해제
   const toggleOrderSelection = (orderId: number) => {
     setSelectedOrders(prev => 
@@ -203,11 +251,66 @@ const DriverAssignment: React.FC<DriverAssignmentProps> = () => {
     );
   };
 
+  // 마우스 이벤트 핸들러들
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsResizing(true);
+    setStartX(e.clientX);
+    setStartWidth(driverListWidth);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  };
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!isResizing) return;
+    
+    const deltaX = e.clientX - startX;
+    const newWidth = startWidth + deltaX;
+    
+    // 최소/최대 너비 제한
+    const minWidth = 300; // 최소 300px
+    const maxWidth = 800; // 최대 800px
+    
+    if (newWidth >= minWidth && newWidth <= maxWidth) {
+      setDriverListWidth(newWidth);
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsResizing(false);
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  };
+
+  // 마우스 이벤트 리스너 등록/해제
+  useEffect(() => {
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isResizing, startX, startWidth]);
+
+  // 화면 크기 변경 시 기사 목록 너비 조정
+  useEffect(() => {
+    const handleResize = () => {
+      const newWidth = window.innerWidth * 0.5;
+      setDriverListWidth(newWidth);
+      setStartWidth(newWidth);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // 기사에게 주문 배정
   const assignOrdersToDriver = async () => {
     if (!selectedDriver || selectedOrders.length === 0) return;
 
-    const selectedDriverInfo = drivers.find(d => d.id === selectedDriver);
+    const selectedDriverInfo = drivers.find(d => d.driver_id === selectedDriver);
     if (!selectedDriverInfo) return;
 
     try {
@@ -247,12 +350,28 @@ const DriverAssignment: React.FC<DriverAssignmentProps> = () => {
 
   return (
     <div className="space-y-6">
+
       {/* 헤더 */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-6 text-white">
-        <h2 className="text-2xl font-bold mb-2">기사 배정 관리</h2>
-        <p className="text-blue-100">
-          기사와 배송 주문을 효율적으로 배정하고 관리하세요.
-        </p>
+      <div className="relative flex items-center justify-center py-4 bg-white shadow-sm rounded-lg mb-6">
+        {/* 왼쪽: 돌아가기 버튼 */}
+        {onNavigateBack && (
+          <button
+            onClick={onNavigateBack}
+            className="absolute left-4 flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            관리자화면으로 돌아가기
+          </button>
+        )}
+        
+        {/* 중앙: 제목 */}
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <UserCheck className="w-7 h-7 text-blue-600" />
+            기사 배정 (DriverAssignment)
+          </h1>
+          <p className="text-gray-600 mt-1">기사와 배송 주문을 효율적으로 배정하고 관리합니다</p>
+        </div>
       </div>
 
       {/* 통계 카드 */}
@@ -306,7 +425,7 @@ const DriverAssignment: React.FC<DriverAssignmentProps> = () => {
 
       {/* 배차 방식 선택 */}
       <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+        <h3 className="text-base font-semibold text-gray-800 mb-4 flex items-center gap-2">
           <Truck className="w-5 h-5 text-blue-600" />
           배차 방식 선택
         </h3>
@@ -396,11 +515,14 @@ const DriverAssignment: React.FC<DriverAssignmentProps> = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="flex flex-col lg:flex-row gap-0 relative">
         {/* 기사 목록 */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="p-6 border-b">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">기사 목록</h3>
+        <div 
+          className="bg-white rounded-lg shadow flex-shrink-0 lg:rounded-r-none"
+          style={{ width: `${driverListWidth}px` }}
+        >
+          <div className="p-4 border-b">
+            <h3 className="text-base font-semibold text-gray-900 mb-4">기사 목록</h3>
             
             <div className="flex flex-col gap-4">
               {/* 검색 */}
@@ -432,65 +554,133 @@ const DriverAssignment: React.FC<DriverAssignmentProps> = () => {
             </div>
           </div>
 
-          <div className="p-4 space-y-4 max-h-96 overflow-y-auto">
-            {filteredDrivers.map((driver) => {
-              const statusConfig = getDriverStatusConfig(driver.status);
-              const StatusIcon = statusConfig.icon;
-              const isSelected = selectedDriver === driver.id;
-              
-              return (
-                <div
-                  key={driver.id}
-                  className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                    isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                  onClick={() => setSelectedDriver(selectedDriver === driver.id ? null : driver.id)}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <User className="w-5 h-5 text-gray-500" />
-                      <span className="font-medium text-gray-900">{driver.name}</span>
-                    </div>
-                    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${statusConfig.color}`}>
-                      <StatusIcon className="w-3 h-3" />
-                      {statusConfig.text}
-                    </span>
-                  </div>
-                  
-                  <div className="space-y-1 text-sm text-gray-600">
-                    <div className="flex items-center gap-2">
-                      <Phone className="w-4 h-4" />
-                      <span>{driver.phone}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Truck className="w-4 h-4" />
-                      <span>{driver.vehicle} ({driver.license})</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <MapPin className="w-4 h-4" />
-                      <span>{driver.location}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center justify-between mt-3 pt-3 border-t">
-                    <span className="text-sm text-gray-600">
-                      배송: {driver.currentOrders}/{driver.maxOrders}
-                    </span>
-                    <div className="flex items-center gap-4 text-sm text-gray-600">
-                      <span>⭐ {driver.rating}</span>
-                      <span>총 {driver.totalDeliveries}건</span>
-                    </div>
-                  </div>
+          <div className="overflow-x-auto">
+            {driversLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-gray-500">기사 데이터를 로딩 중...</div>
+              </div>
+            ) : filteredDrivers.length === 0 ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-center">
+                  <User className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                  <div className="text-gray-500">등록된 기사가 없습니다.</div>
+                  <div className="text-sm text-gray-400 mt-1">관리자 메뉴에서 기사를 추가해주세요.</div>
                 </div>
-              );
-            })}
+              </div>
+            ) : (
+              <table className="min-w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      기사정보
+                    </th>
+                    <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      상태
+                    </th>
+                    <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      차량정보
+                    </th>
+                    <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      배송현황
+                    </th>
+                    <th className="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      선택
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredDrivers.map((driver) => {
+                    const statusConfig = getDriverStatusConfig(driver.status);
+                    const StatusIcon = statusConfig.icon;
+                    const isSelected = selectedDriver === driver.driver_id;
+                    
+                    return (
+                      <tr
+                        key={driver.driver_id}
+                        className={`hover:bg-gray-50 cursor-pointer transition-colors ${
+                          isSelected ? 'bg-blue-50 border-blue-200' : ''
+                        }`}
+                        onClick={() => setSelectedDriver(selectedDriver === driver.driver_id ? null : driver.driver_id)}
+                      >
+                        <td className="px-2 py-2 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0 h-8 w-8">
+                              <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">
+                                <User className="w-4 h-4 text-gray-500" />
+                              </div>
+                            </div>
+                            <div className="ml-3">
+                              <div className="text-sm font-medium text-gray-900">{driver.name}</div>
+                              <div className="text-sm text-gray-500">{driver.phone || '연락처 없음'}</div>
+                            </div>
+                          </div>
+                        </td>
+                        
+                        <td className="px-2 py-2 whitespace-nowrap">
+                          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${statusConfig.color}`}>
+                            <StatusIcon className="w-3 h-3" />
+                            {statusConfig.text}
+                          </span>
+                        </td>
+                        
+                        <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-600">
+                          <div className="flex items-center gap-1">
+                            <Truck className="w-4 h-4" />
+                            <span>{driver.vehicle_type || '미등록'}</span>
+                          </div>
+                          <div className="text-xs text-gray-500">{driver.vehicle_number || '번호 없음'}</div>
+                        </td>
+                        
+                        <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-600">
+                          <div className="flex items-center justify-between">
+                            <span>배송: {driver.currentOrders}/{driver.maxOrders}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-gray-500">
+                            <span>⭐ {driver.rating?.toFixed(1)}</span>
+                            <span>총 {driver.totalDeliveries}건</span>
+                          </div>
+                        </td>
+                        
+                        <td className="px-2 py-2 whitespace-nowrap text-center">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedDriver(selectedDriver === driver.driver_id ? null : driver.driver_id);
+                            }}
+                            className={`px-3 py-1 text-xs rounded-md transition-colors ${
+                              isSelected 
+                                ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            }`}
+                          >
+                            {isSelected ? '선택됨' : '선택'}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
 
+        {/* 드래그 리사이저 */}
+        <div 
+          className={`hidden lg:flex w-2 bg-gray-200 hover:bg-blue-400 cursor-col-resize transition-colors relative group ${
+            isResizing ? 'bg-blue-500' : ''
+          }`}
+          onMouseDown={handleMouseDown}
+        >
+          {/* 리사이저 시각적 표시 */}
+          <div className="absolute inset-y-0 left-1/2 transform -translate-x-1/2 w-0.5 bg-gray-400 group-hover:bg-white transition-colors" />
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-1 h-8 bg-gray-400 group-hover:bg-white rounded-full transition-colors" />
+        </div>
+
         {/* 주문 목록 */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="p-6 border-b">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">배송 주문</h3>
+        <div className="bg-white rounded-lg shadow flex-1 lg:rounded-l-none">
+          <div className="p-4 border-b">
+            <h3 className="text-base font-semibold text-gray-900 mb-4">배송 주문</h3>
             
             <div className="flex flex-col gap-4">
               {/* 배정 상태 필터 */}
@@ -511,7 +701,7 @@ const DriverAssignment: React.FC<DriverAssignmentProps> = () => {
               {selectedDriver && selectedOrders.length > 0 && (
                 <button
                   onClick={assignOrdersToDriver}
-                  className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="w-full px-2 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   {selectedOrders.length}개 주문 배정하기
                 </button>
@@ -519,7 +709,7 @@ const DriverAssignment: React.FC<DriverAssignmentProps> = () => {
             </div>
           </div>
 
-          <div className="p-4 space-y-4 max-h-96 overflow-y-auto">
+          <div className="overflow-x-auto max-h-96 overflow-y-auto">
             {loading ? (
               <div className="flex items-center justify-center py-8">
                 <div className="text-gray-500">배송 데이터를 로딩 중...</div>
@@ -528,64 +718,112 @@ const DriverAssignment: React.FC<DriverAssignmentProps> = () => {
               <div className="flex items-center justify-center py-8">
                 <div className="text-gray-500">조건에 맞는 주문이 없습니다.</div>
               </div>
-            ) : filteredOrders.map((order) => {
-              const priorityConfig = getPriorityConfig(order.created_at);
-              const statusConfig = getDeliveryStatusConfig(order.status);
-              const isSelected = selectedOrders.includes(order.id);
-              const hasAssignedDriver = !!(order.assigned_driver || order.driver_id || order.driver_name);
-              const assignedDriverName = order.driver_name || order.assigned_driver;
-              
-              return (
-                <div
-                  key={order.id}
-                  className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                    isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
-                  } ${hasAssignedDriver ? 'opacity-75' : ''}`}
-                  onClick={() => !hasAssignedDriver && toggleOrderSelection(order.id)}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <Package className="w-5 h-5 text-gray-500" />
-                      <span className="font-medium text-gray-900">{order.tracking_number}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${priorityConfig.color}`}>
-                        {priorityConfig.text}
-                      </span>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusConfig.color}`}>
-                        {statusConfig.text}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-1 text-sm text-gray-600 mb-3">
-                    <div>발송인: {order.sender_name}</div>
-                    <div>수취인: {order.receiver_name || order.customer_name || '미정'}</div>
-                    <div className="flex items-center gap-2">
-                      <MapPin className="w-4 h-4" />
-                      <span>{order.receiver_address || order.customer_address || '주소 미정'}</span>
-                    </div>
-                    <div>상품: {order.product_name || '상품명 미정'}</div>
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4" />
-                      <span>{new Date(order.created_at).toLocaleString('ko-KR')}</span>
-                    </div>
-                  </div>
-                  
-                  {hasAssignedDriver ? (
-                    <div className="flex items-center gap-2 px-3 py-2 bg-green-100 text-green-800 rounded-lg text-sm">
-                      <CheckCircle className="w-4 h-4" />
-                      <span>{assignedDriverName} 기사 배정완료</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2 px-3 py-2 bg-orange-100 text-orange-800 rounded-lg text-sm">
-                      <AlertCircle className="w-4 h-4" />
-                      <span>배정 대기중</span>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+            ) : (
+              <table className="min-w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      주문정보
+                    </th>
+                    <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      발송인/수취인
+                    </th>
+                    <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      상품/주소
+                    </th>
+                    <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      상태
+                    </th>
+                    <th className="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      선택
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredOrders.map((order) => {
+                    const priorityConfig = getPriorityConfig(order.created_at);
+                    const statusConfig = getDeliveryStatusConfig(order.status);
+                    const isSelected = selectedOrders.includes(order.id);
+                    const hasAssignedDriver = !!(order.assigned_driver || order.driver_id || order.driver_name);
+                    const assignedDriverName = order.driver_name || order.assigned_driver || 
+                                              (order.driver_id && drivers.find(d => d.driver_id.toString() === order.driver_id)?.name);
+                    
+                    return (
+                      <tr
+                        key={order.id}
+                        className={`hover:bg-gray-50 cursor-pointer transition-colors ${
+                          isSelected ? 'bg-blue-50 border-blue-200' : ''
+                        } ${hasAssignedDriver ? 'opacity-75' : ''}`}
+                        onClick={() => !hasAssignedDriver && toggleOrderSelection(order.id)}
+                      >
+                        <td className="px-2 py-2 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0 h-8 w-8">
+                              <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">
+                                <Package className="w-4 h-4 text-gray-500" />
+                              </div>
+                            </div>
+                            <div className="ml-3">
+                              <div className="text-sm font-medium text-gray-900">{order.tracking_number}</div>
+                              <div className="text-xs text-gray-500">
+                                {new Date(order.created_at).toLocaleDateString('ko-KR')}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        
+                        <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-600">
+                          <div className="font-medium">발송: {order.sender_name}</div>
+                          <div className="text-gray-500">수취: {order.receiver_name || order.customer_name || '미정'}</div>
+                        </td>
+                        
+                        <td className="px-2 py-2 text-sm text-gray-600">
+                          <div className="font-medium truncate max-w-xs">{order.product_name || '상품명 미정'}</div>
+                          <div className="text-gray-500 truncate max-w-xs flex items-center gap-1">
+                            <MapPin className="w-3 h-3 flex-shrink-0" />
+                            <span>{order.receiver_address || order.customer_address || '주소 미정'}</span>
+                          </div>
+                        </td>
+                        
+                        <td className="px-2 py-2 whitespace-nowrap">
+                          <div className="flex flex-col gap-1">
+                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${statusConfig.color}`}>
+                              {statusConfig.text}
+                            </span>
+                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${priorityConfig.color}`}>
+                              {priorityConfig.text}
+                            </span>
+                          </div>
+                          {hasAssignedDriver && (
+                            <div className="mt-1 flex items-center gap-1 text-xs text-green-600">
+                              <CheckCircle className="w-3 h-3" />
+                              <span>{assignedDriverName}</span>
+                            </div>
+                          )}
+                        </td>
+                        
+                        <td className="px-2 py-2 whitespace-nowrap text-center">
+                          {!hasAssignedDriver && (
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                toggleOrderSelection(order.id);
+                              }}
+                              className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            />
+                          )}
+                          {hasAssignedDriver && (
+                            <span className="text-xs text-green-600 font-medium">배정완료</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       </div>

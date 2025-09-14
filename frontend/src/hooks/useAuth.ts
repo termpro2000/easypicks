@@ -36,32 +36,60 @@ export const useAuthProvider = (): AuthContextType => {
   }, []);
 
   /**
-   * JWT 토큰 또는 세션 상태를 확인하고 사용자 정보를 가져오는 함수
+   * 로그인 세션 상태를 확인하고 사용자 정보를 가져오는 함수
+   * 5일간 자동 로그인 유지 기능 포함
    */
   const checkSession = async () => {
     try {
       setIsLoading(true);
       
-      // JWT 토큰이 있는지 먼저 확인
-      if (tokenAPI.isAuthenticated()) {
-        console.log('JWT 토큰이 존재함, 서버에서 사용자 정보 확인');
+      // 1. 먼저 로컬 세션 확인 (5일 자동 로그인)
+      const localSession = tokenAPI.getLoginSession();
+      if (localSession) {
+        console.log('💾 로컬 세션 발견 - 자동 로그인 시도:', localSession.user.username);
+        setUser(localSession.user);
+        setIsLoading(false);
+        
+        // 백그라운드에서 서버 세션도 확인 (선택적)
+        try {
+          const response = await authAPI.me();
+          if (response.authenticated && response.user) {
+            console.log('✅ 서버 세션도 유효함');
+            // 서버에서 최신 사용자 정보로 업데이트
+            setUser(response.user);
+            // 로컬 세션도 최신 사용자 정보로 업데이트
+            tokenAPI.setLoginSession(localSession.token, response.user);
+          }
+        } catch (error) {
+          console.log('⚠️ 서버 세션 확인 실패, 로컬 세션 유지');
+        }
+        return;
       }
       
+      // 2. 로컬 세션이 없으면 서버에서 확인
+      console.log('🔍 로컬 세션 없음, 서버 세션 확인...');
       const response = await authAPI.me();
+      console.log('🔍 Frontend checkSession - /auth/me 응답:', response);
+      
       if (response.authenticated && response.user) {
         setUser(response.user);
-        console.log('사용자 인증 상태 확인됨:', response.user.username);
-      } else {
-        // 토큰이 있지만 서버에서 인증 실패한 경우 토큰 제거
-        if (tokenAPI.isAuthenticated()) {
-          console.log('서버 인증 실패, JWT 토큰 제거');
-          tokenAPI.removeToken();
+        console.log('✅ 서버 세션 인증 성공:', response.user.username);
+        
+        // 서버 세션이 있지만 로컬 세션이 없는 경우, JWT 토큰으로 로컬 세션 생성
+        const token = tokenAPI.getToken();
+        if (token) {
+          console.log('💾 로컬 세션 생성 - 5일간 자동 로그인 설정');
+          tokenAPI.setLoginSession(token, response.user);
         }
+      } else {
+        // 서버에서도 인증 실패한 경우 모든 토큰 제거
+        console.log('❌ 서버 인증 실패, 모든 세션 제거');
+        tokenAPI.removeLoginSession();
       }
     } catch (error) {
-      console.log('인증 실패 - 세션 또는 JWT 토큰 없음/만료됨');
-      // 토큰이 만료되었거나 무효한 경우 제거
-      tokenAPI.removeToken();
+      console.log('❌ 인증 실패 - 세션 또는 JWT 토큰 없음/만료됨');
+      // 인증 실패시 모든 세션 제거
+      tokenAPI.removeLoginSession();
     } finally {
       setIsLoading(false);
     }
@@ -83,6 +111,10 @@ export const useAuthProvider = (): AuthContextType => {
         if (response.token) {
           console.log('JWT 토큰 받음, localStorage에 저장됨');
         }
+        
+        // 로그인 직후 최신 사용자 정보 새로고침 (발송인 정보 포함)
+        console.log('로그인 후 사용자 정보 새로고침 중...');
+        await refreshUser();
       }
     } catch (error: any) {
       const message = error.response?.data?.message || '로그인에 실패했습니다.';
@@ -111,19 +143,21 @@ export const useAuthProvider = (): AuthContextType => {
   };
 
   /**
-   * 사용자 로그아웃 처리 함수 (JWT 토큰 제거 포함)
+   * 사용자 로그아웃 처리 함수 (로그인 세션 완전 제거)
    * 서버 오류가 있어도 클라이언트에서는 로그아웃 상태로 처리
    */
   const logout = async () => {
     try {
-      await authAPI.logout(); // 이미 JWT 토큰 제거가 포함됨
+      await authAPI.logout(); // 서버 세션 종료
       setUser(null);
-      console.log('로그아웃 완료, JWT 토큰 제거됨');
+      tokenAPI.removeLoginSession(); // 로컬 세션 완전 제거
+      console.log('🔓 로그아웃 완료, 모든 세션 제거됨');
     } catch (error) {
       console.error('로그아웃 오류:', error);
       // 로그아웃은 서버 오류가 있어도 클라이언트에서는 처리
-      tokenAPI.removeToken();
+      tokenAPI.removeLoginSession(); // 로컬 세션 완전 제거
       setUser(null);
+      console.log('🔓 서버 오류 발생, 로컬 세션만 제거함');
     }
   };
 
@@ -148,6 +182,16 @@ export const useAuthProvider = (): AuthContextType => {
   const refreshUser = async () => {
     try {
       const response = await authAPI.me();
+      console.log('🔍 Frontend refreshUser - /auth/me 응답:', response);
+      console.log('🔍 Frontend refreshUser - 발송인 정보:', {
+        default_sender_name: response.user?.default_sender_name,
+        default_sender_company: response.user?.default_sender_company,
+        default_sender_phone: response.user?.default_sender_phone,
+        default_sender_address: response.user?.default_sender_address,
+        default_sender_detail_address: response.user?.default_sender_detail_address,
+        default_sender_zipcode: response.user?.default_sender_zipcode
+      });
+      
       if (response.authenticated && response.user) {
         setUser(response.user);
       }

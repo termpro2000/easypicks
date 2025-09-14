@@ -43,14 +43,14 @@ export interface ShippingOrderData {
   sender_detail_address?: string;
   sender_zipcode: string;
   
-  // 수취인 정보 (7개)
-  receiver_name: string;
-  receiver_phone: string;
-  receiver_email?: string;
-  receiver_company?: string;
-  receiver_address: string;
-  receiver_detail_address?: string;
-  receiver_zipcode: string;
+  // 고객 정보 (방문지) (7개)
+  customer_name: string;
+  customer_phone: string;
+  customer_email?: string;
+  customer_company?: string;
+  customer_address: string;
+  customer_detail_address?: string;
+  customer_zipcode: string;
   
   // 제품 정보 (4개)
   product_name: string;
@@ -88,14 +88,14 @@ export interface ShippingOrder {
   sender_detail_address?: string;
   sender_zipcode: string;
   
-  // 수취인 정보 (7개)
-  receiver_name: string;
-  receiver_phone: string;
-  receiver_email?: string;
-  receiver_company?: string;
-  receiver_address: string;
-  receiver_detail_address?: string;
-  receiver_zipcode: string;
+  // 고객 정보 (방문지) (7개)
+  customer_name: string;
+  customer_phone: string;
+  customer_email?: string;
+  customer_company?: string;
+  customer_address: string;
+  customer_detail_address?: string;
+  customer_zipcode: string;
   
   // 제품 정보 (4개)
   product_name: string;
@@ -133,7 +133,7 @@ export interface ShippingOrderListItem {
   tracking_number: string;
   status: string;
   sender_name: string;
-  receiver_name: string;
+  customer_name: string;
   package_type: string;
   delivery_type: string;
   created_at: string;

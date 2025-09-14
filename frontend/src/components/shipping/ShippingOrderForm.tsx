@@ -1,14 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { 
   User, Phone, Mail, Building, MapPin, Package, Truck, 
   Calendar, Clock, AlertTriangle, Snowflake, FileText, 
-  Shield, ChevronLeft, ChevronRight, Check, QrCode, Camera, X,
-  Home, Wrench, Weight, Box, Ruler, Settings, Image, PenTool
+  Shield, Check, Home, Wrench, Weight, Box, Ruler, Settings, 
+  Image, PenTool, Tag, DollarSign
 } from 'lucide-react';
-import { Html5QrcodeScanner } from 'html5-qrcode';
-import { shippingAPI, deliveriesAPI, qrcodeAPI, configAPI, requestTypesAPI } from '../../services/api';
+import { shippingAPI, deliveriesAPI, configAPI, requestTypesAPI } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
 import SimpleNaverMap from '../map/SimpleNaverMap';
 
@@ -60,13 +59,7 @@ interface DeliveryData {
   detail_notes?: string;
 }
 
-const STEPS = [
-  { id: 1, title: '기본 정보', description: '기본 배송 정보를 입력하세요' },
-  { id: 2, title: '현장 정보', description: '현장 상황 정보를 입력하세요' },
-  { id: 3, title: '상품 정보', description: '상품 및 가구 정보를 입력하세요' },
-  { id: 4, title: '특별 요청', description: '특별 요청사항을 입력하세요' },
-  { id: 5, title: '완료', description: '배송접수를 완료하세요' }
-];
+// 단계별 구분은 제거하고 섹션별로만 관리
 
 interface ShippingOrderFormProps {
   onSuccess?: () => void;
@@ -78,18 +71,48 @@ interface ShippingOrderFormProps {
   }) => void;
 }
 
+interface InfoCellProps {
+  label: string;
+  icon: React.ComponentType<any>;
+  children: React.ReactNode;
+  required?: boolean;
+  error?: string;
+  description?: string;
+}
+
+const InfoCell: React.FC<InfoCellProps> = ({ label, icon: Icon, children, required = false, error, description }) => {
+  return (
+    <div className="bg-white rounded-lg border border-gray-200 p-4 hover:border-blue-300 transition-colors">
+      <div className="flex items-center gap-2 mb-3">
+        <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+          <Icon className="w-4 h-4 text-blue-600" />
+        </div>
+        <div className="flex-1">
+          <h3 className="font-medium text-gray-900">
+            {label}
+            {required && <span className="text-red-500 ml-1">*</span>}
+          </h3>
+          {description && (
+            <p className="text-xs text-gray-500 mt-1">{description}</p>
+          )}
+        </div>
+      </div>
+      <div className="space-y-2">
+        {children}
+        {error && <p className="text-sm text-red-600 mt-1">{error}</p>}
+      </div>
+    </div>
+  );
+};
+
 const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewOrder }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitResult, setSubmitResult] = useState<{ success: boolean; message: string; trackingNumber?: string } | null>(null);
-  const [qrCodeInput, setQrCodeInput] = useState('');
-  const [isLoadingQR, setIsLoadingQR] = useState(false);
-  const [isScanning, setIsScanning] = useState(false);
+  // QR 코드 관련 상태 제거됨
   const [requestTypes, setRequestTypes] = useState<string[]>([]);
   const [isLoadingRequestTypes, setIsLoadingRequestTypes] = useState(false);
-  const qrScannerRef = useRef<Html5QrcodeScanner | null>(null);
 
   // Daum 우편번호 서비스 초기화
   useEffect(() => {
@@ -187,146 +210,9 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
 
 
   // 다음 단계로
-  const nextStep = async () => {
-    const fieldsToValidate = getFieldsForStep(currentStep);
-    const isValid = await trigger(fieldsToValidate as any);
-    
-    if (isValid) {
-      setCurrentStep(prev => Math.min(prev + 1, 5));
-    }
-  };
+  // 단계별 네비게이션 제거 - 이제 한 페이지 스크롤 방식
 
-  // 이전 단계로
-  const prevStep = () => {
-    setCurrentStep(prev => Math.max(prev - 1, 1));
-  };
-
-  // 단계별 검증 필드 정의
-  const getFieldsForStep = (step: number): string[] => {
-    switch (step) {
-      case 1: return ['sender_name', 'sender_addr', 'customer_name', 'customer_phone', 'customer_address'];
-      case 2: return ['building_type', 'floor_count'];
-      case 3: return ['product_name'];
-      case 4: return [];
-      default: return [];
-    }
-  };
-
-  // QR 코드 데이터 로드 (기존 함수 유지)
-  const handleLoadFromQR = async () => {
-    if (!qrCodeInput.trim()) {
-      alert('QR 코드를 먼저 입력해주세요.');
-      return;
-    }
-
-    setIsLoadingQR(true);
-    try {
-      const response = await qrcodeAPI.getProductByQRCode(qrCodeInput);
-      
-      if (response.success) {
-        const data = response.product;
-        setValue('product_name', data.product_name || '');
-        setValue('furniture_product_code', data.qr_code || '');
-        setValue('product_weight', data.weight || 0);
-        setValue('product_size', data.size || '');
-        
-        alert('QR 코드 데이터가 성공적으로 로드되었습니다.');
-      } else {
-        alert('QR 코드 데이터를 불러오는데 실패했습니다: ' + response.message);
-      }
-    } catch (error: any) {
-      console.error('QR 코드 로드 오류:', error);
-      alert('QR 코드 데이터 로드 중 오류가 발생했습니다.');
-    } finally {
-      setIsLoadingQR(false);
-    }
-  };
-
-  // QR 스캔 기능 (기존 함수들 유지)
-  const startQRCodeScan = async () => {
-    try {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        stream.getTracks().forEach(track => track.stop());
-      } catch (permissionError) {
-        alert('카메라 사용 권한이 필요합니다. 브라우저 설정에서 카메라 권한을 허용해주세요.');
-        return;
-      }
-      
-      setIsScanning(true);
-      setTimeout(() => {
-        initQRScanner();
-      }, 100);
-      
-    } catch (error) {
-      alert('카메라 접근에 실패했습니다. HTTPS 환경에서 사용해주세요.');
-      setIsScanning(false);
-    }
-  };
-
-  const initQRScanner = () => {
-    try {
-      if (qrScannerRef.current) {
-        qrScannerRef.current.clear();
-      }
-
-      const element = document.getElementById('qr-reader');
-      if (!element) {
-        setIsScanning(false);
-        return;
-      }
-
-      qrScannerRef.current = new Html5QrcodeScanner(
-        "qr-reader",
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
-          aspectRatio: 1.0,
-          useBarCodeDetectorIfSupported: true,
-          rememberLastUsedCamera: true,
-          showTorchButtonIfSupported: true
-        },
-        false
-      );
-
-      qrScannerRef.current.render(
-        (decodedText) => {
-          setQrCodeInput(decodedText);
-          stopQRCodeScan();
-        },
-        (errorMessage) => {
-          if (errorMessage.includes('permission') || 
-              errorMessage.includes('NotAllowed') ||
-              errorMessage.includes('camera') ||
-              errorMessage.includes('Camera')) {
-            alert('카메라 접근 중 오류가 발생했습니다: ' + errorMessage);
-            stopQRCodeScan();
-          }
-        }
-      );
-    } catch (error) {
-      alert('QR 스캐너 초기화에 실패했습니다.');
-      setIsScanning(false);
-    }
-  };
-
-  const stopQRCodeScan = () => {
-    try {
-      if (qrScannerRef.current) {
-        qrScannerRef.current.clear();
-        qrScannerRef.current = null;
-      }
-      setIsScanning(false);
-    } catch (error) {
-      setIsScanning(false);
-    }
-  };
-
-  useEffect(() => {
-    return () => {
-      stopQRCodeScan();
-    };
-  }, []);
+  // QR 코드 및 카메라 관련 함수들 제거됨 - 관리자용에서는 직접 입력만 사용
 
   // 주소 검색 함수들
   const openAddressSearch = (type: 'sender' | 'customer') => {
@@ -393,44 +279,6 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
   // 단계별 렌더링 함수들
   const renderStep1 = () => (
     <div className="space-y-6">
-      {/* QR 코드 섹션 */}
-      <div className="bg-green-50 rounded-lg p-4 border border-green-200">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-            <QrCode className="w-5 h-5 text-green-600" />
-            QR 코드 불러오기
-          </h3>
-          
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={qrCodeInput}
-              onChange={(e) => setQrCodeInput(e.target.value)}
-              placeholder="QR 코드 입력"
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              disabled={isLoadingQR || isScanning}
-            />
-            <button
-              type="button"
-              onClick={startQRCodeScan}
-              disabled={isLoadingQR || isScanning}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50"
-            >
-              <Camera className="w-4 h-4" />
-              {isScanning ? '스캔 중...' : '촬영'}
-            </button>
-            <button
-              type="button"
-              onClick={handleLoadFromQR}
-              disabled={isLoadingQR || isScanning}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50"
-            >
-              <QrCode className="w-4 h-4" />
-              {isLoadingQR ? '불러오는 중...' : 'QR코드'}
-            </button>
-          </div>
-        </div>
-      </div>
 
       {/* 발송인 정보 */}
       <div className="bg-gray-50 rounded-lg p-4">
@@ -767,92 +615,163 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
 
   const renderStep3 = () => (
     <div className="space-y-6">
-      {/* 제품 기본 정보 */}
+
+      {/* 기본 상품 정보 섹션 */}
       <div className="bg-gray-50 rounded-lg p-4">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-          <Package className="w-5 h-5" />
-          제품 기본 정보
+        <h3 className="text-lg font-semibold text-gray-800 mb-6 flex items-center gap-2">
+          <Package className="w-5 h-5 text-blue-600" />
+          기본 상품 정보
         </h3>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              제품명 <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              {...register('product_name', { required: '제품명은 필수입니다' })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="제품명을 입력하세요"
-            />
-            {errors.product_name && <p className="mt-1 text-sm text-red-600">{errors.product_name.message}</p>}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">가구 제품 코드</label>
+          <InfoCell 
+            label="상품코드" 
+            icon={Tag} 
+            description="상품의 메인 분류 코드를 입력하세요"
+          >
             <input
               type="text"
               {...register('furniture_product_code')}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="제품 코드"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="예: FUR001"
             />
-          </div>
+          </InfoCell>
 
-        </div>
-      </div>
-
-      {/* 제품 상세 정보 */}
-      <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-          <Weight className="w-5 h-5 text-blue-600" />
-          제품 상세 정보
-        </h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">무게 (kg)</label>
-            <input
-              type="number"
-              min="0"
-              step="0.1"
-              {...register('product_weight')}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="0.0"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">전체 무게 (kg)</label>
-            <input
-              type="number"
-              min="0"
-              step="0.1"
-              {...register('weight')}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="0.0"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">제품 크기</label>
-            <input
-              type="text"
-              {...register('product_size')}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="가로x세로x높이 (cm)"
-            />
-          </div>
-
-          <div className="md:col-span-3">
-            <label className="block text-sm font-medium text-gray-700 mb-2">박스 크기</label>
+          <InfoCell 
+            label="내부코드" 
+            icon={Tag} 
+            description="상품의 세부 분류 코드를 입력하세요"
+          >
             <input
               type="text"
               {...register('box_size')}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="박스 크기 (가로x세로x높이 cm)"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="예: SOFA-L"
             />
-          </div>
+          </InfoCell>
+
+          <InfoCell 
+            label="상품명" 
+            icon={Tag} 
+            required 
+            error={errors.product_name?.message}
+            description="고객이 쉽게 알아볼 수 있는 상품명을 입력하세요"
+          >
+            <input
+              type="text"
+              {...register('product_name', { required: '상품명은 필수입니다' })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="예: 침실 3인용 소파"
+            />
+          </InfoCell>
+
+          <InfoCell 
+            label="상품 무게" 
+            icon={Weight}
+            description="배송비 계산에 사용됩니다 (kg 단위)"
+          >
+            <div className="relative">
+              <input
+                type="number"
+                min="0"
+                step="0.1"
+                {...register('product_weight')}
+                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="0.0"
+              />
+              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                <span className="text-gray-500 text-sm">kg</span>
+              </div>
+            </div>
+          </InfoCell>
+
+          <InfoCell 
+            label="상품 크기" 
+            icon={Ruler}
+            description="포장 크기 또는 실제 크기를 입력하세요"
+          >
+            <input
+              type="text"
+              {...register('product_size')}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="예: 200x80x75cm 또는 대형"
+            />
+          </InfoCell>
         </div>
+      </div>
+
+      {/* 가격 정보 섹션 */}
+      <div className="bg-gray-50 rounded-lg p-4">
+        <h3 className="text-lg font-semibold text-gray-800 mb-6 flex items-center gap-2">
+          <DollarSign className="w-5 h-5 text-green-600" />
+          가격 정보
+        </h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <InfoCell 
+            label="배송비 (기본)" 
+            icon={DollarSign}
+            description="일반 배송시 적용되는 기본 배송비"
+          >
+            <div className="relative">
+              <input
+                type="number"
+                min="0"
+                {...register('delivery_fee')}
+                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="0"
+              />
+              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                <span className="text-gray-500 text-sm">원</span>
+              </div>
+            </div>
+          </InfoCell>
+
+          <InfoCell 
+            label="보험 가치" 
+            icon={DollarSign}
+            description="상품의 보험 가치 또는 실제 가치"
+          >
+            <div className="relative">
+              <input
+                type="number"
+                min="0"
+                {...register('insurance_value')}
+                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="0"
+              />
+              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                <span className="text-gray-500 text-sm">원</span>
+              </div>
+            </div>
+          </InfoCell>
+        </div>
+      </div>
+
+      {/* 상품 메모 섹션 */}
+      <div className="bg-gray-50 rounded-lg p-4">
+        <h3 className="text-lg font-semibold text-gray-800 mb-6 flex items-center gap-2">
+          <FileText className="w-5 h-5 text-yellow-600" />
+          상품 설명 및 특이사항
+        </h3>
+        
+        <InfoCell 
+          label="상품 메모" 
+          icon={FileText}
+          description="배송시 주의사항, 조립 방법, 특별 요구사항 등을 상세히 기록하세요"
+        >
+          <textarea
+            {...register('special_instructions')}
+            rows={6}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            placeholder="예시:
+• 깨지기 쉬운 유리 부품이 포함되어 있음
+• 2인 이상 작업 필요 (무게: 50kg 이상)
+• 엘리베이터 없는 건물은 추가비용 발생
+• 조립 시 전용 공구 필요
+• 배송 전 고객 연락 필수"
+          />
+        </InfoCell>
       </div>
     </div>
   );
@@ -1119,144 +1038,114 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
   );
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      {/* QR 코드 스캔 모달 */}
-      {isScanning && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              stopQRCodeScan();
-            }
-          }}
-        >
-          <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">QR 코드 스캔</h3>
+    <div className="min-h-screen bg-gray-100">
+      {/* QR 스캔 모달 제거됨 - 관리자용에서는 직접 입력만 사용 */}
+
+      {/* 완료 결과 표시 */}
+      {submitResult && (
+        <div className="max-w-4xl mx-auto p-6">
+          <div className="bg-white rounded-lg shadow-lg p-8">
+            <div className={`text-center ${submitResult.success ? 'text-green-600' : 'text-red-600'}`}>
+              <div className="text-3xl font-bold mb-4">
+                {submitResult.success ? '✅ 접수 완료' : '❌ 접수 실패'}
+              </div>
+              <p className="text-xl mb-6">{submitResult.message}</p>
+              {submitResult.success && submitResult.trackingNumber && (
+                <p className="text-lg text-gray-600 mb-6">
+                  운송장 번호: <span className="font-mono font-bold text-2xl text-blue-600">{submitResult.trackingNumber}</span>
+                </p>
+              )}
               <button
-                onClick={stopQRCodeScan}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                onClick={onSuccess}
+                className="px-8 py-4 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg text-lg"
               >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <div className="mb-4">
-              <div
-                id="qr-reader"
-                className="w-full"
-              />
-            </div>
-            
-            <div className="text-center text-sm text-gray-600 mb-4">
-              <p>QR 코드를 카메라에 비춰주세요</p>
-              <p className="text-xs mt-1 text-gray-500">
-                * HTTPS 환경에서만 카메라 사용이 가능합니다<br/>
-                * 브라우저에서 카메라 권한을 허용해주세요
-              </p>
-            </div>
-            
-            <div className="flex justify-center gap-2">
-              <button
-                onClick={stopQRCodeScan}
-                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-              >
-                스캔 중지
+                확인
               </button>
             </div>
           </div>
         </div>
       )}
-      
-      {/* 단계 표시기 */}
-      <div className="mb-8">
-        <div className="flex justify-between items-center">
-          {STEPS.map((step, index) => (
-            <div key={step.id} className="flex-1">
-              <div className="flex items-center">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${
-                  currentStep >= step.id 
-                    ? 'bg-blue-500 text-white' 
-                    : 'bg-gray-200 text-gray-500'
-                }`}>
-                  {currentStep > step.id ? <Check className="w-5 h-5" /> : step.id}
-                </div>
-                
-                {index < STEPS.length - 1 && (
-                  <div className={`flex-1 h-0.5 mx-4 ${
-                    currentStep > step.id ? 'bg-blue-500' : 'bg-gray-200'
-                  }`} />
-                )}
-              </div>
-              
-              <div className="mt-2">
-                <p className={`text-sm font-medium ${
-                  currentStep >= step.id ? 'text-blue-600' : 'text-gray-500'
-                }`}>
-                  {step.title}
-                </p>
-                <p className="text-xs text-gray-500">{step.description}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
 
-      {/* 폼 내용 */}
-      <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-        <h2 className="text-xl font-semibold text-gray-800 mb-6">
-          {STEPS[currentStep - 1].title}
-        </h2>
-        
-        <form onSubmit={handleSubmit(onSubmit)}>
-          {currentStep === 1 && renderStep1()}
-          {currentStep === 2 && renderStep2()}
-          {currentStep === 3 && renderStep3()}
-          {currentStep === 4 && renderStep4()}
-          {currentStep === 5 && renderStep5()}
-        </form>
-      </div>
-
-      {/* 네비게이션 버튼 */}
       {!submitResult && (
-        <div className="flex justify-between gap-4">
-          <button
-            onClick={prevStep}
-            disabled={currentStep === 1}
-            className="flex items-center gap-2 px-6 py-4 bg-gray-500 hover:bg-gray-600 disabled:bg-gray-300 text-white font-medium rounded-lg transition-colors"
-          >
-            <ChevronLeft className="w-5 h-5" />
-            이전
-          </button>
-          
-          {currentStep < 5 ? (
-            <button
-              onClick={nextStep}
-              className="flex items-center gap-2 px-6 py-4 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors"
-            >
-              다음
-              <ChevronRight className="w-5 h-5" />
-            </button>
-          ) : (
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              onClick={() => handleSubmit(onSubmit)()}
-              className="flex items-center gap-2 px-6 py-4 bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white font-medium rounded-lg transition-colors"
-            >
-              {isSubmitting ? (
-                <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                  처리 중...
-                </>
-              ) : (
-                <>
-                  <Check className="w-5 h-5" />
-                  배송 접수 완료
-                </>
-              )}
-            </button>
-          )}
+        <div className="max-w-4xl mx-auto p-6">
+          {/* 헤더 */}
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">
+              새 배송 접수
+            </h1>
+            <p className="text-lg text-gray-600">
+              모든 정보를 입력하여 배송 접수를 완료하세요
+            </p>
+          </div>
+
+          {/* 통합 폼 */}
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+            {/* 기본 정보 섹션 */}
+            <div className="bg-white rounded-lg shadow-lg p-6">
+              <h2 className="text-2xl font-semibold text-gray-800 mb-6 flex items-center gap-3">
+                <User className="w-7 h-7 text-blue-500" />
+                기본 정보
+              </h2>
+              {renderStep1()}
+            </div>
+
+            {/* 현장 정보 섹션 */}
+            <div className="bg-white rounded-lg shadow-lg p-6">
+              <h2 className="text-2xl font-semibold text-gray-800 mb-6 flex items-center gap-3">
+                <Building className="w-7 h-7 text-purple-500" />
+                현장 정보
+              </h2>
+              {renderStep2()}
+            </div>
+
+            {/* 상품 정보 섹션 */}
+            <div className="bg-white rounded-lg shadow-lg p-6">
+              <h2 className="text-2xl font-semibold text-gray-800 mb-6 flex items-center gap-3">
+                <Package className="w-7 h-7 text-green-500" />
+                상품 정보
+              </h2>
+              {renderStep3()}
+            </div>
+
+            {/* 특별 요청 섹션 */}
+            <div className="bg-white rounded-lg shadow-lg p-6">
+              <h2 className="text-2xl font-semibold text-gray-800 mb-6 flex items-center gap-3">
+                <AlertTriangle className="w-7 h-7 text-orange-500" />
+                특별 요청
+              </h2>
+              {renderStep4()}
+            </div>
+
+            {/* 최종 확인 섹션 */}
+            <div className="bg-white rounded-lg shadow-lg p-6">
+              <h2 className="text-2xl font-semibold text-gray-800 mb-6 flex items-center gap-3">
+                <Check className="w-7 h-7 text-green-500" />
+                최종 확인
+              </h2>
+              {renderStep5()}
+            </div>
+
+            {/* 제출 버튼 */}
+            <div className="sticky bottom-6 bg-white rounded-lg shadow-xl p-6 border-t">
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full flex items-center justify-center gap-3 px-8 py-5 bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white font-semibold rounded-lg transition-colors text-xl"
+              >
+                {isSubmitting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                    처리 중...
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-7 h-7" />
+                    배송 접수 완료
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>

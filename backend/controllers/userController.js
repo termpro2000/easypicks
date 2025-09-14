@@ -34,8 +34,9 @@ async function getAllUsers(req, res) {
     // 사용자 목록 조회
     const [users] = await pool.execute(`
       SELECT 
-        id, username, name, phone, company, role, is_active, 
-        last_login, created_at, updated_at
+        id, username, name, email, phone, company, role, is_active, 
+        last_login, created_at, updated_at,
+        default_sender_address, default_sender_detail_address, default_sender_zipcode
       FROM users 
       ${whereClause}
       ORDER BY created_at DESC
@@ -67,7 +68,7 @@ async function getUser(req, res) {
     const { id } = req.params;
 
     const [users] = await pool.execute(
-      'SELECT id, username, name, phone, company, role, is_active, last_login, created_at, updated_at FROM users WHERE id = ?',
+      'SELECT id, username, name, email, phone, company, role, is_active, last_login, created_at, updated_at, default_sender_address, default_sender_detail_address, default_sender_zipcode FROM users WHERE id = ?',
       [id]
     );
 
@@ -92,7 +93,10 @@ async function getUser(req, res) {
 // 사용자 생성 (관리자만)
 async function createUser(req, res) {
   try {
-    const { username, password, name, phone, company, role = 'user' } = req.body;
+    const { 
+      username, password, name, email, phone, company, role = 'user',
+      default_sender_address, default_sender_detail_address, default_sender_zipcode
+    } = req.body;
 
     // 유효성 검사
     if (!username || !password || !name) {
@@ -120,15 +124,21 @@ async function createUser(req, res) {
 
     // 사용자 생성 (undefined를 null로 변환)
     const [result] = await pool.execute(`
-      INSERT INTO users (username, password, name, phone, company, role)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO users (
+        username, password, name, email, phone, company, role,
+        default_sender_address, default_sender_detail_address, default_sender_zipcode
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       username, 
       hashedPassword, 
       name, 
+      email || null,
       phone || null, 
       company || null, 
-      role
+      role,
+      default_sender_address || null,
+      default_sender_detail_address || null,
+      default_sender_zipcode || null
     ]);
 
     // 활동 로그 기록
@@ -156,7 +166,10 @@ async function createUser(req, res) {
 async function updateUser(req, res) {
   try {
     const { id } = req.params;
-    const { name, phone, company, role, is_active, password } = req.body;
+    const { 
+      name, email, phone, company, role, is_active, password,
+      default_sender_address, default_sender_detail_address, default_sender_zipcode
+    } = req.body;
 
     // 사용자 존재 확인
     const [users] = await pool.execute('SELECT * FROM users WHERE id = ?', [id]);
@@ -175,6 +188,10 @@ async function updateUser(req, res) {
     if (name !== undefined) {
       updateFields.push('name = ?');
       updateValues.push(name);
+    }
+    if (email !== undefined) {
+      updateFields.push('email = ?');
+      updateValues.push(email);
     }
     if (phone !== undefined) {
       updateFields.push('phone = ?');
@@ -196,6 +213,18 @@ async function updateUser(req, res) {
       const hashedPassword = await bcrypt.hash(password, 10);
       updateFields.push('password = ?');
       updateValues.push(hashedPassword);
+    }
+    if (default_sender_address !== undefined) {
+      updateFields.push('default_sender_address = ?');
+      updateValues.push(default_sender_address);
+    }
+    if (default_sender_detail_address !== undefined) {
+      updateFields.push('default_sender_detail_address = ?');
+      updateValues.push(default_sender_detail_address);
+    }
+    if (default_sender_zipcode !== undefined) {
+      updateFields.push('default_sender_zipcode = ?');
+      updateValues.push(default_sender_zipcode);
     }
 
     if (updateFields.length === 0) {

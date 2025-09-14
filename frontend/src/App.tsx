@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { LogOut, Package, BarChart3, Plus, Users, Search, User, UserCheck, Package2 } from 'lucide-react';
+import { LogOut, Package, BarChart3, Plus, Users, Search, User, UserCheck, Package2, TestTube, Truck } from 'lucide-react';
 import DeliveryDetailView from './components/delivery/DeliveryDetailView';
 import { AuthContext, useAuthProvider, useAuth } from './hooks/useAuth';
 import { useNotification } from './hooks/useNotification';
@@ -9,11 +9,15 @@ import ShippingOrderForm from './components/shipping/ShippingOrderForm';
 import Dashboard from './components/dashboard/Dashboard';
 import UserManagement from './components/admin/UserManagement';
 import ProductManagement from './components/products/ProductManagement';
+import DriverManagement from './components/drivers/DriverManagement';
 import TrackingPage from './components/tracking/TrackingPage';
 import DriverAssignment from './components/assignment/DriverAssignment';
+import TestPage from './components/test/TestPage';
 import ToastContainer from './components/notifications/ToastContainer';
 import NotificationPermission from './components/notifications/NotificationPermission';
 import UserProfile from './components/profile/UserProfile';
+import PartnerDashboard from './components/partner/PartnerDashboard';
+import AdminDashboard from './components/admin/AdminDashboard';
 
 const AppContent: React.FC = () => {
   const { user, isLoading, isAuthenticated, logout } = useAuth();
@@ -26,7 +30,7 @@ const AppContent: React.FC = () => {
     notifyOrderStatusChange,
     notifyNewOrder
   } = useNotification();
-  type PageType = 'dashboard' | 'new-order' | 'users' | 'products' | 'tracking' | 'assignment';
+  type PageType = 'dashboard' | 'new-order' | 'users' | 'products' | 'drivers' | 'tracking' | 'assignment' | 'test';
   const [currentPage, setCurrentPage] = useState<PageType>('dashboard');
   const [showPermissionRequest, setShowPermissionRequest] = useState(false);
   const [showUserProfile, setShowUserProfile] = useState(false);
@@ -79,6 +83,37 @@ const AppContent: React.FC = () => {
 
   if (!isAuthenticated) {
     return <AuthPage />;
+  }
+
+  // 파트너사 역할(user)인 경우 파트너 전용 화면 표시
+  if (user?.role === 'user') {
+    return (
+      <>
+        <PartnerDashboard onShowProfile={() => setShowUserProfile(true)} />
+        
+        {/* 내정보 모달 */}
+        {showUserProfile && (
+          <UserProfile onClose={() => setShowUserProfile(false)} />
+        )}
+      </>
+    );
+  }
+
+  // 관리자/매니저 역할인 경우 관리자 전용 화면 표시
+  if (user?.role === 'admin' || user?.role === 'manager') {
+    return (
+      <>
+        <AdminDashboard 
+          onShowProfile={() => setShowUserProfile(true)}
+          onNewOrder={notifyNewOrder}
+        />
+        
+        {/* 내정보 모달 */}
+        {showUserProfile && (
+          <UserProfile onClose={() => setShowUserProfile(false)} />
+        )}
+      </>
+    );
   }
 
   const handleLogout = async () => {
@@ -261,6 +296,36 @@ const AppContent: React.FC = () => {
                   <span className="hidden md:inline">상품 관리</span>
                 </button>
               )}
+              
+              {/* 관리자/매니저만 기사 관리 메뉴 표시 */}
+              {(user?.role === 'admin' || user?.role === 'manager') && (
+                <button
+                  onClick={() => setCurrentPage('drivers' as PageType)}
+                  className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg transition-colors touch-manipulation ${
+                    currentPage === 'drivers'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  }`}
+                >
+                  <Truck className="w-5 h-5" />
+                  <span className="hidden md:inline">기사 관리</span>
+                </button>
+              )}
+              
+              {/* 관리자/매니저만 테스트 메뉴 표시 */}
+              {(user?.role === 'admin' || user?.role === 'manager') && (
+                <button
+                  onClick={() => setCurrentPage('test' as PageType)}
+                  className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg transition-colors touch-manipulation ${
+                    currentPage === 'test'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  }`}
+                >
+                  <TestTube className="w-5 h-5" />
+                  <span className="hidden md:inline">테스트</span>
+                </button>
+              )}
             </nav>
           </div>
         </div>
@@ -278,8 +343,12 @@ const AppContent: React.FC = () => {
             <UserManagement />
           ) : currentPage === 'products' ? (
             <ProductManagement />
+          ) : currentPage === 'drivers' ? (
+            <DriverManagement />
           ) : currentPage === 'assignment' ? (
             <DriverAssignment />
+          ) : currentPage === 'test' ? (
+            <TestPage onNavigateBack={() => setCurrentPage('dashboard' as PageType)} />
           ) : (currentPage as string) === 'tracking' ? (
             <TrackingPage onNavigateBack={() => setCurrentPage('dashboard' as PageType)} />
           ) : (

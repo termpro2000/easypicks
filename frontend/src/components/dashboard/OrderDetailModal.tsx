@@ -27,13 +27,16 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ order, isOpen, onCl
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      'pending': { color: 'bg-yellow-100 text-yellow-800', text: '접수대기', icon: Clock },
-      'in_transit': { color: 'bg-blue-100 text-blue-800', text: '배송중', icon: Truck },
-      'delivered': { color: 'bg-green-100 text-green-800', text: '배송완료', icon: CheckCircle },
-      'cancelled': { color: 'bg-red-100 text-red-800', text: '취소', icon: AlertCircle }
+      '접수완료': { color: 'bg-yellow-100 text-yellow-800', text: '접수완료', icon: Clock },
+      '창고입고': { color: 'bg-blue-100 text-blue-800', text: '창고입고', icon: Package },
+      '기사상차': { color: 'bg-purple-100 text-purple-800', text: '기사상차', icon: Truck },
+      '배송완료': { color: 'bg-green-100 text-green-800', text: '배송완료', icon: CheckCircle },
+      '반품접수': { color: 'bg-orange-100 text-orange-800', text: '반품접수', icon: TrendingUp },
+      '수거완료': { color: 'bg-indigo-100 text-indigo-800', text: '수거완룼', icon: CheckCircle },
+      '주문취소': { color: 'bg-red-100 text-red-800', text: '주문취소', icon: AlertCircle }
     };
     
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig['pending'];
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig['접수완료'];
     const Icon = config.icon;
     
     return (
@@ -55,10 +58,13 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ order, isOpen, onCl
   };
 
   const statusOptions = [
-    { value: 'pending', label: '접수대기', color: 'bg-yellow-500' },
-    { value: 'in_transit', label: '배송중', color: 'bg-blue-500' },
-    { value: 'delivered', label: '배송완료', color: 'bg-green-500' },
-    { value: 'cancelled', label: '취소', color: 'bg-red-500' }
+    { value: '접수완료', label: '접수완료', color: 'bg-yellow-500' },
+    { value: '창고입고', label: '창고입고', color: 'bg-blue-500' },
+    { value: '기사상차', label: '기사상차', color: 'bg-purple-500' },
+    { value: '배송완료', label: '배송완룼', color: 'bg-green-500' },
+    { value: '반품접수', label: '반품접수', color: 'bg-orange-500' },
+    { value: '수거완룼', label: '수거완룼', color: 'bg-indigo-500' },
+    { value: '주문취소', label: '주문취소', color: 'bg-red-500' }
   ];
 
   const handleStatusChange = async (newStatus: string) => {
@@ -249,53 +255,35 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ order, isOpen, onCl
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm font-medium text-gray-600">배송 유형</label>
-                      <p className="text-sm text-gray-900 mt-1">{(order as any).package_type || '-'}</p>
+                      <label className="text-sm font-medium text-gray-600">상태</label>
+                      <p className="text-sm text-gray-900 mt-1">{(order as any).status || '-'}</p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-600">무게</label>
-                      <p className="text-sm text-gray-900 mt-1">{(order as any).weight || '-'}</p>
+                      <label className="text-sm font-medium text-gray-600">의뢰종류</label>
+                      <p className="text-sm text-gray-900 mt-1">{(order as any).request_type || '-'}</p>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4">
                     <div>
                       <label className="text-sm font-medium text-gray-600">운송장번호</label>
                       <p className="text-sm text-gray-900 mt-1 font-mono">{(order as any).tracking_number || '미배정'}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">배정 기사</label>
-                      <p className="text-sm text-gray-900 mt-1">{(order as any).assigned_driver || '-'}</p>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* 요청사항 정보 */}
+              {/* 시간 정보 */}
               <div className="bg-gray-50 rounded-lg p-6">
                 <div className="flex items-center gap-2 mb-4">
-                  <AlertCircle className="w-5 h-5 text-orange-500" />
-                  <h4 className="text-lg font-semibold text-gray-900">요청사항</h4>
+                  <Clock className="w-5 h-5 text-orange-500" />
+                  <h4 className="text-lg font-semibold text-gray-900">시간 정보</h4>
                 </div>
                 
                 <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4">
                     <div>
-                      <label className="text-sm font-medium text-gray-600">요청 타입</label>
-                      <p className="text-sm text-gray-900 mt-1">{(order as any).request_type || '-'}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">시공 유형</label>
-                      <p className="text-sm text-gray-900 mt-1">{(order as any).construction_type || '-'}</p>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">배송 유형</label>
-                      <p className="text-sm text-gray-900 mt-1">{(order as any).shipment_type || '-'}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">가구회사</label>
-                      <p className="text-sm text-gray-900 mt-1">{(order as any).furniture_company || '-'}</p>
+                      <label className="text-sm font-medium text-gray-600">생성일시</label>
+                      <p className="text-sm text-gray-900 mt-1">{(order as any).created_at ? formatDate((order as any).created_at) : '-'}</p>
                     </div>
                   </div>
                 </div>

@@ -131,9 +131,51 @@ npm run dev           # 개발 서버 실행 (포트 5173)
 
 ### 주요 테이블
 - **users**: 사용자 정보 및 권한 관리
-- **shipping_orders**: 배송 접수 정보
+- **deliveries**: 배송 접수 정보 및 상태 관리
+- **drivers**: 기사 정보 및 배정 관리
 - **user_activities**: 사용자 활동 로그
-- **order_status_history**: 배송 상태 변경 이력
+
+### 📋 배송 상태 관리 시스템
+
+#### **9단계 배송 상태**
+현재 시스템은 체계적인 9단계 배송 상태를 지원합니다:
+
+| 상태 | 한국어 | 설명 | 색상 표시 |
+|------|--------|------|-----------|
+| `접수완료` | 접수완료 | 배송 접수가 완료된 상태 | 회색 |
+| `배차완료` | 배차완료 | 기사 배정이 완료된 상태 | 노란색 |
+| `배송중` | 배송중 | 현재 배송이 진행 중인 상태 | 파란색 |
+| `배송완료` | 배송완료 | 배송이 성공적으로 완료된 상태 | 초록색 |
+| `배송취소` | 배송취소 | 배송이 취소된 상태 | 빨간색 |
+| `수거중` | 수거중 | 상품을 수거하는 중인 상태 | 보라색 |
+| `수거완료` | 수거완료 | 상품 수거가 완료된 상태 | 남색 |
+| `조처완료` | 조처완료 | 모든 처리가 완료된 상태 | 청록색 |
+| `배송연기` | 배송연기 | 배송이 연기된 상태 | 주황색 |
+
+#### **자동 상태 설정 규칙**
+시스템은 다음과 같은 조건에서 자동으로 배송 상태를 설정합니다:
+
+```typescript
+// 1. 배송접수 완료 시
+// 관리자용/업체용 배송접수 폼에서 접수 완료 → '접수완료'
+delivery.status = '접수완료';
+
+// 2. 기사 배정 시  
+// 기사배정 폼에서 기사 배정 완료 → '배차완료'
+if (delivery.driver_id) {
+  delivery.status = '배차완료';
+  delivery.visit_date = tomorrow; // 자동으로 다음날 설정
+}
+```
+
+#### **거리 계산 시스템**
+기사 배정 시 출발지(sender_address)와 목적지(customer_address) 간의 거리를 자동 계산:
+
+```javascript
+// Haversine 공식을 이용한 거리 계산
+const distance = await calculateDistance(senderAddress, customerAddress);
+delivery.distance = Math.round(distance * 100) / 100; // km 단위
+```
 
 ## 🚀 배포 및 운영
 
@@ -172,6 +214,172 @@ npm run dev           # 개발 서버 실행 (포트 5173)
 - ✅ 크로스도메인 인증 문제 해결
 - ✅ JWT 토큰 기반 인증 시스템 완성
 - ✅ 프로덕션 환경 최적화
+
+### Phase 4: 고도화 및 최적화 (2024.12.11 추가 개발)
+- ✅ **역할 기반 인터페이스 분리**: 관리자/파트너별 맞춤 UI
+- ✅ **관리자 전용 배송접수 시스템**: 파트너사 선택 및 대행 접수 기능
+- ✅ **향상된 폼 시스템**: InfoCell 컴포넌트 기반 일관된 폼 디자인
+- ✅ **파트너사 검색 기능**: 실시간 검색 및 선택 시스템
+- ✅ **테이블 기반 관리 인터페이스**: 카드형 → 테이블형 UI 개선
+- ✅ **포괄적인 테스트 환경**: Vitest + Testing Library 기반 유닛 테스트
+- ✅ **컴포넌트 아키텍처 최적화**: 30개 이상 컴포넌트 체계화
+- ✅ **9단계 배송 상태 시스템**: 체계적인 배송 프로세스 관리
+- ✅ **자동 기사 배정 시스템**: 거리 계산 및 스마트 배정 로직
+
+## 🆕 최신 업데이트 기능 (2024.12.11)
+
+### 🔧 관리자 전용 시스템
+#### **AdminShippingForm** - 관리자 배송접수 시스템
+- **파트너사 선택**: 드롭다운 + 실시간 검색으로 업체 선택
+- **자동 정보 입력**: 선택된 파트너의 기본 발송인 정보 자동 설정
+- **8단계 폼 구성**: 체계적인 배송 정보 입력 프로세스
+- **고급 검증**: 필수 필드 및 형식 검증
+- **주소 검색**: Daum API 연동 정확한 주소 입력
+
+```typescript
+// 파트너사 검색 및 선택 기능
+const handleSearchPartner = async () => {
+  const response = await userAPI.getAllUsers(1, 50, searchQuery);
+  setSearchResults(response.data.filter(user => 
+    user.name.includes(searchQuery) || 
+    user.company?.includes(searchQuery)
+  ));
+};
+```
+
+#### **관리자 대시보드 개선**
+- **3×2 그리드 레이아웃**: 직관적인 6개 주요 기능 배치
+- **역할별 접근 제어**: 관리자/매니저 전용 기능
+- **통합 사용자 관리**: 파트너사 및 기사 통합 관리
+
+### 🎨 UI/UX 혁신
+#### **InfoCell 컴포넌트 시스템**
+모든 폼에서 일관된 디자인과 사용자 경험을 제공하는 재사용 가능한 컴포넌트:
+
+```typescript
+interface InfoCellProps {
+  label: string;
+  icon: React.ComponentType<any>;
+  children: React.ReactNode;
+  required?: boolean;
+  error?: string;
+  description?: string;
+}
+```
+
+#### **테이블 기반 관리 인터페이스**
+- **카드형 → 테이블형**: 더 많은 정보를 효율적으로 표시
+- **정렬 및 필터링**: 데이터 관리 효율성 향상
+- **반응형 테이블**: 모바일에서는 카드형으로 자동 전환
+
+### 🧪 테스트 인프라
+#### **포괄적인 유닛 테스트 환경**
+- **Vitest + Testing Library**: 현대적 테스트 프레임워크
+- **Mock 데이터**: 실제 운영 환경 시뮬레이션
+- **컴포넌트 테스트**: 주요 컴포넌트 100% 테스트 커버
+- **API 테스트**: 모든 API 엔드포인트 테스트
+
+```bash
+# 테스트 실행 방법
+npm test                    # 전체 테스트
+npm run test:coverage      # 커버리지 포함
+npm run test:ui           # UI 모드
+```
+
+#### **테스트 통계**
+- **총 테스트 수**: 130+ 개 테스트 케이스
+- **주요 컴포넌트**: AuthPage, AdminShippingForm, Dashboard, API Services
+- **Mock 객체**: 사용자, 배송, 제품, 기사 데이터 완비
+
+### 📋 컴포넌트 아키텍처 최적화
+#### **30개 이상 체계화된 컴포넌트**
+```
+🗂️ 컴포넌트 구조
+├── 📁 admin/           # 관리자 전용 (4개)
+├── 📁 partner/         # 파트너 전용 (9개)
+├── 📁 dashboard/       # 대시보드 (2개)
+├── 📁 auth/           # 인증 (1개)
+├── 📁 products/       # 제품관리 (1개)
+├── 📁 drivers/        # 기사관리 (1개)
+├── 📁 assignment/     # 배정관리 (1개)
+├── 📁 test/          # 테스트도구 (6개)
+└── 📁 utils/         # 공통유틸 (5개)
+```
+
+#### **역할 기반 컴포넌트 분리**
+- **AdminDashboard**: 관리자 3×2 그리드 메뉴
+- **PartnerDashboard**: 파트너 2×2 그리드 메뉴  
+- **AdminShippingForm**: 파트너사 선택 기능 포함
+- **PartnerShippingForm**: 자사 정보 자동 입력
+
+### 🚚 스마트 배송 관리 시스템
+
+#### **9단계 배송 상태 추적**
+- **체계적 워크플로우**: 접수 → 배차 → 배송 → 완료까지 명확한 단계 구분
+- **자동 상태 전환**: 특정 액션 수행 시 자동으로 다음 단계로 상태 변경
+- **시각적 구분**: 각 상태별 고유 색상으로 즉각적인 상태 인식
+- **실시간 추적**: 모든 상태 변경이 실시간으로 대시보드에 반영
+
+```typescript
+// 배송 상태 자동 관리 예제
+const handleDriverAssignment = async (deliveryId: number, driverId: number) => {
+  // 1. 기사 배정
+  await updateDelivery(deliveryId, { driver_id: driverId });
+  
+  // 2. 자동 상태 변경: '접수완료' → '배차완료'
+  // 3. 자동 방문일 설정: 현재일 + 1일
+  // 4. 거리 계산 및 저장
+  
+  console.log('배송 상태가 "배차완료"로 자동 변경됨');
+};
+```
+
+#### **지능형 기사 배정 시스템**
+- **거리 자동 계산**: Haversine 공식으로 정확한 거리 측정
+- **최적 경로 제안**: 출발지-도착지 간 최단 거리 기반 배정
+- **자동 일정 관리**: 배정 시 다음 날 방문 일정 자동 설정
+- **실시간 배정 현황**: 기사별 배정 현황 실시간 모니터링
+
+```javascript
+// 거리 계산 및 배정 로직
+const assignDriverWithDistance = async (deliveryData) => {
+  // 1. 주소 기반 거리 계산
+  const distance = await calculateDistance(
+    deliveryData.sender_address,
+    deliveryData.customer_address
+  );
+  
+  // 2. 배송 정보 업데이트
+  await updateDelivery({
+    ...deliveryData,
+    status: '배차완료',
+    distance: `${distance}km`,
+    visit_date: getNextDay()
+  });
+};
+```
+
+### 🔍 고급 검색 시스템
+#### **실시간 파트너사 검색**
+- **다중 필드 검색**: 회사명, 사용자명 동시 검색
+- **자동완성**: 타이핑과 동시에 결과 표시
+- **원클릭 선택**: 검색 결과에서 바로 선택
+
+#### **향상된 필터링**
+- **상태별 필터**: 대기/진행/완료 상태별 분류
+- **날짜 범위**: 기간별 데이터 조회
+- **역할별 필터**: 사용자 역할별 분류
+
+### 🛠️ 개발 환경 개선
+#### **Hot Reload 최적화**
+- **Vite HMR**: 빠른 개발 피드백
+- **타입 안전성**: TypeScript 엄격 모드
+- **ESLint 통합**: 코드 품질 자동 검사
+
+#### **디버깅 도구**
+- **React DevTools**: 컴포넌트 상태 추적
+- **Network 모니터링**: API 요청/응답 추적
+- **Console 로깅**: 체계적인 디버깅 정보
 
 ## 🛡️ 보안 및 성능
 

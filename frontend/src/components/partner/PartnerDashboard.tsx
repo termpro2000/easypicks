@@ -3,6 +3,8 @@ import { Package, Search, Plus, LogOut, User } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import PartnerDeliveryList from './PartnerDeliveryList';
 import PartnerShippingForm from './PartnerShippingForm';
+import PartnerProductForm from './PartnerProductForm';
+import PartnerProductList from './PartnerProductList';
 
 interface PartnerDashboardProps {
   onShowProfile: () => void;
@@ -27,12 +29,14 @@ const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ onShowProfile }) =>
       case '배송조회':
         setCurrentPage('tracking');
         break;
-      case '배송접수':
+      case '배송등록':
         setCurrentPage('shipping');
+        break;
+      case '상품조회':
+        setCurrentPage('product-list');
         break;
       case '상품등록':
         setCurrentPage('products');
-        console.log(`${action} 기능은 곧 추가될 예정입니다.`);
         break;
       default:
         console.log(`${action} 버튼 클릭됨`);
@@ -47,6 +51,16 @@ const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ onShowProfile }) =>
   // 배송접수 페이지 표시
   if (currentPage === 'shipping') {
     return <PartnerShippingForm onNavigateBack={() => setCurrentPage('main')} />;
+  }
+
+  // 상품조회 페이지 표시
+  if (currentPage === 'product-list') {
+    return <PartnerProductList onNavigateBack={() => setCurrentPage('main')} />;
+  }
+
+  // 상품등록 페이지 표시
+  if (currentPage === 'products') {
+    return <PartnerProductForm onNavigateBack={() => setCurrentPage('main')} />;
   }
 
   return (
@@ -104,55 +118,75 @@ const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ onShowProfile }) =>
           </p>
         </div>
 
-        {/* 3개의 정사각형 버튼 */}
-        <div className="flex flex-col items-center gap-8 max-w-md mx-auto">
-          {/* 배송조회 버튼 */}
-          <button
-            onClick={() => handleButtonClick('배송조회')}
-            className="w-48 h-48 bg-white rounded-3xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 flex flex-col items-center justify-center gap-4 group"
-          >
-            <div className="w-16 h-16 bg-blue-500 group-hover:bg-blue-600 rounded-2xl flex items-center justify-center transition-colors">
-              <Search className="w-8 h-8 text-white" />
-            </div>
-            <div className="text-center">
-              <h3 className="text-xl font-bold text-gray-900 mb-1">배송조회</h3>
-              <p className="text-sm text-gray-500">배송 현황을 확인하세요</p>
-            </div>
-          </button>
+        {/* 4개의 정사각형 버튼을 2x2 그리드로 배치 */}
+        <div className="max-w-2xl mx-auto">
+          {/* 첫 번째 줄: 배송조회, 배송등록 */}
+          <div className="flex justify-center gap-8 mb-8">
+            {/* 배송조회 버튼 */}
+            <button
+              onClick={() => handleButtonClick('배송조회')}
+              className="w-48 h-48 bg-white rounded-3xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 flex flex-col items-center justify-center gap-4 group"
+            >
+              <div className="w-16 h-16 bg-blue-500 group-hover:bg-blue-600 rounded-2xl flex items-center justify-center transition-colors">
+                <Search className="w-8 h-8 text-white" />
+              </div>
+              <div className="text-center">
+                <h3 className="text-xl font-bold text-gray-900 mb-1">배송조회</h3>
+                <p className="text-sm text-gray-500">배송 현황을 확인하세요</p>
+              </div>
+            </button>
 
-          {/* 배송접수 버튼 */}
-          <button
-            onClick={() => handleButtonClick('배송접수')}
-            className="w-48 h-48 bg-white rounded-3xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 flex flex-col items-center justify-center gap-4 group"
-          >
-            <div className="w-16 h-16 bg-green-500 group-hover:bg-green-600 rounded-2xl flex items-center justify-center transition-colors">
-              <Package className="w-8 h-8 text-white" />
-            </div>
-            <div className="text-center">
-              <h3 className="text-xl font-bold text-gray-900 mb-1">배송접수</h3>
-              <p className="text-sm text-gray-500">새 배송을 접수하세요</p>
-            </div>
-          </button>
+            {/* 배송등록 버튼 */}
+            <button
+              onClick={() => handleButtonClick('배송등록')}
+              className="w-48 h-48 bg-white rounded-3xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 flex flex-col items-center justify-center gap-4 group"
+            >
+              <div className="w-16 h-16 bg-green-500 group-hover:bg-green-600 rounded-2xl flex items-center justify-center transition-colors">
+                <Package className="w-8 h-8 text-white" />
+              </div>
+              <div className="text-center">
+                <h3 className="text-xl font-bold text-gray-900 mb-1">배송등록</h3>
+                <p className="text-sm text-gray-500">새 배송을 등록하세요</p>
+              </div>
+            </button>
+          </div>
 
-          {/* 상품등록 버튼 */}
-          <button
-            onClick={() => handleButtonClick('상품등록')}
-            className="w-48 h-48 bg-white rounded-3xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 flex flex-col items-center justify-center gap-4 group"
-          >
-            <div className="w-16 h-16 bg-purple-500 group-hover:bg-purple-600 rounded-2xl flex items-center justify-center transition-colors">
-              <Plus className="w-8 h-8 text-white" />
-            </div>
-            <div className="text-center">
-              <h3 className="text-xl font-bold text-gray-900 mb-1">상품등록</h3>
-              <p className="text-sm text-gray-500">상품을 등록하세요</p>
-            </div>
-          </button>
+          {/* 두 번째 줄: 상품조회, 상품등록 */}
+          <div className="flex justify-center gap-8">
+            {/* 상품조회 버튼 */}
+            <button
+              onClick={() => handleButtonClick('상품조회')}
+              className="w-48 h-48 bg-white rounded-3xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 flex flex-col items-center justify-center gap-4 group"
+            >
+              <div className="w-16 h-16 bg-orange-500 group-hover:bg-orange-600 rounded-2xl flex items-center justify-center transition-colors">
+                <Search className="w-8 h-8 text-white" />
+              </div>
+              <div className="text-center">
+                <h3 className="text-xl font-bold text-gray-900 mb-1">상품조회</h3>
+                <p className="text-sm text-gray-500">등록된 상품을 확인하세요</p>
+              </div>
+            </button>
+
+            {/* 상품등록 버튼 */}
+            <button
+              onClick={() => handleButtonClick('상품등록')}
+              className="w-48 h-48 bg-white rounded-3xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 flex flex-col items-center justify-center gap-4 group"
+            >
+              <div className="w-16 h-16 bg-purple-500 group-hover:bg-purple-600 rounded-2xl flex items-center justify-center transition-colors">
+                <Plus className="w-8 h-8 text-white" />
+              </div>
+              <div className="text-center">
+                <h3 className="text-xl font-bold text-gray-900 mb-1">상품등록</h3>
+                <p className="text-sm text-gray-500">상품을 등록하세요</p>
+              </div>
+            </button>
+          </div>
         </div>
 
         {/* 하단 안내 메시지 */}
         <div className="mt-12 text-center">
           <p className="text-gray-500">
-            각 기능은 곧 추가될 예정입니다. 
+            업체용 서비스가 준비되었습니다. 
             <br className="sm:hidden" />
             문의사항이 있으시면 고객센터로 연락주세요.
           </p>

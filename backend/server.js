@@ -10,14 +10,20 @@ const deliveriesRoutes = require('./routes/deliveries');
 const userRoutes = require('./routes/users');
 const exportRoutes = require('./routes/exports');
 const qrcodeRoutes = require('./routes/qrcode');
+const configRoutes = require('./routes/config');
+const testRoutes = require('./routes/test');
+const requestTypesRoutes = require('./routes/requestTypes');
+const productsRoutes = require('./routes/products');
+const productPhotosRoutes = require('./routes/productPhotos');
+const driversRoutes = require('./routes/drivers');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Rate limiting
+// Rate limiting (개발 중이므로 제한을 늘림)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15분
-  max: 100 // limit each IP to 100 requests per windowMs
+  max: 1000 // limit each IP to 1000 requests per windowMs (개발용으로 증가)
 });
 
 // CORS 설정
@@ -35,6 +41,9 @@ app.use(cors({
 app.use(limiter);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// 정적 파일 서빙 (업로드된 사진)
+app.use('/uploads', express.static('uploads'));
 
 // Session 설정
 app.use(session({
@@ -69,7 +78,11 @@ app.get('/', (req, res) => {
       deliveries: '/api/deliveries',
       users: '/api/users',
       exports: '/api/exports',
-      qrcode: '/api/qrcode'
+      qrcode: '/api/qrcode',
+      config: '/api/config',
+      products: '/api/products',
+      productPhotos: '/api/product-photos',
+      drivers: '/api/drivers'
     }
   });
 });
@@ -84,6 +97,12 @@ app.use('/api/deliveries', deliveriesRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/exports', exportRoutes);
 app.use('/api/qrcode', qrcodeRoutes);
+app.use('/api/config', configRoutes);
+app.use('/api/test', testRoutes);
+app.use('/api/request-types', requestTypesRoutes);
+app.use('/api/products', productsRoutes);
+app.use('/api/product-photos', productPhotosRoutes);
+app.use('/api/drivers', driversRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

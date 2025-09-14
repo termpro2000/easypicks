@@ -116,8 +116,11 @@ async function login(req, res) {
       });
     }
 
-    // 사용자 조회 (비밀번호는 별도로 검증) - 재시도 로직 적용
+    // 사용자 조회 (users 테이블에서 먼저 검색) - 재시도 로직 적용
     let users;
+    let user = null;
+    let isDriver = false;
+    
     try {
       [users] = await executeWithRetry(() =>
         pool.execute(
@@ -125,20 +128,47 @@ async function login(req, res) {
           [username]
         )
       );
+      
+      if (users.length > 0) {
+        user = users[0];
+      }
     } catch (dbError) {
-      console.error(`데이터베이스 조회 오류: ${dbError.message}, 사용자명: ${username}`);
-      throw dbError; // catch 블록에서 처리
+      console.error(`사용자 테이블 조회 오류: ${dbError.message}, 사용자명: ${username}`);
+      throw dbError;
     }
 
-    if (users.length === 0) {
+    // users 테이블에 없으면 drivers 테이블에서 검색
+    if (!user) {
+      try {
+        const [drivers] = await executeWithRetry(() =>
+          pool.execute(
+            'SELECT id, user_id as username, password, name, phone, email, created_at FROM drivers WHERE user_id = ?',
+            [username]
+          )
+        );
+        
+        if (drivers.length > 0) {
+          user = {
+            ...drivers[0],
+            role: 'driver',
+            is_active: true, // drivers 테이블에는 is_active 컬럼이 없으므로 기본값
+            company: null
+          };
+          isDriver = true;
+        }
+      } catch (dbError) {
+        console.error(`기사 테이블 조회 오류: ${dbError.message}, 사용자명: ${username}`);
+        throw dbError;
+      }
+    }
+
+    if (!user) {
       console.log(`로그인 실패: 사용자명 '${username}' 존재하지 않음`);
       return res.status(401).json({
         error: 'Unauthorized',
         message: '아이디 또는 비밀번호가 올바르지 않습니다.'
       });
     }
-
-    const user = users[0];
 
     // 비밀번호 검증
     const isValidPassword = await bcrypt.compare(password, user.password);
@@ -162,12 +192,21 @@ async function login(req, res) {
 
     // 마지막 로그인 시간 업데이트 (재시도 로직 적용)
     try {
-      await executeWithRetry(() =>
-        pool.execute(
-          'UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?',
-          [user.id]
-        )
-      );
+      if (isDriver) {
+        await executeWithRetry(() =>
+          pool.execute(
+            'UPDATE drivers SET updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+            [user.id]
+          )
+        );
+      } else {
+        await executeWithRetry(() =>
+          pool.execute(
+            'UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?',
+            [user.id]
+          )
+        );
+      }
     } catch (dbError) {
       console.error(`마지막 로그인 시간 업데이트 오류: ${dbError.message}, 사용자 ID: ${user.id}`);
       // 로그인은 성공시키되, 오류만 로깅
@@ -180,7 +219,17 @@ async function login(req, res) {
       name: user.name,
       phone: user.phone,
       company: user.company,
-      role: user.role
+      role: user.role,
+      email: user.email,
+      default_sender_name: user.default_sender_name,
+      default_sender_company: user.default_sender_company,
+      default_sender_phone: user.default_sender_phone,
+      default_sender_address: user.default_sender_address,
+      default_sender_detail_address: user.default_sender_detail_address,
+      default_sender_zipcode: user.default_sender_zipcode,
+      last_login: user.last_login,
+      created_at: user.created_at,
+      updated_at: user.updated_at
     };
 
     // 환경변수에서 JWT 시크릿 가져오기
@@ -190,7 +239,7 @@ async function login(req, res) {
     const token = jwt.sign(
       userPayload,
       jwtSecret,
-      { expiresIn: '24h' }
+      { expiresIn: '30d' } // 30일로 연장 (클라이언트에서 5일 자동 로그아웃 처리)
     );
 
     // 세션에도 저장 (기존 호환성 유지)
@@ -297,7 +346,14 @@ async function me(req, res) {
     }
 
     const user = users[0];
-
+    console.log('📤 /auth/me 응답 데이터 (발송인 정보):', {
+      default_sender_name: user.default_sender_name,
+      default_sender_company: user.default_sender_company,
+      default_sender_phone: user.default_sender_phone,
+      default_sender_address: user.default_sender_address,
+      default_sender_detail_address: user.default_sender_detail_address,
+      default_sender_zipcode: user.default_sender_zipcode
+    });
 
     res.json({
       user: user,

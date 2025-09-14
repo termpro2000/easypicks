@@ -17,16 +17,22 @@ const dbConfig = {
   } : false,
   
   // PlanetScale 최적화된 연결 풀 설정
-  connectionLimit: 10,
+  connectionLimit: 5,              // 연결 수 줄임
   waitForConnections: true,
   queueLimit: 0,
-  acquireTimeout: 60000,       // 연결 획득 타임아웃
-  timeout: 60000,              // 쿼리 타임아웃
+  acquireTimeout: 30000,           // 연결 획득 타임아웃 단축
+  timeout: 30000,                  // 쿼리 타임아웃 단축
   
   // PlanetScale 서버리스 최적화
   enableKeepAlive: true,
   keepAliveInitialDelay: 0,
-  idleTimeout: 300000          // 5분 후 유휴 연결 해제
+  idleTimeout: 180000,             // 3분 후 유휴 연결 해제
+  
+  // 연결 문제 해결을 위한 추가 설정
+  reconnect: true,                 // 자동 재연결
+  reconnectDelay: 1000,            // 재연결 지연시간
+  maxReconnects: 3,                // 최대 재연결 시도 횟수
+  connectTimeout: 20000            // 초기 연결 타임아웃
 };
 
 /**
@@ -132,7 +138,7 @@ async function initDatabase() {
         special_instructions TEXT,
         
         -- 시스템 필드
-        status ENUM('접수완료', '배송준비', '배송중', '배송완료', '취소', '반송') DEFAULT '접수완료',
+        status ENUM('접수완료', '창고입고', '기사상차', '배송완료', '반품접수', '수거완료', '주문취소') DEFAULT '접수완료',
         tracking_number VARCHAR(50) UNIQUE,
         tracking_company VARCHAR(50),
         estimated_delivery DATE,

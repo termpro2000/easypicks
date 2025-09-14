@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, Edit, Trash2, Search, Eye, EyeOff } from 'lucide-react';
+import { 
+  Users, Plus, Search, Edit, Trash2, Eye, EyeOff 
+} from 'lucide-react';
 import { userAPI } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -7,13 +9,22 @@ interface User {
   id: number;
   username: string;
   name: string;
+  email?: string;
   phone?: string;
   company?: string;
   role: 'admin' | 'manager' | 'user';
   is_active: boolean;
-  last_login?: string;
   created_at: string;
   updated_at: string;
+  last_login?: string;
+  default_sender_address?: string;
+  default_sender_detail_address?: string;
+  default_sender_zipcode?: string;
+}
+
+interface Notification {
+  type: 'success' | 'error';
+  message: string;
 }
 
 const UserManagement: React.FC = () => {
@@ -21,35 +32,59 @@ const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showPartnerModal, setShowPartnerModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPartnerPassword, setShowPartnerPassword] = useState(false);
 
-  // 폼 상태
   const [formData, setFormData] = useState({
     username: '',
     password: '',
     name: '',
+    email: '',
     phone: '',
     company: '',
-    role: 'user',
-    is_active: true
+    role: 'user' as 'admin' | 'manager' | 'user',
+    is_active: true,
+    default_sender_address: '',
+    default_sender_detail_address: '',
+    default_sender_zipcode: ''
   });
-  const [showPassword, setShowPassword] = useState(false);
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+  const [partnerFormData, setPartnerFormData] = useState({
+    username: '',
+    password: '',
+    name: '',
+    email: '',
+    phone: '',
+    company: '',
+    is_active: true,
+    default_sender_address: '',
+    default_sender_detail_address: '',
+    default_sender_zipcode: ''
+  });
+
+  const [notification, setNotification] = useState<Notification | null>(null);
+
+  const showNotification = (type: 'success' | 'error', message: string) => {
+    setNotification({ type, message });
+    setTimeout(() => setNotification(null), 5000);
+  };
 
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const response = await userAPI.getAllUsers(1, 50, searchTerm, roleFilter);
+      console.log('UserManagement: fetchUsers 시작');
+      const response = await userAPI.getAllUsers(1, 100); // 페이지 1, 최대 100개
+      console.log('UserManagement: API 응답:', response);
       setUsers(response.users || []);
     } catch (error: any) {
       console.error('사용자 목록 조회 실패:', error);
+      console.error('에러 상세:', error.response?.data);
       showNotification('error', '사용자 목록을 불러오는데 실패했습니다.');
     } finally {
       setLoading(false);
@@ -58,45 +93,68 @@ const UserManagement: React.FC = () => {
 
   useEffect(() => {
     fetchUsers();
-  }, [searchTerm, roleFilter]);
+  }, []);
 
-  const showNotification = (type: 'success' | 'error', message: string) => {
-    setNotification({ type, message });
-    setTimeout(() => setNotification(null), 3000);
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = searchTerm === '' || 
+      user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (user.company && user.company.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    const matchesRole = roleFilter === '' || user.role === roleFilter;
+    
+    return matchesSearch && matchesRole;
+  });
+
+  const handleUserSearch = () => {
+    setSearchTerm(searchInput);
   };
 
-  const resetForm = () => {
-    setFormData({
+  const handleUserSearchKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleUserSearch();
+    }
+  };
+
+  const resetPartnerForm = () => {
+    setPartnerFormData({
       username: '',
       password: '',
       name: '',
+      email: '',
       phone: '',
       company: '',
-      role: 'user',
-      is_active: true
+      is_active: true,
+      default_sender_address: '',
+      default_sender_detail_address: '',
+      default_sender_zipcode: ''
     });
-    setShowPassword(false);
+    setShowPartnerPassword(false);
   };
 
-  const handleCreateUser = async (e: React.FormEvent) => {
+  const handleCreatePartner = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       await userAPI.createUser({
-        username: formData.username,
-        password: formData.password,
-        name: formData.name,
-        phone: formData.phone || undefined,
-        company: formData.company || undefined,
-        role: formData.role
+        username: partnerFormData.username,
+        password: partnerFormData.password,
+        name: partnerFormData.name,
+        email: partnerFormData.email || undefined,
+        phone: partnerFormData.phone || undefined,
+        company: partnerFormData.company || undefined,
+        role: 'user',
+        default_sender_address: partnerFormData.default_sender_address || undefined,
+        default_sender_detail_address: partnerFormData.default_sender_detail_address || undefined,
+        default_sender_zipcode: partnerFormData.default_sender_zipcode || undefined
       });
       
-      showNotification('success', '사용자가 성공적으로 생성되었습니다.');
-      setShowCreateModal(false);
-      resetForm();
+      showNotification('success', '파트너사가 성공적으로 등록되었습니다.');
+      setShowPartnerModal(false);
+      resetPartnerForm();
       fetchUsers();
     } catch (error: any) {
-      console.error('사용자 생성 실패:', error);
-      showNotification('error', error.response?.data?.message || '사용자 생성에 실패했습니다.');
+      console.error('파트너사 등록 실패:', error);
+      showNotification('error', error.response?.data?.message || '파트너사 등록에 실패했습니다.');
     }
   };
 
@@ -107,9 +165,13 @@ const UserManagement: React.FC = () => {
     try {
       const updateData: any = {
         name: formData.name,
+        email: formData.email || undefined,
         phone: formData.phone || undefined,
         company: formData.company || undefined,
-        is_active: formData.is_active
+        is_active: formData.is_active,
+        default_sender_address: formData.default_sender_address || undefined,
+        default_sender_detail_address: formData.default_sender_detail_address || undefined,
+        default_sender_zipcode: formData.default_sender_zipcode || undefined
       };
 
       if (currentUser?.role === 'admin') {
@@ -122,14 +184,13 @@ const UserManagement: React.FC = () => {
 
       await userAPI.updateUser(selectedUser.id, updateData);
       
-      showNotification('success', '사용자 정보가 성공적으로 업데이트되었습니다.');
+      showNotification('success', '파트너사 정보가 성공적으로 업데이트되었습니다.');
       setShowEditModal(false);
       setSelectedUser(null);
-      resetForm();
       fetchUsers();
     } catch (error: any) {
-      console.error('사용자 업데이트 실패:', error);
-      showNotification('error', error.response?.data?.message || '사용자 업데이트에 실패했습니다.');
+      console.error('파트너사 업데이트 실패:', error);
+      showNotification('error', error.response?.data?.message || '파트너사 업데이트에 실패했습니다.');
     }
   };
 
@@ -154,10 +215,14 @@ const UserManagement: React.FC = () => {
       username: user.username,
       password: '',
       name: user.name,
+      email: user.email || '',
       phone: user.phone || '',
       company: user.company || '',
       role: user.role,
-      is_active: user.is_active
+      is_active: user.is_active,
+      default_sender_address: user.default_sender_address || '',
+      default_sender_detail_address: user.default_sender_detail_address || '',
+      default_sender_zipcode: user.default_sender_zipcode || ''
     });
     setShowEditModal(true);
   };
@@ -166,7 +231,7 @@ const UserManagement: React.FC = () => {
     const config = {
       admin: { color: 'bg-red-100 text-red-800', text: '관리자' },
       manager: { color: 'bg-blue-100 text-blue-800', text: '매니저' },
-      user: { color: 'bg-gray-100 text-gray-800', text: '사용자' }
+      user: { color: 'bg-gray-100 text-gray-800', text: '파트너사' }
     };
     
     const { color, text } = config[role as keyof typeof config] || config.user;
@@ -206,106 +271,103 @@ const UserManagement: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      {/* 알림 메시지 */}
-      {notification && (
-        <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg border ${
-          notification.type === 'success' 
-            ? 'bg-green-50 text-green-800 border-green-200' 
-            : 'bg-red-50 text-red-800 border-red-200'
-        }`}>
-          <span className="font-medium">{notification.message}</span>
-        </div>
-      )}
-
-      {/* 헤더 */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <Users className="w-8 h-8 text-blue-500" />
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">사용자 관리</h2>
-              <p className="text-gray-600">시스템 사용자를 관리합니다</p>
-            </div>
+    <>
+      <div className="space-y-6">
+        {notification && (
+          <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg border ${
+            notification.type === 'success' 
+              ? 'bg-green-50 text-green-800 border-green-200' 
+              : 'bg-red-50 text-red-800 border-red-200'
+          }`}>
+            <span className="font-medium">{notification.message}</span>
           </div>
-          
-          {currentUser?.role === 'admin' && (
+        )}
+
+        <div className="bg-white rounded-lg shadow p-6">
+
+          <div className="flex gap-4 mb-6">
             <button
               onClick={() => {
-                resetForm();
-                setShowCreateModal(true);
+                resetPartnerForm();
+                setShowPartnerModal(true);
               }}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="flex items-center justify-center gap-3 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               <Plus className="w-5 h-5" />
-              새 사용자 생성
+              <span className="font-medium">파트너사 등록</span>
             </button>
-          )}
-        </div>
-
-        {/* 검색 및 필터 */}
-        <div className="flex gap-4">
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="w-5 h-5 absolute left-3 top-3 text-gray-400" />
-              <input
-                type="text"
-                placeholder="사용자명, 이름, 회사명으로 검색..."
-                className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
           </div>
-          
-          <select
-            className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
-          >
-            <option value="">모든 역할</option>
-            <option value="admin">관리자</option>
-            <option value="manager">매니저</option>
-            <option value="user">사용자</option>
-          </select>
-        </div>
-      </div>
 
-      {/* 사용자 목록 */}
-      <div className="bg-white rounded-lg shadow">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  사용자
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  역할
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  상태
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  마지막 로그인
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  가입일
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  액션
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {users.length === 0 ? (
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <div className="relative flex">
+                <div className="relative flex-1">
+                  <Search className="w-5 h-5 absolute left-3 top-3 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="사용자명, 이름, 회사명으로 검색..."
+                    className="w-full pl-10 pr-4 py-2 border rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
+                    onKeyPress={handleUserSearchKeyPress}
+                  />
+                </div>
+                <button
+                  onClick={handleUserSearch}
+                  className="px-4 py-2 bg-blue-600 text-white border border-blue-600 rounded-r-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                >
+                  검색
+                </button>
+              </div>
+            </div>
+            
+            <select
+              className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+            >
+              <option value="">모든 역할</option>
+              <option value="admin">관리자</option>
+              <option value="manager">매니저</option>
+              <option value="user">파트너사</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
-                    등록된 사용자가 없습니다.
-                  </td>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    사용자
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    역할
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    상태
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    마지막 로그인
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    가입일
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    액션
+                  </th>
                 </tr>
-              ) : (
-                users.map((user) => (
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredUsers.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                      등록된 사용자가 없습니다.
+                    </td>
+                  </tr>
+                )}
+                {filteredUsers.length > 0 && filteredUsers.map((user) => (
                   <tr key={user.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
@@ -348,141 +410,26 @@ const UserManagement: React.FC = () => {
                       </div>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
-      {/* 사용자 생성 모달 */}
-      {showCreateModal && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center">
-            <div className="fixed inset-0 bg-gray-500 bg-opacity-75" onClick={() => setShowCreateModal(false)}></div>
-            
-            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-              <form onSubmit={handleCreateUser}>
-                <div className="bg-white px-6 py-4">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">새 사용자 생성</h3>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">사용자명</label>
-                      <input
-                        type="text"
-                        required
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        value={formData.username}
-                        onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">비밀번호</label>
-                      <div className="relative">
-                        <input
-                          type={showPassword ? 'text' : 'password'}
-                          required
-                          className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          value={formData.password}
-                          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                        />
-                        <button
-                          type="button"
-                          className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                          onClick={() => setShowPassword(!showPassword)}
-                        >
-                          {showPassword ? (
-                            <EyeOff className="w-4 h-4 text-gray-400" />
-                          ) : (
-                            <Eye className="w-4 h-4 text-gray-400" />
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">이름</label>
-                      <input
-                        type="text"
-                        required
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">전화번호</label>
-                      <input
-                        type="text"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">회사명</label>
-                      <input
-                        type="text"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        value={formData.company}
-                        onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">역할</label>
-                      <select
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        value={formData.role}
-                        onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                      >
-                        <option value="user">사용자</option>
-                        <option value="manager">매니저</option>
-                        <option value="admin">관리자</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="bg-gray-50 px-6 py-3 flex justify-end gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setShowCreateModal(false)}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-                  >
-                    취소
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700"
-                  >
-                    생성
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 사용자 편집 모달 */}
       {showEditModal && selectedUser && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center">
             <div className="fixed inset-0 bg-gray-500 bg-opacity-75" onClick={() => setShowEditModal(false)}></div>
             
-            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
               <form onSubmit={handleUpdateUser}>
-                <div className="bg-white px-6 py-4">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">사용자 편집: {selectedUser.name}</h3>
+                <div className="bg-white px-6 py-4 max-h-96 overflow-y-auto">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">파트너사 편집: {selectedUser.name}</h3>
                   
-                  <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">사용자명</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">ID(영문)</label>
                       <input
                         type="text"
                         disabled
@@ -513,70 +460,10 @@ const UserManagement: React.FC = () => {
                         </button>
                       </div>
                     </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">이름</label>
-                      <input
-                        type="text"
-                        required
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">전화번호</label>
-                      <input
-                        type="text"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">회사명</label>
-                      <input
-                        type="text"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        value={formData.company}
-                        onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                      />
-                    </div>
-                    
-                    {currentUser?.role === 'admin' && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">역할</label>
-                        <select
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          value={formData.role}
-                          onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                        >
-                          <option value="user">사용자</option>
-                          <option value="manager">매니저</option>
-                          <option value="admin">관리자</option>
-                        </select>
-                      </div>
-                    )}
-                    
-                    {currentUser?.role === 'admin' && (
-                      <div>
-                        <label className="flex items-center">
-                          <input
-                            type="checkbox"
-                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                            checked={formData.is_active}
-                            onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                          />
-                          <span className="ml-2 text-sm font-medium text-gray-700">계정 활성화</span>
-                        </label>
-                      </div>
-                    )}
                   </div>
                 </div>
                 
-                <div className="bg-gray-50 px-6 py-3 flex justify-end gap-3">
+                <div className="bg-gray-50 px-6 py-3 flex justify-end space-x-3">
                   <button
                     type="button"
                     onClick={() => setShowEditModal(false)}
@@ -588,7 +475,7 @@ const UserManagement: React.FC = () => {
                     type="submit"
                     className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700"
                   >
-                    저장
+                    확인
                   </button>
                 </div>
               </form>
@@ -596,7 +483,189 @@ const UserManagement: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
+
+      {showPartnerModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center">
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-75" onClick={() => setShowPartnerModal(false)}></div>
+            
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+              <form onSubmit={handleCreatePartner}>
+                <div className="bg-white px-6 py-4 max-h-96 overflow-y-auto">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">새 파트너사 등록</h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">ID(영문) *</label>
+                      <input
+                        type="text"
+                        required
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        value={partnerFormData.username}
+                        onChange={(e) => setPartnerFormData({ ...partnerFormData, username: e.target.value })}
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">비밀번호 *</label>
+                      <div className="relative">
+                        <input
+                          type={showPartnerPassword ? 'text' : 'password'}
+                          required
+                          className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          value={partnerFormData.password}
+                          onChange={(e) => setPartnerFormData({ ...partnerFormData, password: e.target.value })}
+                        />
+                        <button
+                          type="button"
+                          className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                          onClick={() => setShowPartnerPassword(!showPartnerPassword)}
+                        >
+                          {showPartnerPassword ? (
+                            <EyeOff className="w-4 h-4 text-gray-400" />
+                          ) : (
+                            <Eye className="w-4 h-4 text-gray-400" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">파트너사(업체명) *</label>
+                      <input
+                        type="text"
+                        required
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        value={partnerFormData.name}
+                        onChange={(e) => setPartnerFormData({ ...partnerFormData, name: e.target.value })}
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">이메일</label>
+                      <input
+                        type="email"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        value={partnerFormData.email}
+                        onChange={(e) => setPartnerFormData({ ...partnerFormData, email: e.target.value })}
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">전화번호</label>
+                      <input
+                        type="text"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        value={partnerFormData.phone}
+                        onChange={(e) => setPartnerFormData({ ...partnerFormData, phone: e.target.value })}
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">담당자이름</label>
+                      <input
+                        type="text"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        value={partnerFormData.company}
+                        onChange={(e) => setPartnerFormData({ ...partnerFormData, company: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-1 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">주소</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="주소를 검색해주세요"
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          value={partnerFormData.default_sender_address}
+                          readOnly
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (window.daum && window.daum.Postcode) {
+                              new window.daum.Postcode({
+                                oncomplete: function(data) {
+                                  setPartnerFormData({
+                                    ...partnerFormData,
+                                    default_sender_address: data.address,
+                                    default_sender_zipcode: data.zonecode
+                                  });
+                                }
+                              }).open();
+                            } else {
+                              alert('주소 검색 서비스를 로딩 중입니다. 잠시 후 다시 시도해주세요.');
+                            }
+                          }}
+                          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 whitespace-nowrap"
+                        >
+                          주소검색
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">상세주소</label>
+                        <input
+                          type="text"
+                          placeholder="상세주소를 입력해주세요"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          value={partnerFormData.default_sender_detail_address}
+                          onChange={(e) => setPartnerFormData({ ...partnerFormData, default_sender_detail_address: e.target.value })}
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">우편번호</label>
+                        <input
+                          type="text"
+                          placeholder="우편번호"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          value={partnerFormData.default_sender_zipcode}
+                          readOnly
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4">
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={partnerFormData.is_active}
+                        onChange={(e) => setPartnerFormData({ ...partnerFormData, is_active: e.target.checked })}
+                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">계정 활성화</span>
+                    </label>
+                  </div>
+                </div>
+                
+                <div className="bg-gray-50 px-6 py-3 flex justify-end space-x-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowPartnerModal(false)}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                  >
+                    취소
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700"
+                  >
+                    확인
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 
