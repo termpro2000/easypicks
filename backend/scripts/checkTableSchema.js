@@ -2,11 +2,11 @@ const mysql = require('mysql2/promise');
 
 // PlanetScale 연결 설정
 const planetscaleConfig = {
-  host: 'aws.connect.psdb.cloud',
-  port: 3306,
-  user: 'q1nyd4zvt86otiyozkcc',
-  password: 'pscale_pw_rNdZk9r1xV2hV2y5dNE5ZmdAcnOUf4SikO5tKS8t5Ce',
-  database: 'miraekorea',
+  host: process.env.DB_HOST || 'aws.connect.psdb.cloud',
+  port: process.env.DB_PORT || 3306,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
   charset: 'utf8mb4',
   timezone: '+09:00',
   ssl: {
