@@ -21,7 +21,10 @@
     "noUnusedParameters": false,
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": false,
-    "noUncheckedSideEffectImports": false
+    "noUncheckedSideEffectImports": false,
+    "skipLibCheck": true,
+    "noImplicitAny": false,
+    "allowJs": true
   },
   "include": ["src"]
 }
