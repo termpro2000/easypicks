@@ -465,7 +465,22 @@ const DeliveryListScreen = ({ navigation }) => {
         return priorityA - priorityB;
       }
       
-      // 같은 우선순위면 주소순 정렬
+      // 같은 우선순위면 action_date와 action_time 순으로 정렬
+      const actionDateA = a.action_date || '';
+      const actionDateB = b.action_date || '';
+      
+      if (actionDateA !== actionDateB) {
+        return actionDateB.localeCompare(actionDateA); // 최신 날짜가 위로 (내림차순)
+      }
+      
+      const actionTimeA = a.action_time || '';
+      const actionTimeB = b.action_time || '';
+      
+      if (actionTimeA !== actionTimeB) {
+        return actionTimeB.localeCompare(actionTimeA); // 최신 시간이 위로 (내림차순)
+      }
+      
+      // action_date/time이 모두 같으면 주소순 정렬
       const addressA = a.customerAddress || '';
       const addressB = b.customerAddress || '';
       return addressA.localeCompare(addressB, 'ko');
