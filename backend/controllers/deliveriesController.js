@@ -1,6 +1,31 @@
 const { pool, generateTrackingNumber, executeWithRetry } = require('../config/database');
 
 /**
+ * 데이터베이스 마이그레이션: action_date, action_time 컬럼 추가
+ */
+async function ensureActionDateTimeColumns() {
+  try {
+    // action_date 컬럼 추가 시도
+    await pool.execute(`
+      ALTER TABLE deliveries 
+      ADD COLUMN IF NOT EXISTS action_date DATE NULL
+    `);
+    console.log('✅ action_date 컬럼 확인/추가 완료');
+    
+    // action_time 컬럼 추가 시도  
+    await pool.execute(`
+      ALTER TABLE deliveries 
+      ADD COLUMN IF NOT EXISTS action_time TIME NULL
+    `);
+    console.log('✅ action_time 컬럼 확인/추가 완료');
+    
+  } catch (error) {
+    console.error('❌ action_date/time 컬럼 추가 오류:', error.message);
+    // 에러가 발생해도 계속 진행 (컬럼이 이미 존재할 수 있음)
+  }
+}
+
+/**
  * 새로운 배송 생성 (deliveries 테이블) - shippingController와 동일한 로직
  * @param {Object} req - Express 요청 객체
  * @param {Object} res - Express 응답 객체
@@ -108,6 +133,9 @@ async function createDelivery(req, res) {
  */
 async function getDeliveries(req, res) {
   try {
+    // 데이터베이스 마이그레이션 확인 (action_date/time 컬럼)
+    await ensureActionDateTimeColumns();
+    
     const user = req.user || req.session?.user;
     if (!user) {
       return res.status(401).json({
