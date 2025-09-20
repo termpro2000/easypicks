@@ -476,20 +476,27 @@ const DeliveryListScreen = ({ navigation }) => {
   const renderDeliveryItem = ({ item, drag, isActive, getIndex }) => {
     const index = getIndex ? getIndex() : deliveries.findIndex(delivery => delivery.id === item.id);
     
+    // 배송완료 상태 확인 (디버깅용 로그 추가)
+    const isCompleted = item.status === 'delivery_completed' || 
+                       item.status === 'collection_completed' || 
+                       item.status === 'processing_completed' || 
+                       item.status === 'delivered' ||
+                       item.status === 'completed' ||
+                       item.status === '배송완료' || 
+                       item.status === '수거완료' || 
+                       item.status === '조처완료';
+    
+    if (isCompleted) {
+      console.log('✅ 배송완료 상태 감지:', item.trackingNumber, item.status);
+    }
+    
     return (
     <TouchableOpacity 
       style={[
         styles.deliveryCard,
         isActive && styles.deliveryCardActive,
         orderMode === 'manual' && styles.deliveryCardManual,
-        (item.status === 'delivery_completed' || 
-         item.status === 'collection_completed' || 
-         item.status === 'processing_completed' || 
-         item.status === 'delivered' ||
-         item.status === 'completed' ||
-         item.status === '배송완료' || 
-         item.status === '수거완료' || 
-         item.status === '조처완료') && styles.deliveryCardCompleted
+        isCompleted && styles.deliveryCardCompleted
       ]}
       onPress={() => navigateToDetail(item)}
       onLongPress={orderMode === 'manual' ? drag : undefined}
@@ -948,6 +955,9 @@ const styles = StyleSheet.create({
   deliveryCardCompleted: {
     borderLeftColor: '#4CAF50',
     borderLeftWidth: 4,
+    borderWidth: 2,
+    borderColor: '#4CAF50',
+    backgroundColor: '#f8fff8',
   },
   dragHandle: {
     width: 30,
