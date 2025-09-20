@@ -149,8 +149,10 @@ async function createDelivery(req, res) {
  */
 async function getDeliveries(req, res) {
   try {
-    // 데이터베이스 마이그레이션 확인 (action_date/time 컬럼)
-    await ensureActionDateTimeColumns();
+    // 데이터베이스 마이그레이션 강제 실행 (임시)
+    console.log('🔄 [강제 마이그레이션] 시작...');
+    const migrationSuccess = await ensureActionDateTimeColumns();
+    console.log('🔄 [강제 마이그레이션] 결과:', migrationSuccess);
     
     const user = req.user || req.session?.user;
     if (!user) {
