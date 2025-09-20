@@ -10,7 +10,7 @@ import * as Updates from 'expo-updates';
 import Constants from 'expo-constants';
 
 const AppInfoScreen = ({ navigation }) => {
-  const appVersion = Updates.runtimeVersion || Constants.manifest?.version || '1.2.2';
+  const appVersion = Updates.runtimeVersion || Constants.manifest?.version || '1.2.1';
   const appName = Constants.manifest?.name || '이지픽스 가구배송';
 
   return (

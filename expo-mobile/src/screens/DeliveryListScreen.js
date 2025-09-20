@@ -560,7 +560,7 @@ const DeliveryListScreen = ({ navigation }) => {
         </View>
         <View style={styles.companyNameContainer}>
           <Text style={styles.companyName}>이지픽스</Text>
-          <Text style={styles.versionText}>v{Updates.runtimeVersion || Constants.manifest?.version || '1.2.2'}</Text>
+          <Text style={styles.versionText}>v{Updates.runtimeVersion || Constants.manifest?.version || '1.2.1'}</Text>
         </View>
         <View style={styles.headerSpacer}>
           <TouchableOpacity style={styles.settingsButton} onPress={openSlideMenu}>
