@@ -67,9 +67,9 @@ const App = () => {
     };
   }, [globalMapPreference]);
 
-  // EAS Update 이벤트 리스너 설정
+  // EAS Update 자동 체크 및 다운로드
   const setupUpdateListener = () => {
-    console.log('🔄 [EAS UPDATE] 이벤트 리스너 설정 시작...');
+    console.log('🔄 [EAS UPDATE] 업데이트 체크 설정 시작...');
     console.log('🔄 [EAS UPDATE] Updates.isEnabled:', Updates.isEnabled);
     console.log('🔄 [EAS UPDATE] Updates.runtimeVersion:', Updates.runtimeVersion);
     console.log('🔄 [EAS UPDATE] Updates.updateId:', Updates.updateId);
@@ -80,62 +80,66 @@ const App = () => {
       return;
     }
 
-    // 업데이트 이벤트 리스너 등록
-    const updateEventListener = Updates.addListener((event) => {
-      console.log('📱 [EAS UPDATE] 이벤트 발생:', event.type);
-      
-      if (event.type === Updates.UpdateEventType.UPDATE_AVAILABLE) {
-        console.log('✅ [EAS UPDATE] 새 업데이트 발견!');
-        console.log('📦 [EAS UPDATE] 업데이트 정보:', event.manifest);
-        
-        // 자동으로 다운로드 시작
-        Updates.fetchUpdateAsync();
-      } else if (event.type === Updates.UpdateEventType.UPDATE_DOWNLOADED) {
-        console.log('📥 [EAS UPDATE] 업데이트 다운로드 완료!');
-        
-        // 업데이트가 다운로드되면 사용자에게 알림
-        Alert.alert(
-          '앱이 업데이트 되었습니다',
-          '새로운 기능과 개선사항이 적용되었습니다.',
-          [
-            { 
-              text: '확인', 
-              onPress: () => {
-                console.log('🔄 [EAS UPDATE] 앱 재시작 중...');
-                Updates.reloadAsync();
-              }
-            }
-          ]
-        );
-      } else if (event.type === Updates.UpdateEventType.ERROR) {
-        console.error('❌ [EAS UPDATE] 업데이트 오류:', event.message);
-      }
-    });
-
-    // 앱 시작 시 즉시 업데이트 확인
-    checkForUpdatesOnStartup();
-
-    return updateEventListener;
+    // 앱 시작 후 3초 후에 업데이트 확인 (앱이 완전히 로드된 후)
+    setTimeout(async () => {
+      await checkForUpdatesWithNotification();
+    }, 3000);
   };
 
-  // 앱 시작 시 업데이트 확인 (조용히)
-  const checkForUpdatesOnStartup = async () => {
+  // 업데이트 확인 및 다운로드 (알림 포함)
+  const checkForUpdatesWithNotification = async () => {
     try {
-      if (!Updates.isEnabled) {
-        return;
-      }
-
-      console.log('🔄 [EAS UPDATE] 시작 시 업데이트 확인...');
+      console.log('🔄 [EAS UPDATE] 업데이트 확인 시작...');
+      
       const update = await Updates.checkForUpdateAsync();
+      console.log('📋 [EAS UPDATE] 업데이트 확인 결과:', JSON.stringify(update, null, 2));
       
       if (update.isAvailable) {
-        console.log('✅ [EAS UPDATE] 새 업데이트 발견 - 자동 다운로드 시작');
-        // 자동으로 다운로드 (이벤트 리스너에서 처리)
+        console.log('✅ [EAS UPDATE] 새 업데이트 발견!');
+        console.log('📦 [EAS UPDATE] 업데이트 정보:', {
+          updateId: update.manifest?.id,
+          createdAt: update.manifest?.createdAt,
+          runtimeVersion: update.manifest?.runtimeVersion
+        });
+        
+        try {
+          console.log('📥 [EAS UPDATE] 업데이트 다운로드 시작...');
+          await Updates.fetchUpdateAsync();
+          console.log('📥 [EAS UPDATE] 업데이트 다운로드 완료!');
+          
+          // 다운로드 완료 후 사용자에게 알림
+          Alert.alert(
+            '앱이 업데이트 되었습니다',
+            '새로운 기능과 개선사항이 적용되었습니다. 앱을 재시작합니다.',
+            [
+              { 
+                text: '확인', 
+                onPress: () => {
+                  console.log('🔄 [EAS UPDATE] 앱 재시작 중...');
+                  Updates.reloadAsync();
+                }
+              }
+            ],
+            { cancelable: false }
+          );
+        } catch (downloadError) {
+          console.error('❌ [EAS UPDATE] 업데이트 다운로드 실패:', downloadError);
+        }
       } else {
         console.log('✅ [EAS UPDATE] 최신 버전입니다.');
+        console.log('📱 [EAS UPDATE] 현재 앱 정보:', {
+          currentUpdateId: Updates.updateId,
+          currentRuntimeVersion: Updates.runtimeVersion,
+          createdAt: Updates.createdAt
+        });
       }
     } catch (error) {
-      console.error('❌ [EAS UPDATE] 시작 시 업데이트 확인 오류:', error);
+      console.error('❌ [EAS UPDATE] 업데이트 확인 오류:', error);
+      console.error('❌ [EAS UPDATE] 오류 상세:', {
+        message: error.message,
+        code: error.code,
+        stack: error.stack
+      });
     }
   };
 
