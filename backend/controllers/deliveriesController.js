@@ -5,23 +5,39 @@ const { pool, generateTrackingNumber, executeWithRetry } = require('../config/da
  */
 async function ensureActionDateTimeColumns() {
   try {
-    // action_date 컬럼 추가 시도
-    await pool.execute(`
-      ALTER TABLE deliveries 
-      ADD COLUMN IF NOT EXISTS action_date DATE NULL
+    // 먼저 컬럼이 존재하는지 확인
+    const [columns] = await pool.execute(`
+      SELECT COLUMN_NAME 
+      FROM INFORMATION_SCHEMA.COLUMNS 
+      WHERE TABLE_SCHEMA = DATABASE() 
+      AND TABLE_NAME = 'deliveries' 
+      AND COLUMN_NAME IN ('action_date', 'action_time')
     `);
-    console.log('✅ action_date 컬럼 확인/추가 완료');
     
-    // action_time 컬럼 추가 시도  
-    await pool.execute(`
-      ALTER TABLE deliveries 
-      ADD COLUMN IF NOT EXISTS action_time TIME NULL
-    `);
-    console.log('✅ action_time 컬럼 확인/추가 완료');
+    const existingColumns = columns.map(col => col.COLUMN_NAME);
+    console.log('📋 기존 action 컬럼:', existingColumns);
+    
+    // action_date 컬럼 추가
+    if (!existingColumns.includes('action_date')) {
+      await pool.execute(`ALTER TABLE deliveries ADD COLUMN action_date DATE NULL`);
+      console.log('✅ action_date 컬럼 추가 완료');
+    } else {
+      console.log('ℹ️ action_date 컬럼이 이미 존재함');
+    }
+    
+    // action_time 컬럼 추가
+    if (!existingColumns.includes('action_time')) {
+      await pool.execute(`ALTER TABLE deliveries ADD COLUMN action_time TIME NULL`);
+      console.log('✅ action_time 컬럼 추가 완료');
+    } else {
+      console.log('ℹ️ action_time 컬럼이 이미 존재함');
+    }
+    
+    return true;
     
   } catch (error) {
     console.error('❌ action_date/time 컬럼 추가 오류:', error.message);
-    // 에러가 발생해도 계속 진행 (컬럼이 이미 존재할 수 있음)
+    return false;
   }
 }
 
@@ -1024,6 +1040,14 @@ async function delayDelivery(req, res) {
     // action_date와 action_time 처리
     const { action_date, action_time } = req.body;
     
+    console.log('🔄 [배송연기] action 필드 수신:', {
+      action_date,
+      action_time,
+      hasActionDate: !!action_date,
+      hasActionTime: !!action_time,
+      trackingNumber
+    });
+    
     // driver_notes 필드에 연기 정보 업데이트 및 상태를 '배송연기'로 변경
     const [updateResult] = await executeWithRetry(() =>
       pool.execute(
@@ -1037,6 +1061,12 @@ async function delayDelivery(req, res) {
         [delayDate, delayReason, delayReason, delayReason, action_date, action_time, trackingNumber]
       )
     );
+    
+    console.log('📝 [배송연기] SQL 실행 결과:', {
+      affectedRows: updateResult.affectedRows,
+      action_date,
+      action_time
+    });
     
     if (updateResult.affectedRows === 0) {
       return res.status(500).json({
@@ -1308,6 +1338,37 @@ async function createTestData(req, res) {
   }
 }
 
+/**
+ * 수동 마이그레이션 실행 (개발/테스트용)
+ * @param {Object} req - Express 요청 객체
+ * @param {Object} res - Express 응답 객체
+ */
+async function runMigration(req, res) {
+  try {
+    console.log('🔄 [수동 마이그레이션] 시작...');
+    const success = await ensureActionDateTimeColumns();
+    
+    if (success) {
+      res.json({
+        success: true,
+        message: 'action_date, action_time 컬럼 마이그레이션이 완료되었습니다.'
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: '마이그레이션 중 오류가 발생했습니다.'
+      });
+    }
+  } catch (error) {
+    console.error('마이그레이션 실행 오류:', error);
+    res.status(500).json({
+      success: false,
+      message: '마이그레이션 실행 중 오류가 발생했습니다.',
+      error: error.message
+    });
+  }
+}
+
 module.exports = {
   createDelivery,
   getDeliveries,
@@ -1319,5 +1380,6 @@ module.exports = {
   postponeDelivery,
   delayDelivery,
   cancelDelivery,
-  createTestData
+  createTestData,
+  runMigration
 };
