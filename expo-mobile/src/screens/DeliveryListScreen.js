@@ -496,7 +496,12 @@ const DeliveryListScreen = ({ navigation }) => {
         styles.deliveryCard,
         isActive && styles.deliveryCardActive,
         orderMode === 'manual' && styles.deliveryCardManual,
-        isCompleted && styles.deliveryCardCompleted
+        isCompleted && styles.deliveryCardCompleted,
+        // 왼쪽 라인을 status 색상과 동일하게 동적 적용
+        {
+          borderLeftColor: getStatusColor(item.status),
+          borderLeftWidth: 6, // 기존 4에서 6으로 더 굵게
+        }
       ]}
       onPress={() => navigateToDetail(item)}
       onLongPress={orderMode === 'manual' ? drag : undefined}
@@ -860,8 +865,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 4,
     elevation: 6,
-    borderLeftWidth: 4,
-    borderLeftColor: '#2196F3',
   },
   trackingInfo: {
     flexDirection: 'row',
@@ -953,10 +956,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   deliveryCardCompleted: {
-    borderLeftColor: '#4CAF50',
-    borderLeftWidth: 4,
-    borderWidth: 2,
-    borderColor: '#4CAF50',
     backgroundColor: '#f8fff8',
   },
   dragHandle: {
