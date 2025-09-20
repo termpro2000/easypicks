@@ -201,28 +201,65 @@ async function getDeliveries(req, res) {
     );
     const total = countResult[0].total;
 
-    // 배송 목록 조회
-    const listQuery = `
+    // 배송 목록 조회 (action_date/time 컬럼이 없을 경우 대비)
+    let listQuery = `
       SELECT 
         id, tracking_number, status,
         sender_name, sender_address, customer_name, customer_phone, customer_address,
         product_name, visit_date, visit_time, driver_id,
-        action_date, action_time,
         created_at, updated_at
       FROM deliveries 
       ${whereCondition}
       ORDER BY created_at DESC
       LIMIT ? OFFSET ?
     `;
+    
+    // action_date, action_time 컬럼이 존재하는지 확인 후 쿼리 수정
+    try {
+      const [columns] = await pool.execute(`
+        SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'deliveries' 
+        AND COLUMN_NAME IN ('action_date', 'action_time')
+      `);
+      
+      const hasActionDate = columns.some(col => col.COLUMN_NAME === 'action_date');
+      const hasActionTime = columns.some(col => col.COLUMN_NAME === 'action_time');
+      
+      if (hasActionDate || hasActionTime) {
+        console.log('📋 action 컬럼 감지:', { hasActionDate, hasActionTime });
+        listQuery = `
+          SELECT 
+            id, tracking_number, status,
+            sender_name, sender_address, customer_name, customer_phone, customer_address,
+            product_name, visit_date, visit_time, driver_id,
+            ${hasActionDate ? 'action_date' : 'NULL as action_date'},
+            ${hasActionTime ? 'action_time' : 'NULL as action_time'},
+            created_at, updated_at
+          FROM deliveries 
+          ${whereCondition}
+          ORDER BY created_at DESC
+          LIMIT ? OFFSET ?
+        `;
+      }
+    } catch (columnCheckError) {
+      console.warn('⚠️ 컬럼 확인 실패, 기본 쿼리 사용:', columnCheckError.message);
+    }
     const listParams = [...params, limit, offset];
     
     const [deliveries] = await executeWithRetry(() => 
       pool.execute(listQuery, listParams)
     );
 
+    // action_date/time 필드가 없는 경우 null로 설정
+    const processedDeliveries = (deliveries || []).map(delivery => ({
+      ...delivery,
+      action_date: delivery.action_date || null,
+      action_time: delivery.action_time || null
+    }));
+
     // 결과가 없는 경우에도 빈 배열로 응답
     res.json({
-      deliveries: deliveries || [],
+      deliveries: processedDeliveries,
       pagination: {
         page,
         limit,
