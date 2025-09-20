@@ -732,9 +732,63 @@ async function updateDelivery(req, res) {
       )
     );
 
+    const deliveryData = updatedDelivery[0];
+
+    // 기사 배정 시 실시간 푸시 알림 전송
+    if (updateData.driver_id && updateData.driver_id !== null && updateData.driver_id !== "") {
+      const io = req.app.get('io');
+      if (io) {
+        // 특정 기사에게 알림 전송 (기사별 채널)
+        const driverChannel = `driver_${updateData.driver_id}`;
+        console.log(`📱 [기사 배정 알림] 채널: ${driverChannel}`);
+        
+        io.to(driverChannel).emit('delivery_assigned', {
+          deliveryId: parseInt(id),
+          trackingNumber: deliveryData.tracking_number,
+          customerName: deliveryData.customer_name,
+          customerPhone: deliveryData.customer_phone,
+          customerAddress: deliveryData.customer_address,
+          senderName: deliveryData.sender_name,
+          senderAddress: deliveryData.sender_address,
+          productName: deliveryData.product_name,
+          visitDate: deliveryData.visit_date,
+          visitTime: deliveryData.visit_time,
+          distance: deliveryData.distance,
+          status: deliveryData.status,
+          assignedAt: new Date().toISOString(),
+          message: '새로운 배송이 배정되었습니다!'
+        });
+
+        // 관리자와 매니저에게도 배정 완료 알림
+        io.to('delivery_updates').emit('driver_assignment_completed', {
+          deliveryId: parseInt(id),
+          driverId: updateData.driver_id,
+          trackingNumber: deliveryData.tracking_number,
+          customerName: deliveryData.customer_name,
+          status: '배차완료',
+          assignedAt: new Date().toISOString()
+        });
+
+        console.log(`✅ [기사 배정 알림] 기사 ${updateData.driver_id}에게 알림 전송 완료`);
+      }
+    } else if ('driver_id' in updateData && (updateData.driver_id === null || updateData.driver_id === "")) {
+      // 기사 배정 해제 시 알림
+      const io = req.app.get('io');
+      if (io) {
+        io.to('delivery_updates').emit('driver_assignment_cancelled', {
+          deliveryId: parseInt(id),
+          trackingNumber: deliveryData.tracking_number,
+          customerName: deliveryData.customer_name,
+          status: '접수완료',
+          cancelledAt: new Date().toISOString()
+        });
+        console.log(`📱 [기사 배정 해제] 배송 ${id} 배정 해제 알림 전송`);
+      }
+    }
+
     res.json({
       message: '배송 정보가 성공적으로 업데이트되었습니다.',
-      delivery: updatedDelivery[0]
+      delivery: deliveryData
     });
 
   } catch (error) {
