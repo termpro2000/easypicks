@@ -1648,6 +1648,18 @@ Storage Bucket: ${firebaseConfig?.storageBucket || '없음'}
     return getStatusTextByRequestType(status, requestType);
   };
 
+  // 배송완료 상태 확인 함수
+  const isDeliveryCompleted = (status) => {
+    return status === 'delivery_completed' || 
+           status === 'collection_completed' || 
+           status === 'processing_completed' || 
+           status === 'delivered' ||
+           status === 'completed' ||
+           status === '배송완료' || 
+           status === '수거완료' || 
+           status === '조처완료';
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'order_received':
@@ -1913,14 +1925,14 @@ Storage Bucket: ${firebaseConfig?.storageBucket || '없음'}
               <TouchableOpacity 
                 style={[
                   styles.photoUploadButton,
-                  uploadedPhotos.length > 0 && styles.halfWidthButton
+                  uploadedPhotos.length > 0 && !isDeliveryCompleted(delivery.status) && styles.halfWidthButton
                 ]} 
                 onPress={handlePhotoUpload}
               >
                 <Text style={styles.photoUploadButtonText}>📸 사진 추가</Text>
               </TouchableOpacity>
               
-              {uploadedPhotos.length > 0 && (
+              {uploadedPhotos.length > 0 && !isDeliveryCompleted(delivery.status) && (
                 <TouchableOpacity 
                   style={[
                     styles.photoEditButton,
