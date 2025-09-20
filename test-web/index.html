@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>미래코리아 배송 관리 시스템 테스트</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            background-color: white;
+            min-height: 100vh;
+        }
+        
+        .header {
+            background-color: #2196F3;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .hamburger {
+            font-size: 20px;
+            cursor: pointer;
+        }
+        
+        .company-name {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .content {
+            padding: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 15px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+        
+        .btn:hover {
+            background-color: #1976D2;
+        }
+        
+        .btn-secondary {
+            background-color: transparent;
+            color: #2196F3;
+            border: 1px solid #2196F3;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #2196F3;
+            color: white;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .date-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background-color: white;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .date-arrow {
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 18px;
+            color: #2196F3;
+        }
+        
+        .date-text {
+            font-weight: bold;
+            font-size: 16px;
+        }
+        
+        .stats {
+            display: flex;
+            padding: 15px 20px;
+            background-color: white;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .stat-item {
+            flex: 1;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2196F3;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+            margin-top: 4px;
+        }
+        
+        .delivery-card {
+            background-color: white;
+            margin: 10px 15px;
+            padding: 16px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-left: 4px solid #2196F3;
+            cursor: pointer;
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .customer-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 12px;
+            color: white;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        
+        .status-pending {
+            background-color: #FF9800;
+        }
+        
+        .status-completed {
+            background-color: #4CAF50;
+        }
+        
+        .customer-address {
+            color: #555;
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+        
+        .card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 10px;
+            border-top: 1px solid #f0f0f0;
+        }
+        
+        .driver-info {
+            color: #2196F3;
+            font-weight: 600;
+        }
+        
+        .assignment-time {
+            color: #666;
+            font-size: 13px;
+        }
+        
+        .message {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            text-align: center;
+        }
+        
+        .error {
+            background-color: #ffebee;
+            color: #c62828;
+            border: 1px solid #e57373;
+        }
+        
+        .success {
+            background-color: #e8f5e8;
+            color: #2e7d32;
+            border: 1px solid #81c784;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 로그인 화면 -->
+        <div id="login-screen">
+            <div class="header">
+                <span class="hamburger">☰</span>
+                <span class="company-name">미래코리아</span>
+                <span></span>
+            </div>
+            <div class="content">
+                <h2 style="text-align: center; margin-bottom: 30px;">로그인</h2>
+                <div id="login-message"></div>
+                <div class="form-group">
+                    <label for="login-id">사용자 ID</label>
+                    <input type="text" id="login-id" placeholder="사용자 ID를 입력하세요">
+                </div>
+                <div class="form-group">
+                    <label for="login-password">비밀번호</label>
+                    <input type="password" id="login-password" placeholder="비밀번호를 입력하세요">
+                </div>
+                <button class="btn" onclick="login()">로그인</button>
+                <button class="btn btn-secondary" onclick="showRegister()">회원가입</button>
+            </div>
+        </div>
+        
+        <!-- 회원가입 화면 -->
+        <div id="register-screen" class="hidden">
+            <div class="header">
+                <span class="hamburger">☰</span>
+                <span class="company-name">미래코리아</span>
+                <span></span>
+            </div>
+            <div class="content">
+                <h2 style="text-align: center; margin-bottom: 30px;">회원가입</h2>
+                <div id="register-message"></div>
+                <div class="form-group">
+                    <label for="reg-id">사용자 ID *</label>
+                    <input type="text" id="reg-id" placeholder="사용자 ID">
+                </div>
+                <div class="form-group">
+                    <label for="reg-password">비밀번호 *</label>
+                    <input type="password" id="reg-password" placeholder="비밀번호 (6자 이상)">
+                </div>
+                <div class="form-group">
+                    <label for="reg-confirm">비밀번호 확인 *</label>
+                    <input type="password" id="reg-confirm" placeholder="비밀번호 확인">
+                </div>
+                <div class="form-group">
+                    <label for="reg-name">이름</label>
+                    <input type="text" id="reg-name" placeholder="이름">
+                </div>
+                <div class="form-group">
+                    <label for="reg-phone">전화번호</label>
+                    <input type="text" id="reg-phone" placeholder="전화번호">
+                </div>
+                <button class="btn" onclick="register()">회원가입</button>
+                <button class="btn btn-secondary" onclick="showLogin()">로그인으로 돌아가기</button>
+            </div>
+        </div>
+        
+        <!-- 배송 목록 화면 -->
+        <div id="delivery-screen" class="hidden">
+            <div class="header">
+                <span class="hamburger" onclick="showMenu()">☰</span>
+                <span class="company-name">미래코리아</span>
+                <span></span>
+            </div>
+            
+            <div class="date-nav">
+                <span class="date-arrow" onclick="changeDate(-1)">←</span>
+                <span class="date-text" id="current-date"></span>
+                <span class="date-arrow" onclick="changeDate(1)">→</span>
+            </div>
+            
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-number" id="total-count">0</div>
+                    <div class="stat-label">전체건수</div>
+                </div>
+                <div style="width: 1px; background-color: #e0e0e0; margin: 0 20px;"></div>
+                <div class="stat-item">
+                    <div class="stat-number" id="completed-count">0</div>
+                    <div class="stat-label">완료건수</div>
+                </div>
+            </div>
+            
+            <div id="delivery-list"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080/api';
+        let authToken = localStorage.getItem('authToken');
+        let currentDate = new Date();
+        
+        // 초기화
+        if (authToken) {
+            showDeliveryList();
+        }
+        
+        function showMessage(elementId, message, type = 'error') {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="message ${type}">${message}</div>`;
+            setTimeout(() => {
+                element.innerHTML = '';
+            }, 3000);
+        }
+        
+        function showLogin() {
+            document.getElementById('login-screen').classList.remove('hidden');
+            document.getElementById('register-screen').classList.add('hidden');
+            document.getElementById('delivery-screen').classList.add('hidden');
+        }
+        
+        function showRegister() {
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('register-screen').classList.remove('hidden');
+            document.getElementById('delivery-screen').classList.add('hidden');
+        }
+        
+        function showDeliveryList() {
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('register-screen').classList.add('hidden');
+            document.getElementById('delivery-screen').classList.remove('hidden');
+            updateDateDisplay();
+            loadDeliveries();
+        }
+        
+        async function login() {
+            const userId = document.getElementById('login-id').value;
+            const password = document.getElementById('login-password').value;
+            
+            if (!userId || !password) {
+                showMessage('login-message', '사용자 ID와 비밀번호를 입력해주세요.');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: userId, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    authToken = data.token;
+                    localStorage.setItem('authToken', authToken);
+                    showMessage('login-message', '로그인 성공!', 'success');
+                    setTimeout(showDeliveryList, 1000);
+                } else {
+                    showMessage('login-message', data.error || '로그인에 실패했습니다.');
+                }
+            } catch (error) {
+                showMessage('login-message', '서버 연결에 실패했습니다.');
+            }
+        }
+        
+        async function register() {
+            const userId = document.getElementById('reg-id').value;
+            const password = document.getElementById('reg-password').value;
+            const confirmPassword = document.getElementById('reg-confirm').value;
+            const name = document.getElementById('reg-name').value;
+            const phone = document.getElementById('reg-phone').value;
+            
+            if (!userId || !password || !confirmPassword) {
+                showMessage('register-message', '필수 항목을 모두 입력해주세요.');
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                showMessage('register-message', '비밀번호가 일치하지 않습니다.');
+                return;
+            }
+            
+            if (password.length < 6) {
+                showMessage('register-message', '비밀번호는 6자 이상이어야 합니다.');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: userId, password, name, phone })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showMessage('register-message', '회원가입이 완료되었습니다! 로그인해주세요.', 'success');
+                    setTimeout(showLogin, 2000);
+                } else {
+                    showMessage('register-message', data.error || '회원가입에 실패했습니다.');
+                }
+            } catch (error) {
+                showMessage('register-message', '서버 연결에 실패했습니다.');
+            }
+        }
+        
+        function updateDateDisplay() {
+            const options = { 
+                year: 'numeric', 
+                month: '2-digit', 
+                day: '2-digit', 
+                weekday: 'short' 
+            };
+            const dateStr = currentDate.toLocaleDateString('ko-KR', options);
+            document.getElementById('current-date').textContent = dateStr;
+        }
+        
+        function changeDate(days) {
+            currentDate.setDate(currentDate.getDate() + days);
+            updateDateDisplay();
+            loadDeliveries();
+        }
+        
+        async function loadDeliveries() {
+            try {
+                const response = await fetch(`${API_BASE}/delivery/list`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    displayDeliveries(data.deliveries);
+                } else {
+                    document.getElementById('delivery-list').innerHTML = 
+                        '<div style="text-align: center; padding: 20px; color: #666;">배송 목록을 불러올 수 없습니다.</div>';
+                }
+            } catch (error) {
+                document.getElementById('delivery-list').innerHTML = 
+                    '<div style="text-align: center; padding: 20px; color: #666;">서버 연결에 실패했습니다.</div>';
+            }
+        }
+        
+        function displayDeliveries(deliveries) {
+            const listElement = document.getElementById('delivery-list');
+            const totalCount = deliveries.length;
+            const completedCount = deliveries.filter(d => d.status === 'in_transit').length;
+            
+            document.getElementById('total-count').textContent = totalCount;
+            document.getElementById('completed-count').textContent = completedCount;
+            
+            if (deliveries.length === 0) {
+                listElement.innerHTML = '<div style="text-align: center; padding: 50px; color: #666;">배송할 목록이 없습니다.</div>';
+                return;
+            }
+            
+            const html = deliveries.map(delivery => `
+                <div class="delivery-card" onclick="showDeliveryDetail('${delivery.id}')">
+                    <div class="card-header">
+                        <div class="customer-name">${delivery.receiver_name}</div>
+                        <div class="status-badge status-${delivery.status}">
+                            ${delivery.status === 'pending' ? '배송 대기' : 
+                              delivery.status === 'in_transit' ? '배송 중' : '완료'}
+                        </div>
+                    </div>
+                    <div class="customer-address">${delivery.receiver_address}</div>
+                    <div class="card-footer">
+                        <div class="driver-info">기사: 미할당</div>
+                        <div class="assignment-time">배정시간: 미정</div>
+                    </div>
+                </div>
+            `).join('');
+            
+            listElement.innerHTML = html;
+        }
+        
+        function showDeliveryDetail(id) {
+            alert(`배송 상세 정보 (ID: ${id})\\n\\n실제 앱에서는 상세 화면으로 이동합니다.`);
+        }
+        
+        function showMenu() {
+            if (confirm('로그아웃 하시겠습니까?')) {
+                localStorage.removeItem('authToken');
+                authToken = null;
+                showLogin();
+            }
+        }
+    </script>
+</body>
+</html>

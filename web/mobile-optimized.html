@@ -1,0 +1,2472 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>미래코리아 배송관리</title>
+    <meta name="description" content="미래코리아 배송 관리 시스템 - 실시간 배송 추적 및 관리">
+    <meta name="theme-color" content="#2196F3">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="미래코리아">
+    
+    <!-- PWA Icons -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiByeD0iMzYiIGZpbGw9IiMyMTk2RjMiLz4KPHN2ZyB4PSI0OCIgeT0iNDgiIHdpZHRoPSI5NiIgaGVpZ2h0PSI5NiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJ3aGl0ZSI+CjxwYXRoIGQ9Ik0yMCA4SDE0VjZDMTQgNC45IDEzLjEgNCAxMiA0UzEwIDQuOSAxMCA2VjhINEM2IDguOSA2LjkgOCA4IDhWMThDOCAxOS4xIDguOSAyMCAxMCAyMEgxNEMxNS4xIDIwIDE2IDE5LjEgMTYgMThWOEMyMCA4LjkgMjAuOSA4IDIwIDhaIi8+Cjwvc3ZnPgo8L3N2Zz4=">
+    
+    <style>
+        :root {
+            --primary: #2196F3;
+            --primary-dark: #1976D2;
+            --primary-light: #64B5F6;
+            --success: #4CAF50;
+            --warning: #FF9800;
+            --error: #F44336;
+            --surface: #FFFFFF;
+            --background: #F5F5F5;
+            --on-surface: #212121;
+            --on-surface-variant: #757575;
+            --outline: #E0E0E0;
+            --shadow: rgba(0,0,0,0.12);
+            --border-radius: 16px;
+            --border-radius-sm: 8px;
+            --spacing-xs: 4px;
+            --spacing-sm: 8px;
+            --spacing-md: 16px;
+            --spacing-lg: 24px;
+            --spacing-xl: 32px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background-color: var(--background);
+            color: var(--on-surface);
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .app-container {
+            max-width: 428px;
+            margin: 0 auto;
+            background-color: var(--surface);
+            min-height: 100vh;
+            position: relative;
+            box-shadow: 0 0 40px var(--shadow);
+        }
+
+        /* 상태바 안전 영역 */
+        .status-bar-padding {
+            height: env(safe-area-inset-top, 20px);
+            background: var(--primary);
+        }
+
+        /* 앱 헤더 */
+        .app-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: var(--spacing-lg);
+            text-align: center;
+            position: relative;
+            box-shadow: 0 4px 20px rgba(33, 150, 243, 0.3);
+        }
+
+        .app-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            letter-spacing: -0.5px;
+        }
+
+        .app-subtitle {
+            font-size: 14px;
+            opacity: 0.9;
+            font-weight: 400;
+        }
+
+        .header-actions {
+            position: absolute;
+            top: 50%;
+            right: var(--spacing-lg);
+            transform: translateY(-50%);
+        }
+
+        .icon-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .icon-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.05);
+        }
+
+        /* 로딩 스피너 */
+        .loading-spinner {
+            width: 24px;
+            height: 24px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 로그인/회원가입 화면 */
+        .login-section {
+            padding: var(--spacing-xl) var(--spacing-lg);
+            min-height: calc(100vh - 200px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .login-card {
+            background: var(--surface);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-xl);
+            box-shadow: 0 8px 32px var(--shadow);
+            border: 1px solid var(--outline);
+        }
+
+        .auth-tabs {
+            display: flex;
+            margin-bottom: var(--spacing-lg);
+            background: var(--background);
+            border-radius: var(--border-radius-sm);
+            padding: var(--spacing-xs);
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: var(--spacing-sm) var(--spacing-md);
+            background: transparent;
+            border: none;
+            border-radius: var(--border-radius-sm);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--on-surface-variant);
+            transition: all 0.3s ease;
+        }
+
+        .auth-tab.active {
+            background: var(--surface);
+            color: var(--primary);
+            box-shadow: 0 2px 8px var(--shadow);
+        }
+
+        .register-form {
+            display: none;
+        }
+
+        .form-group {
+            margin-bottom: var(--spacing-lg);
+            position: relative;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: var(--spacing-sm);
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--on-surface);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: var(--spacing-md);
+            border: 2px solid var(--outline);
+            border-radius: var(--border-radius-sm);
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: var(--background);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: var(--surface);
+            box-shadow: 0 0 0 4px rgba(33, 150, 243, 0.1);
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: var(--spacing-md);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius-sm);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(33, 150, 243, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(33, 150, 243, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* 대시보드 */
+        .dashboard {
+            display: none;
+            padding: var(--spacing-lg);
+            padding-bottom: 100px; /* 탭바 공간 */
+        }
+
+        /* 날짜 네비게이션 */
+        .date-navigation {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--surface);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+            box-shadow: 0 2px 16px var(--shadow);
+            border: 1px solid var(--outline);
+        }
+
+        .date-nav-btn {
+            background: var(--primary);
+            border: none;
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
+        }
+
+        .date-nav-btn:hover {
+            background: var(--primary-dark);
+            transform: scale(1.05);
+        }
+
+        .current-date {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--on-surface);
+            text-align: center;
+        }
+
+        .stats-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .stat-card {
+            background: var(--surface);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            text-align: center;
+            box-shadow: 0 2px 16px var(--shadow);
+            transition: all 0.3s ease;
+            border: 1px solid var(--outline);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px var(--shadow);
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: var(--spacing-xs);
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--on-surface-variant);
+            font-weight: 500;
+        }
+
+        /* 배송 목록 */
+        .delivery-section {
+            background: var(--surface);
+            border-radius: var(--border-radius);
+            box-shadow: 0 2px 16px var(--shadow);
+            border: 1px solid var(--outline);
+            overflow: hidden;
+        }
+
+        .section-header {
+            padding: var(--spacing-lg);
+            border-bottom: 1px solid var(--outline);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--on-surface);
+            background-color: #ffffff;
+            padding: 10px 15px;
+            margin: -15px -15px 15px -15px;
+            border-radius: 8px 8px 0 0;
+        }
+
+        /* 사진 업로드 및 갤러리 스타일 */
+        .photo-upload-section {
+            text-align: center;
+        }
+
+        .photo-upload-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: background 0.3s ease;
+        }
+
+        .photo-upload-btn:hover {
+            background: #1976D2;
+        }
+
+        .photo-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .photo-item {
+            position: relative;
+            aspect-ratio: 1;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            border: 1px solid var(--outline);
+            transition: transform 0.3s ease;
+        }
+
+        .photo-item:hover {
+            transform: scale(1.05);
+        }
+
+        .photo-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .photo-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0,0,0,0.7));
+            color: white;
+            padding: 10px;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .no-photos {
+            color: var(--on-surface-variant);
+            font-style: italic;
+            text-align: center;
+            padding: 20px;
+        }
+
+        /* 메모 및 서명 스타일 */
+        .memo-textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 12px;
+            border: 1px solid var(--outline);
+            border-radius: 8px;
+            font-size: 14px;
+            resize: vertical;
+            background: #f9f9f9;
+            margin-bottom: 10px;
+        }
+
+        .memo-textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: white;
+        }
+
+        .edit-btn {
+            background: #FF9800;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .edit-btn:hover {
+            background: #F57C00;
+        }
+
+        .signature-section {
+            text-align: center;
+        }
+
+        .signature-canvas {
+            width: 100%;
+            max-width: 400px;
+            height: 150px;
+            border: 2px solid var(--outline);
+            border-radius: 8px;
+            cursor: crosshair;
+            background: white;
+            touch-action: none;
+        }
+
+        .signature-buttons {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .signature-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .clear-btn {
+            background: #f44336;
+            color: white;
+        }
+
+        .clear-btn:hover {
+            background: #d32f2f;
+        }
+
+        .save-btn {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .save-btn:hover {
+            background: #388E3C;
+        }
+
+        .readonly-content {
+            padding: 12px;
+            border: 1px solid var(--outline);
+            border-radius: 8px;
+            background: #f9f9f9;
+            font-size: 14px;
+            line-height: 1.5;
+            color: var(--on-surface);
+            min-height: 60px;
+        }
+
+        .refresh-btn {
+            background: none;
+            border: none;
+            color: var(--primary);
+            cursor: pointer;
+            font-size: 20px;
+            padding: var(--spacing-sm);
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            background: rgba(33, 150, 243, 0.1);
+        }
+
+        .delivery-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .delivery-item {
+            padding: var(--spacing-md);
+            border-bottom: 1px solid var(--outline);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .delivery-item:hover {
+            background: var(--background);
+        }
+
+        .delivery-item:last-child {
+            border-bottom: none;
+        }
+
+        .delivery-info {
+            flex: 1;
+        }
+
+        .delivery-id {
+            font-weight: 600;
+            color: var(--on-surface);
+            margin-bottom: var(--spacing-xs);
+            font-size: 15px;
+        }
+
+        .delivery-customer {
+            font-size: 14px;
+            color: var(--on-surface-variant);
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-pending { background: #FFF3E0; color: #EF6C00; }
+        .status-in-transit { background: #E3F2FD; color: #1565C0; }
+        .status-delivered { background: #E8F5E8; color: #2E7D32; }
+        .status-cancelled { background: #FFEBEE; color: #C62828; }
+
+        /* 하단 탭바 */
+        .bottom-tabs {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 428px;
+            background: var(--surface);
+            border-top: 1px solid var(--outline);
+            display: none;
+            padding: var(--spacing-sm) 0;
+            padding-bottom: calc(var(--spacing-sm) + env(safe-area-inset-bottom, 0px));
+        }
+
+        .tab-container {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: var(--spacing-sm);
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--spacing-xs);
+            color: var(--on-surface-variant);
+            transition: all 0.3s ease;
+            border-radius: var(--border-radius-sm);
+            min-width: 60px;
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            background: rgba(33, 150, 243, 0.1);
+        }
+
+        .tab-icon {
+            font-size: 20px;
+        }
+
+        .tab-label {
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        /* 알림 */
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--surface);
+            color: var(--on-surface);
+            padding: var(--spacing-md) var(--spacing-lg);
+            border-radius: var(--border-radius);
+            box-shadow: 0 8px 32px var(--shadow);
+            z-index: 1000;
+            opacity: 0;
+            transform: translateX(-50%) translateY(-20px);
+            transition: all 0.3s ease;
+        }
+
+        .notification.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .notification.success { border-left: 4px solid var(--success); }
+        .notification.error { border-left: 4px solid var(--error); }
+
+        /* 배송 상세 화면 */
+        .delivery-detail {
+            display: none;
+            padding: var(--spacing-lg);
+            padding-bottom: 100px;
+            background: var(--background);
+            min-height: 100vh;
+        }
+
+        .detail-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: var(--spacing-lg);
+            padding: var(--spacing-md);
+            background: var(--surface);
+            border-radius: var(--border-radius);
+            box-shadow: 0 2px 16px var(--shadow);
+        }
+
+        .back-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: var(--primary);
+            cursor: pointer;
+            margin-right: var(--spacing-md);
+            padding: var(--spacing-sm);
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background: rgba(33, 150, 243, 0.1);
+        }
+
+        .detail-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--on-surface);
+            flex: 1;
+        }
+
+        .detail-section {
+            background: var(--surface);
+            border-radius: var(--border-radius);
+            margin-bottom: var(--spacing-md);
+            box-shadow: 0 2px 16px var(--shadow);
+            overflow: hidden;
+        }
+
+        .section-header-detail {
+            padding: var(--spacing-md) var(--spacing-lg);
+            background: var(--primary);
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .detail-content {
+            padding: var(--spacing-lg);
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: var(--spacing-sm) 0;
+            border-bottom: 1px solid var(--outline);
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            font-size: 14px;
+            color: var(--on-surface-variant);
+            font-weight: 500;
+            min-width: 100px;
+            margin-right: var(--spacing-md);
+        }
+
+        .detail-value {
+            font-size: 14px;
+            color: var(--on-surface);
+            flex: 1;
+            text-align: right;
+            word-break: break-all;
+        }
+
+        .detail-value.highlight {
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .detail-value.success {
+            color: var(--success);
+            font-weight: 600;
+        }
+
+        .detail-value.warning {
+            color: var(--warning);
+            font-weight: 600;
+        }
+
+        .status-timeline {
+            padding: var(--spacing-lg);
+        }
+
+        .timeline-item {
+            display: flex;
+            align-items: center;
+            padding: var(--spacing-md) 0;
+            position: relative;
+        }
+
+        .timeline-item:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            left: 12px;
+            top: 40px;
+            width: 2px;
+            height: calc(100% - 16px);
+            background: var(--outline);
+        }
+
+        .timeline-dot {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--outline);
+            margin-right: var(--spacing-md);
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .timeline-dot.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .timeline-dot.completed {
+            background: var(--success);
+            color: white;
+        }
+
+        .timeline-content {
+            flex: 1;
+        }
+
+        .timeline-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--on-surface);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .timeline-time {
+            font-size: 12px;
+            color: var(--on-surface-variant);
+        }
+
+        /* 상태 업데이트 모달 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: var(--spacing-lg);
+        }
+
+        .modal {
+            background: var(--surface);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-lg);
+            width: 100%;
+            max-width: 360px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .status-options {
+            display: grid;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .status-option {
+            padding: var(--spacing-md);
+            border: 2px solid var(--outline);
+            border-radius: var(--border-radius-sm);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .status-option:hover {
+            border-color: var(--primary);
+            background: rgba(33, 150, 243, 0.05);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: var(--spacing-sm);
+        }
+
+        .btn-secondary {
+            flex: 1;
+            padding: var(--spacing-md);
+            background: transparent;
+            color: var(--on-surface-variant);
+            border: 1px solid var(--outline);
+            border-radius: var(--border-radius-sm);
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        /* 반응형 */
+        @media (max-width: 480px) {
+            .app-container {
+                max-width: 100%;
+            }
+            
+            .stats-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* 다크모드 지원 */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --surface: #1E1E1E;
+                --background: #121212;
+                --on-surface: #E0E0E0;
+                --on-surface-variant: #BDBDBD;
+                --outline: #424242;
+                --shadow: rgba(0,0,0,0.3);
+            }
+        }
+
+        /* 애니메이션 */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .slide-up {
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- 상태바 패딩 -->
+        <div class="status-bar-padding"></div>
+
+        <!-- 앱 헤더 -->
+        <div class="app-header">
+            <div class="app-title">🚚 미래코리아</div>
+            <div class="app-subtitle">배송 관리 시스템</div>
+            <div class="header-actions">
+                <button class="icon-btn" id="headerActionBtn" onclick="logout()" style="display: none;">
+                    <span>⚙️</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 로그인/회원가입 화면 -->
+        <div class="login-section" id="loginSection">
+            <div class="login-card fade-in">
+                <!-- 탭 메뉴 -->
+                <div class="auth-tabs">
+                    <button class="auth-tab active" onclick="showAuthTab('login')">로그인</button>
+                    <button class="auth-tab" onclick="showAuthTab('register')">신규가입</button>
+                </div>
+
+                <!-- 로그인 폼 -->
+                <form id="loginForm" class="login-form">
+                    <div class="form-group">
+                        <label class="form-label">기사 ID</label>
+                        <input type="text" class="form-input" id="userId" placeholder="기사 아이디를 입력하세요" required autocomplete="username">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">비밀번호</label>
+                        <input type="password" class="form-input" id="password" placeholder="비밀번호를 입력하세요" required autocomplete="current-password">
+                    </div>
+                    
+                    <button type="submit" class="btn-primary" id="loginBtn">
+                        <span id="loginBtnText">로그인</span>
+                        <div class="loading-spinner" id="loginSpinner" style="display: none;"></div>
+                    </button>
+                </form>
+
+                <!-- 회원가입 폼 -->
+                <form id="registerForm" class="register-form">
+                    <div class="form-group">
+                        <label class="form-label">기사 ID</label>
+                        <input type="text" class="form-input" id="regUserId" placeholder="사용할 기사 아이디를 입력하세요" required autocomplete="username">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">비밀번호</label>
+                        <input type="password" class="form-input" id="regPassword" placeholder="비밀번호를 입력하세요" required autocomplete="new-password">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">비밀번호 확인</label>
+                        <input type="password" class="form-input" id="regPasswordConfirm" placeholder="비밀번호를 다시 입력하세요" required autocomplete="new-password">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">이름</label>
+                        <input type="text" class="form-input" id="regName" placeholder="이름을 입력하세요" required autocomplete="name">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">전화번호</label>
+                        <input type="tel" class="form-input" id="regPhone" placeholder="전화번호를 입력하세요 (예: 010-1234-5678)" required autocomplete="tel">
+                    </div>
+                    
+                    <button type="submit" class="btn-primary" id="registerBtn">
+                        <span id="registerBtnText">회원가입</span>
+                        <div class="loading-spinner" id="registerSpinner" style="display: none;"></div>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- 대시보드 -->
+        <div class="dashboard" id="dashboard">
+            <!-- 날짜 네비게이션 -->
+            <div class="date-navigation">
+                <button class="date-nav-btn" onclick="changeDate(-1)">‹</button>
+                <div class="current-date" id="currentDate">2024년 1월 15일</div>
+                <button class="date-nav-btn" onclick="changeDate(1)">›</button>
+            </div>
+
+            <!-- 통계 카드 -->
+            <div class="stats-container">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalCount">0</div>
+                    <div class="stat-label">전체 배송</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="completedCount">0</div>
+                    <div class="stat-label">완료된 배송</div>
+                </div>
+            </div>
+
+            <!-- 배송 목록 -->
+            <div class="delivery-section">
+                <div class="section-header">
+                    <h3 class="section-title">최근 배송</h3>
+                    <button class="refresh-btn" onclick="loadDeliveries()" id="refreshBtn">🔄</button>
+                </div>
+                <div class="delivery-list" id="deliveryList">
+                    <div style="padding: 40px; text-align: center; color: #666;">
+                        <div class="loading-spinner" style="margin: 0 auto 16px;"></div>
+                        배송 목록을 불러오는 중...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 배송 상세 화면 -->
+        <div class="delivery-detail" id="deliveryDetail">
+            <div class="detail-header">
+                <button class="back-btn" onclick="showDashboard()">←</button>
+                <div class="detail-title">배송 상세 정보</div>
+            </div>
+
+            <div id="deliveryDetailContent">
+                <!-- 배송 상세 내용이 여기에 동적으로 로드됩니다 -->
+            </div>
+        </div>
+
+        <!-- 프로필 화면 -->
+        <div class="delivery-detail" id="profileScreen" style="display: none;">
+            <div class="detail-header">
+                <button class="back-btn" onclick="showDashboard()">←</button>
+                <div class="detail-title">프로필</div>
+            </div>
+
+            <div id="profileContent">
+                <div class="detail-section">
+                    <div class="section-header-detail">👤 기본 정보</div>
+                    <div class="detail-content">
+                        <div class="form-group">
+                            <label class="form-label">기사 ID</label>
+                            <input type="text" class="form-input" id="profileUserId" readonly style="background: #f5f5f5;">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">이름</label>
+                            <input type="text" class="form-input" id="profileName" placeholder="이름을 입력하세요">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">전화번호</label>
+                            <input type="tel" class="form-input" id="profilePhone" placeholder="전화번호를 입력하세요">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">이메일</label>
+                            <input type="email" class="form-input" id="profileEmail" placeholder="이메일을 입력하세요">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">배송지역</label>
+                            <input type="text" class="form-input" id="profileDeliveryArea" placeholder="예: 서울 강남구, 서초구, 송파구">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <div class="section-header-detail">🚛 차량 정보</div>
+                    <div class="detail-content">
+                        <div class="form-group">
+                            <label class="form-label">차량종류</label>
+                            <input type="text" class="form-input" id="profileVehicleType" placeholder="예: 1톤 트럭">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">차량번호</label>
+                            <input type="text" class="form-input" id="profileVehicleNumber" placeholder="예: 서울12가3456">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">화물총크기</label>
+                            <input type="text" class="form-input" id="profileCargoCapacity" placeholder="예: 최대 1톤">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <div class="section-header-detail">🔐 비밀번호 변경</div>
+                    <div class="detail-content" id="passwordChangeSection">
+                        <div class="form-group">
+                            <button class="btn-secondary" onclick="togglePasswordChange()" style="width: 100%;">비밀번호 변경</button>
+                        </div>
+                        <div id="passwordChangeForm" style="display: none;">
+                            <div class="form-group">
+                                <label class="form-label">현재 비밀번호</label>
+                                <input type="password" class="form-input" id="currentPassword" placeholder="현재 비밀번호를 입력하세요">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">새 비밀번호</label>
+                                <input type="password" class="form-input" id="newPassword" placeholder="새 비밀번호를 입력하세요">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">새 비밀번호 확인</label>
+                                <input type="password" class="form-input" id="confirmNewPassword" placeholder="새 비밀번호를 다시 입력하세요">
+                            </div>
+                            <button class="btn-primary" onclick="changePassword()" style="margin-bottom: 10px;">비밀번호 변경</button>
+                            <button class="btn-secondary" onclick="togglePasswordChange()" style="width: 100%;">취소</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="padding: 20px;">
+                    <button class="btn-primary" onclick="updateProfile()" style="margin-bottom: 10px;">프로필 저장</button>
+                    <button class="btn-secondary" onclick="logout()" style="width: 100%; background: #f44336; color: white;">로그아웃</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 하단 탭바 -->
+        <div class="bottom-tabs" id="bottomTabs">
+            <div class="tab-container">
+                <button class="tab-btn active" onclick="showTab('home')">
+                    <span class="tab-icon">🏠</span>
+                    <span class="tab-label">홈</span>
+                </button>
+                <button class="tab-btn" onclick="showTab('deliveries')">
+                    <span class="tab-icon">📦</span>
+                    <span class="tab-label">배송</span>
+                </button>
+                <button class="tab-btn" onclick="showTab('update')">
+                    <span class="tab-icon">🔄</span>
+                    <span class="tab-label">업데이트</span>
+                </button>
+                <button class="tab-btn" onclick="showTab('profile')">
+                    <span class="tab-icon">👤</span>
+                    <span class="tab-label">프로필</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 알림 -->
+    <div class="notification" id="notification"></div>
+
+    <!-- 상태 업데이트 모달 -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal slide-up">
+            <h3 class="modal-title">배송 상태 업데이트</h3>
+            <div class="form-group">
+                <label class="form-label">배송 ID</label>
+                <input type="number" class="form-input" id="updateDeliveryId" placeholder="배송 ID를 입력하세요">
+            </div>
+            <div class="status-options">
+                <div class="status-option" data-status="pending">🟡 대기중</div>
+                <div class="status-option" data-status="in_transit">🔵 배송중</div>
+                <div class="status-option" data-status="delivered">🟢 배송완료</div>
+                <div class="status-option" data-status="cancelled">🔴 취소</div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="closeModal()">취소</button>
+                <button class="btn-primary" onclick="confirmUpdate()">업데이트</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://192.168.219.105:8080';
+        let authToken = localStorage.getItem('token') || '';
+        let deliveries = [];
+        let selectedStatus = '';
+        let currentDate = new Date();
+
+        // 더미 데이터
+        const dummyDeliveries = [
+            { id: 1, tracking_number: 'MK202401001', customer: '김철수', receiver_name: '김철수', status: 'pending' },
+            { id: 2, tracking_number: 'MK202401002', customer: '박영희', receiver_name: '박영희', status: 'in_transit' },
+            { id: 3, tracking_number: 'MK202401003', customer: '이민수', receiver_name: '이민수', status: 'delivered' },
+            { id: 4, tracking_number: 'MK202401004', customer: '정수진', receiver_name: '정수진', status: 'pending' },
+            { id: 5, tracking_number: 'MK202401005', customer: '홍길동', receiver_name: '홍길동', status: 'delivered' }
+        ];
+
+        // 날짜 포맷팅 함수
+        function formatDate(date) {
+            const year = date.getFullYear();
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            return `${year}년 ${month}월 ${day}일`;
+        }
+
+        // 날짜 변경 함수
+        function changeDate(direction) {
+            if (direction === -1) {
+                currentDate.setDate(currentDate.getDate() - 1);
+            } else if (direction === 1) {
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+            
+            updateDateDisplay();
+            // 날짜가 변경되면 배송 데이터도 다시 로드
+            if (authToken && document.getElementById('dashboard').style.display !== 'none') {
+                loadDeliveries();
+            }
+        }
+
+        // 날짜 표시 업데이트
+        function updateDateDisplay() {
+            const dateElement = document.getElementById('currentDate');
+            if (dateElement) {
+                dateElement.textContent = formatDate(currentDate);
+            }
+        }
+
+        // 초기화
+        window.addEventListener('DOMContentLoaded', function() {
+            updateDateDisplay(); // 현재 날짜 표시
+            
+            if (authToken) {
+                showDashboard();
+            } else {
+                showLogin();
+            }
+            
+            // 모달 이벤트 리스너
+            setupModalEvents();
+        });
+
+        function showLogin() {
+            document.getElementById('loginSection').style.display = 'block';
+            document.getElementById('dashboard').style.display = 'none';
+            document.getElementById('bottomTabs').style.display = 'none';
+            document.getElementById('headerActionBtn').style.display = 'none';
+        }
+
+        function showDashboard() {
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'block';
+            document.getElementById('dashboard').classList.add('fade-in');
+            document.getElementById('bottomTabs').style.display = 'block';
+            document.getElementById('headerActionBtn').style.display = 'block';
+            updateDateDisplay(); // 대시보드 표시할 때 날짜 업데이트
+            loadDeliveries();
+        }
+
+        // 로그인 처리
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const userId = document.getElementById('userId').value;
+            const password = document.getElementById('password').value;
+            const loginBtn = document.getElementById('loginBtn');
+            const loginBtnText = document.getElementById('loginBtnText');
+            const loginSpinner = document.getElementById('loginSpinner');
+
+            // 로딩 상태
+            loginBtn.disabled = true;
+            loginBtnText.style.display = 'none';
+            loginSpinner.style.display = 'block';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: userId, password })
+                });
+
+                const result = await response.json();
+                
+                if (response.ok && result.token) {
+                    authToken = result.token;
+                    localStorage.setItem('token', authToken);
+                    
+                    showNotification('로그인 성공!', 'success');
+                    setTimeout(() => showDashboard(), 500);
+                } else {
+                    throw new Error(result.error || '로그인 실패');
+                }
+            } catch (error) {
+                showNotification(error.message, 'error');
+            } finally {
+                // 로딩 상태 해제
+                loginBtn.disabled = false;
+                loginBtnText.style.display = 'block';
+                loginSpinner.style.display = 'none';
+            }
+        });
+
+        // 배송 목록 로드
+        async function loadDeliveries() {
+            const refreshBtn = document.getElementById('refreshBtn');
+            refreshBtn.style.animation = 'spin 1s linear infinite';
+
+            try {
+                if (!authToken) {
+                    deliveries = dummyDeliveries;
+                    renderDeliveries();
+                    updateStats();
+                    return;
+                }
+
+                const response = await fetch(`${API_BASE}/api/delivery/list`, {
+                    headers: { 
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    deliveries = result.deliveries || dummyDeliveries;
+                } else {
+                    deliveries = dummyDeliveries;
+                }
+            } catch (error) {
+                console.error('배송 목록 로드 오류:', error);
+                deliveries = dummyDeliveries;
+            } finally {
+                refreshBtn.style.animation = '';
+                renderDeliveries();
+                updateStats();
+            }
+        }
+
+        // 배송 목록 렌더링
+        function renderDeliveries() {
+            const listContainer = document.getElementById('deliveryList');
+            
+            if (deliveries.length === 0) {
+                listContainer.innerHTML = '<div style="padding: 40px; text-align: center; color: #666;">배송 목록이 없습니다.</div>';
+                return;
+            }
+
+            const html = deliveries.map(delivery => `
+                <div class="delivery-item" onclick="showDeliveryDetail('${delivery.tracking_number}')">
+                    <div class="delivery-info">
+                        <div class="delivery-id">${delivery.tracking_number}</div>
+                        <div class="delivery-customer">${delivery.customer || delivery.receiver_name || delivery.customerName}</div>
+                    </div>
+                    <div class="status-badge status-${delivery.status}">
+                        ${getStatusText(delivery.status)}
+                    </div>
+                </div>
+            `).join('');
+
+            listContainer.innerHTML = html;
+        }
+
+        // 통계 업데이트
+        function updateStats() {
+            const total = deliveries.length;
+            const completed = deliveries.filter(d => d.status === 'delivered').length;
+            
+            animateNumber('totalCount', total);
+            animateNumber('completedCount', completed);
+        }
+
+        // 숫자 애니메이션
+        function animateNumber(elementId, targetNumber) {
+            const element = document.getElementById(elementId);
+            const startNumber = parseInt(element.textContent) || 0;
+            const duration = 1000;
+            const startTime = performance.now();
+
+            function updateNumber(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const currentNumber = Math.floor(startNumber + (targetNumber - startNumber) * progress);
+                
+                element.textContent = currentNumber;
+                
+                if (progress < 1) {
+                    requestAnimationFrame(updateNumber);
+                }
+            }
+            
+            requestAnimationFrame(updateNumber);
+        }
+
+        // 상태 텍스트 변환
+        function getStatusText(status) {
+            const statusMap = {
+                'pending': '대기중',
+                'in_transit': '배송중',
+                'delivered': '완료',
+                'cancelled': '취소'
+            };
+            return statusMap[status] || status;
+        }
+
+        // 알림 표시
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type} show`;
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // 탭 전환
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.closest('.tab-btn').classList.add('active');
+            
+            switch(tabName) {
+                case 'home':
+                    loadDeliveries();
+                    break;
+                case 'deliveries':
+                    loadDeliveries();
+                    break;
+                case 'update':
+                    openUpdateModal();
+                    break;
+                case 'profile':
+                    showProfile();
+                    break;
+            }
+        }
+
+        // 모달 관련 함수들
+        function setupModalEvents() {
+            document.querySelectorAll('.status-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    document.querySelectorAll('.status-option').forEach(o => o.style.borderColor = 'var(--outline)');
+                    this.style.borderColor = 'var(--primary)';
+                    this.style.background = 'rgba(33, 150, 243, 0.1)';
+                    selectedStatus = this.dataset.status;
+                });
+            });
+
+            document.getElementById('modalOverlay').addEventListener('click', function(e) {
+                if (e.target === this) closeModal();
+            });
+        }
+
+        function openUpdateModal() {
+            document.getElementById('modalOverlay').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').style.display = 'none';
+            selectedStatus = '';
+            document.getElementById('updateDeliveryId').value = '';
+            document.querySelectorAll('.status-option').forEach(o => {
+                o.style.borderColor = 'var(--outline)';
+                o.style.background = '';
+            });
+        }
+
+        async function confirmUpdate() {
+            const deliveryId = document.getElementById('updateDeliveryId').value;
+            
+            if (!deliveryId || !selectedStatus) {
+                showNotification('배송 ID와 상태를 선택해주세요', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/delivery/${deliveryId}/status`, {
+                    method: 'PUT',
+                    headers: { 
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ status: selectedStatus })
+                });
+
+                if (response.ok) {
+                    showNotification('상태가 업데이트되었습니다!', 'success');
+                    loadDeliveries();
+                    closeModal();
+                } else {
+                    throw new Error('상태 업데이트에 실패했습니다');
+                }
+            } catch (error) {
+                showNotification(error.message, 'error');
+            }
+        }
+
+        // 배송 상세 보기
+        async function showDeliveryDetail(trackingNumber) {
+            try {
+                // 로딩 표시
+                document.getElementById('deliveryDetailContent').innerHTML = `
+                    <div style="padding: 40px; text-align: center; color: #666;">
+                        <div class="loading-spinner" style="margin: 0 auto 16px;"></div>
+                        배송 상세 정보를 불러오는 중...
+                    </div>
+                `;
+                
+                // 화면 전환
+                document.getElementById('dashboard').style.display = 'none';
+                document.getElementById('deliveryDetail').style.display = 'block';
+                document.getElementById('bottomTabs').style.display = 'none';
+
+                // API 호출
+                const response = await fetch(`${API_BASE}/api/delivery/detail/${trackingNumber}`, {
+                    headers: { 
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    renderDeliveryDetail(result.delivery);
+                } else {
+                    throw new Error('배송 상세 정보를 불러올 수 없습니다.');
+                }
+            } catch (error) {
+                console.error('배송 상세 조회 오류:', error);
+                showNotification(error.message, 'error');
+                showDashboard(); // 오류 시 대시보드로 돌아가기
+            }
+        }
+
+        // 배송 상세 정보 렌더링
+        function renderDeliveryDetail(delivery) {
+            const formatDate = (dateStr) => {
+                if (!dateStr) return '-';
+                const date = new Date(dateStr);
+                return date.toLocaleDateString('ko-KR', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            };
+
+            const formatCurrency = (amount) => {
+                if (!amount || amount === 0) return '-';
+                return new Intl.NumberFormat('ko-KR', { 
+                    style: 'currency', 
+                    currency: 'KRW' 
+                }).format(amount);
+            };
+
+            const getStatusInfo = (status) => {
+                const statusMap = {
+                    'pending': { text: '배송 대기', class: 'warning' },
+                    'in_transit': { text: '배송 중', class: 'highlight' },
+                    'delivered': { text: '배송 완료', class: 'success' },
+                    'cancelled': { text: '배송 취소', class: 'error' }
+                };
+                return statusMap[status] || { text: status, class: '' };
+            };
+
+            const statusInfo = getStatusInfo(delivery.status);
+            const details = delivery.details || {};
+
+            const html = `
+                <!-- 배송번호 데이터 저장 -->
+                <div data-tracking-number="${delivery.tracking_number}" style="display: none;"></div>
+                
+                <!-- 방문지 정보 -->
+                <div class="detail-section">
+                    <div class="section-header-detail">📍 방문지 정보</div>
+                    <div class="detail-content">
+                        <div class="detail-row">
+                            <span class="detail-label">고객이름</span>
+                            <span class="detail-value highlight">${delivery.receiver_name}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">연락처</span>
+                            <span class="detail-value">${delivery.receiver_phone}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">주소</span>
+                            <div style="display: flex; align-items: center; gap: 8px; flex: 1; justify-content: flex-end;">
+                                <span class="detail-value" style="flex: 1; text-align: right;">${delivery.receiver_address}</span>
+                                <button onclick="copyAddress('${delivery.receiver_address}')" style="background: var(--primary); color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer;">주소복사</button>
+                            </div>
+                        </div>
+                        <div class="detail-row" style="flex-direction: column; align-items: stretch;">
+                            <div style="margin-bottom: 10px;">
+                                <span class="detail-label">위치</span>
+                            </div>
+                            <div id="naverMap" style="width: 100%; height: 200px; border-radius: 8px; overflow: hidden; margin-bottom: 10px;">
+                                <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f0f0f0; color: #666;">
+                                    지도를 로드하는 중...
+                                </div>
+                            </div>
+                            <button onclick="openNavigation('${delivery.receiver_address}')" style="width: 100%; background: #03C75A; color: white; border: none; padding: 12px; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer;">네비게이션 연결하기</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 기본 배송 정보 -->
+                <div class="detail-section">
+                    <div class="section-header-detail">📦 기본 정보</div>
+                    <div class="detail-content">
+                        <div class="detail-row">
+                            <span class="detail-label">의뢰타입</span>
+                            <span class="detail-value">${delivery.requestType || '일반'}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">의뢰상태</span>
+                            <span class="detail-value ${statusInfo.class}">${statusInfo.text}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">시공유형</span>
+                            <span class="detail-value">${delivery.constructionType || '-'}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">출고형태</span>
+                            <span class="detail-value">${delivery.shipmentType || '-'}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">방문일</span>
+                            <span class="detail-value">${delivery.visitDate || '-'}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">방문시간</span>
+                            <span class="detail-value">${delivery.visitTime || '-'}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">담당기사</span>
+                            <span class="detail-value">${delivery.assignedDriver || '-'}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">가구사</span>
+                            <span class="detail-value">${delivery.furnitureCompany || '-'}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">주요메모</span>
+                            <span class="detail-value">${delivery.mainMemo || '-'}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">비상연락망</span>
+                            <span class="detail-value">${delivery.emergencyContact || '-'}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 현장 정보 -->
+                <div class="detail-section">
+                    <div class="section-header-detail">🏗️ 현장 정보(방문지)</div>
+                    <div class="detail-content">
+                        <div class="detail-row">
+                            <span class="detail-label">건물형태</span>
+                            <span class="detail-value">${delivery.buildingType || '-'}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">층수</span>
+                            <span class="detail-value">${delivery.floorCount || '-'}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">엘레베이터유무</span>
+                            <span class="detail-value">${delivery.elevatorAvailable || '-'}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">사다리차 필요여부</span>
+                            <span class="detail-value">${delivery.ladderTruck || '-'}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">내림 유무(폐기장 이동)</span>
+                            <span class="detail-value">${delivery.disposal || '-'}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">방간이동</span>
+                            <span class="detail-value">${delivery.roomMovement || '-'}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">벽시공</span>
+                            <span class="detail-value">${delivery.wallConstruction || '-'}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 상품 정보 -->
+                <div class="detail-section">
+                    <div class="section-header-detail">📦 상품 정보</div>
+                    <div class="detail-content">
+                        <div class="detail-row">
+                            <span class="detail-label">상품명</span>
+                            <span class="detail-value">${delivery.productName || '-'}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">가구사 상품코드</span>
+                            <span class="detail-value">${delivery.furnitureProductCode || '-'}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">무게</span>
+                            <span class="detail-value">${delivery.productWeight || '-'}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">상품크기</span>
+                            <span class="detail-value">${delivery.productSize || '-'}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">박스크기</span>
+                            <span class="detail-value">${delivery.boxSize || '-'}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 배송 상세 정보 -->
+                <div class="detail-section">
+                    <div class="section-header-detail">🚚 배송 상세</div>
+                    <div class="detail-content">
+                        <div class="detail-row">
+                            <span class="detail-label">배송비</span>
+                            <span class="detail-value">${formatCurrency(details.delivery_fee)}</span>
+                        </div>
+                        ${details.cod_amount ? `
+                        <div class="detail-row">
+                            <span class="detail-label">착불금액</span>
+                            <span class="detail-value warning">${formatCurrency(details.cod_amount)}</span>
+                        </div>
+                        ` : ''}
+                        <div class="detail-row">
+                            <span class="detail-label">보험가액</span>
+                            <span class="detail-value">${formatCurrency(details.insurance_value)}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">파손주의</span>
+                            <span class="detail-value">${details.fragile ? '예' : '아니오'}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">희망배송시간</span>
+                            <span class="detail-value">${details.delivery_time_preference || '-'}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">배송요청사항</span>
+                            <span class="detail-value">${details.special_instructions || '-'}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 기사 정보 -->
+                ${details.driver_id ? `
+                <div class="detail-section">
+                    <div class="section-header-detail">👨‍💼 담당 기사</div>
+                    <div class="detail-content">
+                        <div class="detail-row">
+                            <span class="detail-label">기사ID</span>
+                            <span class="detail-value">${details.driver_id}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">기사명</span>
+                            <span class="detail-value">${details.driver_name}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">배송시도횟수</span>
+                            <span class="detail-value">${details.delivery_attempts}회</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">현재위치</span>
+                            <span class="detail-value highlight">${details.last_location}</span>
+                        </div>
+                    </div>
+                </div>
+                ` : ''}
+
+
+                <!-- 시공 설치 사진 -->
+                <div class="detail-section">
+                    <div class="section-header-detail">📷 시공 설치 사진</div>
+                    <div class="detail-content">
+                        <div class="photo-upload-section">
+                            <button class="photo-upload-btn" onclick="uploadPhoto()">
+                                📸 사진 올리기
+                            </button>
+                            <div class="photo-grid">
+                                ${delivery.installationPhotos ? delivery.installationPhotos.map((photo, index) => `
+                                    <div class="photo-item" onclick="viewPhoto('${photo}')">
+                                        <img src="${photo}" alt="설치 사진 ${index + 1}" />
+                                        <div class="photo-overlay">
+                                            <span>설치 사진 ${index + 1}</span>
+                                        </div>
+                                    </div>
+                                `).join('') : '<div class="no-photos">등록된 사진이 없습니다.</div>'}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 가구사 요청사항 -->
+                <div class="detail-section">
+                    <div class="section-header-detail">📋 가구사 요청사항</div>
+                    <div class="detail-content">
+                        <div class="readonly-content">
+                            ${delivery.furnitureRequests || '가구사 요청사항이 없습니다.'}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 기사님 메모 -->
+                <div class="detail-section">
+                    <div class="section-header-detail">✍️ 기사님 메모</div>
+                    <div class="detail-content">
+                        <textarea 
+                            id="driverNotes" 
+                            class="memo-textarea" 
+                            placeholder="기사님 메모를 입력하세요..."
+                            readonly
+                        >${delivery.driverNotes || ''}</textarea>
+                        <button class="edit-btn" onclick="editMemo('driverNotes')">수정</button>
+                    </div>
+                </div>
+
+                <!-- 고객 서명 -->
+                <div class="detail-section">
+                    <div class="section-header-detail">✒️ 고객 서명</div>
+                    <div class="detail-content">
+                        <div class="signature-section">
+                            <canvas id="signatureCanvas" class="signature-canvas"></canvas>
+                            <div class="signature-buttons">
+                                <button class="signature-btn clear-btn" onclick="clearSignature()">지우기</button>
+                                <button class="signature-btn edit-btn" onclick="editSignature()">수정</button>
+                                <button class="signature-btn save-btn" onclick="saveSignature()">저장</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 특이사항 -->
+                ${details.notes ? `
+                <div class="detail-section">
+                    <div class="section-header-detail">📝 특이사항</div>
+                    <div class="detail-content">
+                        <div style="color: var(--on-surface); line-height: 1.5;">
+                            ${details.notes}
+                        </div>
+                    </div>
+                </div>
+                ` : ''}
+
+            `;
+
+            document.getElementById('deliveryDetailContent').innerHTML = html;
+            
+            // 지도 로드
+            loadNaverMap(delivery.receiver_address);
+            
+            // 서명 캔버스 초기화
+            initSignatureCanvas();
+        }
+
+        // 사진 업로드 함수
+        function uploadPhoto() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.multiple = true;
+            input.onchange = function(event) {
+                const files = Array.from(event.target.files);
+                if (files.length > 4) {
+                    showNotification('최대 4장까지 업로드할 수 있습니다.', 'error');
+                    return;
+                }
+                
+                // 여기서 실제로는 서버로 업로드 처리
+                showNotification(`${files.length}장의 사진이 업로드되었습니다.`, 'success');
+                
+                // 화면 새로고침 (실제로는 업로드된 사진으로 갤러리 업데이트)
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+            };
+            input.click();
+        }
+
+        // 사진 크게 보기
+        function viewPhoto(photoUrl) {
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.9);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 9999;
+                cursor: pointer;
+            `;
+            
+            const img = document.createElement('img');
+            img.src = photoUrl;
+            img.style.cssText = `
+                max-width: 90%;
+                max-height: 90%;
+                border-radius: 8px;
+            `;
+            
+            modal.appendChild(img);
+            modal.onclick = () => document.body.removeChild(modal);
+            document.body.appendChild(modal);
+        }
+
+        // 메모 수정 함수
+        function editMemo(elementId) {
+            const textarea = document.getElementById(elementId);
+            if (textarea.readOnly) {
+                textarea.readOnly = false;
+                textarea.style.background = 'white';
+                textarea.focus();
+                showNotification('수정 모드가 활성화되었습니다.', 'success');
+            } else {
+                textarea.readOnly = true;
+                textarea.style.background = '#f9f9f9';
+                showNotification('변경사항이 저장되었습니다.', 'success');
+            }
+        }
+
+        // 서명 캔버스 관련 변수
+        let signatureCanvas;
+        let signatureCtx;
+        let isDrawing = false;
+        let lastX = 0;
+        let lastY = 0;
+
+        // 서명 캔버스 초기화
+        function initSignatureCanvas() {
+            signatureCanvas = document.getElementById('signatureCanvas');
+            if (!signatureCanvas) return;
+            
+            signatureCtx = signatureCanvas.getContext('2d');
+            
+            // 캔버스 크기 설정
+            const rect = signatureCanvas.getBoundingClientRect();
+            signatureCanvas.width = rect.width;
+            signatureCanvas.height = rect.height;
+            
+            signatureCtx.strokeStyle = '#000';
+            signatureCtx.lineWidth = 2;
+            signatureCtx.lineCap = 'round';
+            signatureCtx.lineJoin = 'round';
+            
+            // 마우스 이벤트
+            signatureCanvas.addEventListener('mousedown', startDrawing);
+            signatureCanvas.addEventListener('mousemove', draw);
+            signatureCanvas.addEventListener('mouseup', stopDrawing);
+            signatureCanvas.addEventListener('mouseout', stopDrawing);
+            
+            // 터치 이벤트 (모바일)
+            signatureCanvas.addEventListener('touchstart', handleTouch);
+            signatureCanvas.addEventListener('touchmove', handleTouch);
+            signatureCanvas.addEventListener('touchend', stopDrawing);
+        }
+
+        function startDrawing(e) {
+            isDrawing = true;
+            const rect = signatureCanvas.getBoundingClientRect();
+            lastX = e.clientX - rect.left;
+            lastY = e.clientY - rect.top;
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            
+            const rect = signatureCanvas.getBoundingClientRect();
+            const currentX = e.clientX - rect.left;
+            const currentY = e.clientY - rect.top;
+            
+            signatureCtx.beginPath();
+            signatureCtx.moveTo(lastX, lastY);
+            signatureCtx.lineTo(currentX, currentY);
+            signatureCtx.stroke();
+            
+            lastX = currentX;
+            lastY = currentY;
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+        }
+
+        function handleTouch(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent(e.type === 'touchstart' ? 'mousedown' : 
+                                            e.type === 'touchmove' ? 'mousemove' : 'mouseup', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            signatureCanvas.dispatchEvent(mouseEvent);
+        }
+
+        function clearSignature() {
+            if (!signatureCanvas || !signatureCtx) return;
+            signatureCtx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+            showNotification('서명이 지워졌습니다.', 'success');
+        }
+
+        function editSignature() {
+            showNotification('서명을 다시 그려주세요.', 'success');
+        }
+
+        async function saveSignature() {
+            if (!signatureCanvas) return;
+            
+            const signatureData = signatureCanvas.toDataURL();
+            const currentTrackingNumber = getCurrentTrackingNumber();
+            
+            if (!currentTrackingNumber) {
+                showNotification('배송 정보를 찾을 수 없습니다.', 'error');
+                return;
+            }
+            
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`/api/delivery/signature/${currentTrackingNumber}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ signatureData })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification('서명이 저장되었습니다.', 'success');
+                } else {
+                    showNotification(result.error || '서명 저장에 실패했습니다.', 'error');
+                }
+            } catch (error) {
+                console.error('서명 저장 오류:', error);
+                showNotification('서명 저장 중 오류가 발생했습니다.', 'error');
+            }
+        }
+        
+        function getCurrentTrackingNumber() {
+            // 현재 상세 페이지의 배송번호 추출
+            const detailContent = document.getElementById('deliveryDetailContent');
+            const trackingElement = detailContent?.querySelector('[data-tracking-number]');
+            return trackingElement?.getAttribute('data-tracking-number') || null;
+        }
+
+        // 탭 전환 함수
+        function showAuthTab(tabName) {
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            const tabs = document.querySelectorAll('.auth-tab');
+            
+            tabs.forEach(tab => tab.classList.remove('active'));
+            
+            if (tabName === 'login') {
+                loginForm.style.display = 'block';
+                registerForm.style.display = 'none';
+                tabs[0].classList.add('active');
+            } else {
+                loginForm.style.display = 'none';
+                registerForm.style.display = 'block';
+                tabs[1].classList.add('active');
+            }
+        }
+
+        // 회원가입 처리
+        document.getElementById('registerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const userId = document.getElementById('regUserId').value;
+            const password = document.getElementById('regPassword').value;
+            const passwordConfirm = document.getElementById('regPasswordConfirm').value;
+            const name = document.getElementById('regName').value;
+            const phone = document.getElementById('regPhone').value;
+            
+            // 비밀번호 확인
+            if (password !== passwordConfirm) {
+                showNotification('비밀번호가 일치하지 않습니다', 'error');
+                return;
+            }
+
+            // 전화번호 형식 검증 (선택사항)
+            const phonePattern = /^01[016789]-?\d{3,4}-?\d{4}$/;
+            if (!phonePattern.test(phone.replace(/\s/g, ''))) {
+                showNotification('올바른 전화번호 형식을 입력해주세요', 'error');
+                return;
+            }
+            
+            const registerBtn = document.getElementById('registerBtn');
+            const registerBtnText = document.getElementById('registerBtnText');
+            const registerSpinner = document.getElementById('registerSpinner');
+
+            // 로딩 상태
+            registerBtn.disabled = true;
+            registerBtnText.style.display = 'none';
+            registerSpinner.style.display = 'block';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        user_id: userId, 
+                        password, 
+                        name, 
+                        phone 
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showNotification('회원가입이 완료되었습니다! 로그인해주세요.', 'success');
+                    // 로그인 탭으로 전환
+                    showAuthTab('login');
+                    // 로그인 폼에 아이디 자동 입력
+                    document.getElementById('userId').value = userId;
+                } else {
+                    throw new Error(result.error || '회원가입에 실패했습니다');
+                }
+            } catch (error) {
+                showNotification(error.message, 'error');
+            } finally {
+                // 로딩 상태 해제
+                registerBtn.disabled = false;
+                registerBtnText.style.display = 'block';
+                registerSpinner.style.display = 'none';
+            }
+        });
+
+        // 프로필 화면 표시
+        async function showProfile() {
+            try {
+                // 화면 전환
+                document.getElementById('dashboard').style.display = 'none';
+                document.getElementById('deliveryDetail').style.display = 'none';
+                document.getElementById('profileScreen').style.display = 'block';
+                document.getElementById('bottomTabs').style.display = 'none';
+
+                // 프로필 정보 로드
+                await loadProfile();
+            } catch (error) {
+                console.error('프로필 화면 표시 오류:', error);
+                showNotification('프로필을 불러오는데 실패했습니다', 'error');
+                showDashboard();
+            }
+        }
+
+        // 프로필 정보 로드
+        async function loadProfile() {
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/profile`, {
+                    headers: { 
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    const user = result.user;
+                    
+                    // 폼에 데이터 채우기
+                    document.getElementById('profileUserId').value = user.user_id || '';
+                    document.getElementById('profileName').value = user.name || '';
+                    document.getElementById('profilePhone').value = user.phone || '';
+                    document.getElementById('profileEmail').value = user.email || '';
+                    document.getElementById('profileDeliveryArea').value = user.delivery_area || '';
+                    document.getElementById('profileVehicleType').value = user.vehicle_type || '';
+                    document.getElementById('profileVehicleNumber').value = user.vehicle_number || '';
+                    document.getElementById('profileCargoCapacity').value = user.cargo_capacity || '';
+                } else {
+                    throw new Error('프로필 정보를 불러올 수 없습니다');
+                }
+            } catch (error) {
+                console.error('프로필 로드 오류:', error);
+                showNotification(error.message, 'error');
+            }
+        }
+
+        // 프로필 업데이트
+        async function updateProfile() {
+            try {
+                const profileData = {
+                    name: document.getElementById('profileName').value,
+                    phone: document.getElementById('profilePhone').value,
+                    email: document.getElementById('profileEmail').value,
+                    delivery_area: document.getElementById('profileDeliveryArea').value,
+                    vehicle_type: document.getElementById('profileVehicleType').value,
+                    vehicle_number: document.getElementById('profileVehicleNumber').value,
+                    cargo_capacity: document.getElementById('profileCargoCapacity').value
+                };
+
+                if (!profileData.name.trim()) {
+                    showNotification('이름은 필수 입력 항목입니다', 'error');
+                    return;
+                }
+
+                const response = await fetch(`${API_BASE}/api/auth/profile`, {
+                    method: 'PUT',
+                    headers: { 
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(profileData)
+                });
+
+                if (response.ok) {
+                    showNotification('프로필이 성공적으로 업데이트되었습니다!', 'success');
+                } else {
+                    const result = await response.json();
+                    throw new Error(result.error || '프로필 업데이트에 실패했습니다');
+                }
+            } catch (error) {
+                console.error('프로필 업데이트 오류:', error);
+                showNotification(error.message, 'error');
+            }
+        }
+
+        // 비밀번호 변경 토글
+        function togglePasswordChange() {
+            const form = document.getElementById('passwordChangeForm');
+            if (form.style.display === 'none') {
+                form.style.display = 'block';
+            } else {
+                form.style.display = 'none';
+                // 필드 초기화
+                document.getElementById('currentPassword').value = '';
+                document.getElementById('newPassword').value = '';
+                document.getElementById('confirmNewPassword').value = '';
+            }
+        }
+
+        // 비밀번호 변경
+        async function changePassword() {
+            try {
+                const currentPassword = document.getElementById('currentPassword').value;
+                const newPassword = document.getElementById('newPassword').value;
+                const confirmNewPassword = document.getElementById('confirmNewPassword').value;
+
+                if (!currentPassword || !newPassword || !confirmNewPassword) {
+                    showNotification('모든 비밀번호 필드를 입력해주세요', 'error');
+                    return;
+                }
+
+                if (newPassword !== confirmNewPassword) {
+                    showNotification('새 비밀번호가 일치하지 않습니다', 'error');
+                    return;
+                }
+
+                if (newPassword.length < 6) {
+                    showNotification('새 비밀번호는 6자 이상이어야 합니다', 'error');
+                    return;
+                }
+
+                const response = await fetch(`${API_BASE}/api/auth/change-password`, {
+                    method: 'PUT',
+                    headers: { 
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        currentPassword: currentPassword,
+                        newPassword: newPassword
+                    })
+                });
+
+                if (response.ok) {
+                    showNotification('비밀번호가 성공적으로 변경되었습니다!', 'success');
+                    togglePasswordChange(); // 폼 숨기기
+                } else {
+                    const result = await response.json();
+                    throw new Error(result.error || '비밀번호 변경에 실패했습니다');
+                }
+            } catch (error) {
+                console.error('비밀번호 변경 오류:', error);
+                showNotification(error.message, 'error');
+            }
+        }
+
+        // 주소 복사 기능
+        async function copyAddress(address) {
+            try {
+                // 클립보드 API를 지원하는 경우
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(address);
+                    showNotification('주소가 복사되었습니다!', 'success');
+                } else {
+                    // 레거시 방법
+                    const textArea = document.createElement('textarea');
+                    textArea.value = address;
+                    textArea.style.position = 'fixed';
+                    textArea.style.left = '-999999px';
+                    textArea.style.top = '-999999px';
+                    document.body.appendChild(textArea);
+                    textArea.focus();
+                    textArea.select();
+                    
+                    try {
+                        document.execCommand('copy');
+                        showNotification('주소가 복사되었습니다!', 'success');
+                    } catch (err) {
+                        showNotification('주소 복사에 실패했습니다', 'error');
+                    } finally {
+                        document.body.removeChild(textArea);
+                    }
+                }
+            } catch (error) {
+                showNotification('주소 복사에 실패했습니다', 'error');
+            }
+        }
+
+        // 네이버 지도 로드
+        function loadNaverMap(address) {
+            // 네이버 지도 API가 로드되지 않은 경우 대체 지도 표시
+            const mapElement = document.getElementById('naverMap');
+            if (!mapElement) return;
+
+            // 지오코딩을 통해 좌표 변환 후 지도 표시
+            geocodeAddress(address).then(coords => {
+                if (coords) {
+                    // 실제 네이버 지도 API를 사용하는 대신 간단한 링크로 대체
+                    mapElement.innerHTML = `
+                        <div onclick="openNaverMapInBrowser('${address}')" style="
+                            width: 100%; 
+                            height: 100%; 
+                            background: linear-gradient(135deg, #03C75A 0%, #02B350 100%);
+                            display: flex; 
+                            align-items: center; 
+                            justify-content: center; 
+                            cursor: pointer;
+                            border-radius: 8px;
+                            color: white;
+                            font-weight: bold;
+                            font-size: 14px;
+                            text-align: center;
+                            line-height: 1.4;
+                        ">
+                            🗺️<br>
+                            지도에서 보기<br>
+                            <small style="font-size: 12px; opacity: 0.9;">클릭하여 네이버지도 열기</small>
+                        </div>
+                    `;
+                } else {
+                    mapElement.innerHTML = `
+                        <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f0f0f0; color: #666; text-align: center;">
+                            📍<br>
+                            지도를 불러올 수 없습니다
+                        </div>
+                    `;
+                }
+            });
+        }
+
+        // 주소를 좌표로 변환 (간단한 더미 함수)
+        async function geocodeAddress(address) {
+            // 실제 환경에서는 네이버 지도 지오코딩 API 사용
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    // 더미 좌표 반환
+                    resolve({ lat: 37.5665, lng: 126.9780 });
+                }, 100);
+            });
+        }
+
+        // 브라우저에서 네이버 지도 열기
+        function openNaverMapInBrowser(address) {
+            const encodedAddress = encodeURIComponent(address);
+            const naverMapUrl = `https://map.naver.com/v5/search/${encodedAddress}`;
+            window.open(naverMapUrl, '_blank');
+        }
+
+        // 네비게이션 앱 연결
+        function openNavigation(address) {
+            const encodedAddress = encodeURIComponent(address);
+            
+            // 모바일 환경 체크
+            const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            
+            if (isMobile) {
+                // 안드로이드
+                if (/Android/i.test(navigator.userAgent)) {
+                    // 카카오맵 또는 네이버 지도 앱으로 연결
+                    const kakaoIntent = `intent://route?ep=${encodedAddress}&by=CAR#Intent;scheme=kakaomap;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;package=net.daum.android.map;end`;
+                    const naverIntent = `nmap://route/car?dlat=&dlng=&dname=${encodedAddress}&appname=com.example.myapp`;
+                    
+                    // 먼저 카카오맵 시도
+                    try {
+                        window.location.href = kakaoIntent;
+                    } catch (e) {
+                        // 카카오맵이 없으면 네이버 지도
+                        window.location.href = naverIntent;
+                    }
+                }
+                // iOS
+                else if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+                    // 카카오맵 URL 스킴
+                    const kakaoUrl = `kakaomap://route?ep=${encodedAddress}&by=CAR`;
+                    const naverUrl = `nmap://route/car?dlat=&dlng=&dname=${encodedAddress}`;
+                    
+                    try {
+                        window.location.href = kakaoUrl;
+                    } catch (e) {
+                        window.location.href = naverUrl;
+                    }
+                }
+            } else {
+                // PC에서는 웹 지도 서비스로 연결
+                const naverMapUrl = `https://map.naver.com/v5/directions/-/-,${encodedAddress}/-/car`;
+                window.open(naverMapUrl, '_blank');
+            }
+            
+            showNotification('네비게이션 앱을 열고 있습니다...', 'success');
+        }
+
+        // 로그아웃
+        function logout() {
+            authToken = '';
+            localStorage.removeItem('token');
+            showLogin();
+            
+            // 폼 초기화
+            document.getElementById('userId').value = '';
+            document.getElementById('password').value = '';
+            document.getElementById('regUserId').value = '';
+            document.getElementById('regPassword').value = '';
+            document.getElementById('regPasswordConfirm').value = '';
+            document.getElementById('regName').value = '';
+            document.getElementById('regPhone').value = '';
+            
+            showNotification('로그아웃되었습니다');
+        }
+
+        // PWA 설치 지원
+        let deferredPrompt;
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            // 설치 버튼 표시 로직 추가 가능
+        });
+
+        // 자동 새로고침 (1분마다)
+        if (authToken) {
+            setInterval(() => {
+                if (document.getElementById('dashboard').style.display !== 'none') {
+                    loadDeliveries();
+                }
+            }, 60000);
+        }
+    </script>
+</body>
+</html>

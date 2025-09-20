@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>미래코리아 배송 관리 시스템</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        .container {
+            max-width: 414px;
+            margin: 0 auto;
+            background-color: #fff;
+            min-height: 100vh;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            background-color: #2196F3;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .hamburger {
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .date-nav {
+            background-color: #fff;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .date-nav button {
+            background: none;
+            border: none;
+            font-size: 18px;
+            color: #2196F3;
+            cursor: pointer;
+        }
+
+        .current-date {
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .stats {
+            background-color: #f8f9fa;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-around;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: 600;
+            color: #2196F3;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .delivery-list {
+            padding: 20px;
+        }
+
+        .delivery-card {
+            background-color: white;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border-left: 4px solid #4CAF50;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .delivery-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .delivery-card.pending {
+            border-left-color: #FF9800;
+        }
+
+        .delivery-card.in-transit {
+            border-left-color: #2196F3;
+        }
+
+        .delivery-card.delivered {
+            border-left-color: #4CAF50;
+        }
+
+        .delivery-card.cancelled {
+            border-left-color: #f44336;
+        }
+
+        .delivery-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .tracking-number {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            color: white;
+        }
+
+        .status-badge.pending { background-color: #FF9800; }
+        .status-badge.in-transit { background-color: #2196F3; }
+        .status-badge.delivered { background-color: #4CAF50; }
+        .status-badge.cancelled { background-color: #f44336; }
+
+        .customer-name {
+            font-size: 15px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .customer-address {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 8px;
+            line-height: 1.3;
+        }
+
+        .delivery-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #888;
+        }
+
+        .login-container {
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .login-title {
+            font-size: 28px;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 40px;
+            color: #2196F3;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #2196F3;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 14px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .btn-primary:hover {
+            background-color: #1976D2;
+        }
+
+        .btn-secondary {
+            width: 100%;
+            padding: 14px;
+            background-color: transparent;
+            color: #2196F3;
+            border: 1px solid #2196F3;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-top: 12px;
+            transition: all 0.3s;
+        }
+
+        .btn-secondary:hover {
+            background-color: #2196F3;
+            color: white;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .detail-container {
+            padding: 20px;
+        }
+
+        .back-button {
+            background: none;
+            border: none;
+            color: #2196F3;
+            font-size: 16px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+
+        .detail-section {
+            background-color: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #333;
+            border-bottom: 2px solid #2196F3;
+            padding-bottom: 8px;
+        }
+
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .detail-label {
+            font-weight: 500;
+            color: #666;
+            flex: 1;
+        }
+
+        .detail-value {
+            flex: 2;
+            text-align: right;
+            color: #333;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 로그인 화면 -->
+        <div id="loginScreen" class="login-container">
+            <h1 class="login-title">🚚 미래코리아<br>배송 관리</h1>
+            
+            <form id="loginForm">
+                <div class="form-group">
+                    <label class="form-label">사용자 ID</label>
+                    <input type="text" class="form-input" id="userId" placeholder="사용자 ID를 입력하세요" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">비밀번호</label>
+                    <input type="password" class="form-input" id="password" placeholder="비밀번호를 입력하세요" required>
+                </div>
+                
+                <button type="submit" class="btn-primary">로그인</button>
+                <button type="button" class="btn-secondary" onclick="showRegister()">회원가입</button>
+            </form>
+        </div>
+
+        <!-- 회원가입 화면 -->
+        <div id="registerScreen" class="login-container hidden">
+            <h1 class="login-title">회원가입</h1>
+            
+            <form id="registerForm">
+                <div class="form-group">
+                    <label class="form-label">사용자 ID</label>
+                    <input type="text" class="form-input" id="regUserId" placeholder="사용자 ID를 입력하세요" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">비밀번호</label>
+                    <input type="password" class="form-input" id="regPassword" placeholder="비밀번호를 입력하세요" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">이름</label>
+                    <input type="text" class="form-input" id="regName" placeholder="이름을 입력하세요">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">전화번호</label>
+                    <input type="tel" class="form-input" id="regPhone" placeholder="전화번호를 입력하세요">
+                </div>
+                
+                <button type="submit" class="btn-primary">회원가입</button>
+                <button type="button" class="btn-secondary" onclick="showLogin()">로그인으로 돌아가기</button>
+            </form>
+        </div>
+
+        <!-- 배송 목록 화면 -->
+        <div id="deliveryListScreen" class="hidden">
+            <div class="header">
+                <span class="hamburger">☰</span>
+                <h1>미래코리아 배송관리</h1>
+                <span onclick="logout()" style="cursor:pointer;">로그아웃</span>
+            </div>
+
+            <div class="date-nav">
+                <button onclick="changeDate(-1)">‹</button>
+                <span class="current-date" id="currentDate">2024년 1월 15일</span>
+                <button onclick="changeDate(1)">›</button>
+            </div>
+
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-number" id="totalCount">5</div>
+                    <div class="stat-label">전체건수</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="completedCount">2</div>
+                    <div class="stat-label">완료건수</div>
+                </div>
+            </div>
+
+            <div class="delivery-list" id="deliveryList">
+                <!-- 배송 카드들이 여기에 동적으로 생성됩니다 -->
+            </div>
+        </div>
+
+        <!-- 배송 상세 화면 -->
+        <div id="deliveryDetailScreen" class="hidden">
+            <div class="header">
+                <button class="back-button" onclick="showDeliveryList()">← 뒤로</button>
+                <h1>배송 상세정보</h1>
+                <span></span>
+            </div>
+
+            <div class="detail-container" id="detailContent">
+                <!-- 상세 정보가 여기에 동적으로 생성됩니다 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080';
+        let authToken = localStorage.getItem('token') || '';
+        let currentUser = null;
+        let currentDate = new Date();
+        let deliveries = [];
+
+        // 더미 배송 데이터
+        const dummyDeliveries = [
+            {
+                id: 1,
+                tracking_number: 'MK202401001',
+                customerName: '김철수',
+                customerPhone: '010-1234-5678',
+                customerAddress: '서울시 강남구 테헤란로 123, 101동 502호',
+                assignedDriver: '이기사',
+                assignmentTime: '09:30',
+                status: 'pending',
+                requestType: '새가구 배송',
+                constructionType: '조립 설치',
+                shipmentType: '직배송',
+                visitDate: '2024-01-15',
+                visitTime: '14:00-16:00',
+                furnitureCompany: '한샘가구',
+                emergencyContact: '010-9999-8888',
+                warehouseInfo: '김포물류센터',
+                orderGuidance: '완료',
+                preNotification: '필요',
+                buildingType: '아파트',
+                floorCount: '5층',
+                elevatorAvailable: '있음',
+                stairMovement: '불필요',
+                ladderTruck: '불필요',
+                disposal: '없음',
+                roomMovement: '거실→침실',
+                wallConstruction: '벽걸이 TV',
+                tollgateCost: '5,000원',
+                mainMemo: '조심스럽게 운반 요청',
+                happyCallMemo: '고객 매우 만족',
+                productInfo: '침실세트 (침대, 옷장, 화장대)',
+                furnitureRequest: '스크래치 주의',
+                driverMemo: '주차 어려움'
+            },
+            {
+                id: 2,
+                tracking_number: 'MK202401002',
+                customerName: '박영희',
+                customerPhone: '010-2345-6789',
+                customerAddress: '부산시 해운대구 마린시티 456, 202호',
+                assignedDriver: '김기사',
+                assignmentTime: '10:15',
+                status: 'in_transit',
+                requestType: '새가구 배송',
+                constructionType: '조립 설치',
+                productInfo: '소파세트 (3인소파, 2인소파, 테이블)'
+            },
+            {
+                id: 3,
+                tracking_number: 'MK202401003',
+                customerName: '최민수',
+                customerPhone: '010-3456-7890',
+                customerAddress: '대구시 수성구 동대구로 321, 빌라 3층',
+                assignedDriver: '박기사',
+                assignmentTime: '11:30',
+                status: 'delivered',
+                requestType: '새가구 배송',
+                constructionType: '조립 설치',
+                productInfo: '침실세트 (침대, 매트리스)'
+            },
+            {
+                id: 4,
+                tracking_number: 'MK202401004',
+                customerName: '정수진',
+                customerPhone: '010-4567-8901',
+                customerAddress: '인천시 남동구 구월로 789, 아파트 15동 1205호',
+                assignedDriver: '이기사',
+                assignmentTime: '13:45',
+                status: 'pending',
+                requestType: '새가구 배송',
+                constructionType: '조립 설치',
+                productInfo: '주방가구 (싱크대, 수납장)'
+            },
+            {
+                id: 5,
+                tracking_number: 'MK202401005',
+                customerName: '홍길동',
+                customerPhone: '010-5678-9012',
+                customerAddress: '광주시 서구 상무대로 654, 오피스텔 1201호',
+                assignedDriver: '김기사',
+                assignmentTime: '14:30',
+                status: 'cancelled',
+                requestType: '새가구 배송',
+                constructionType: '조립 설치',
+                productInfo: '사무용 책상 및 의자'
+            }
+        ];
+
+        // 초기화
+        window.addEventListener('DOMContentLoaded', function() {
+            if (authToken) {
+                showDeliveryList();
+            } else {
+                showLogin();
+            }
+        });
+
+        // 화면 전환 함수들
+        function showLogin() {
+            document.getElementById('loginScreen').classList.remove('hidden');
+            document.getElementById('registerScreen').classList.add('hidden');
+            document.getElementById('deliveryListScreen').classList.add('hidden');
+            document.getElementById('deliveryDetailScreen').classList.add('hidden');
+        }
+
+        function showRegister() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('registerScreen').classList.remove('hidden');
+            document.getElementById('deliveryListScreen').classList.add('hidden');
+            document.getElementById('deliveryDetailScreen').classList.add('hidden');
+        }
+
+        function showDeliveryList() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('registerScreen').classList.add('hidden');
+            document.getElementById('deliveryListScreen').classList.remove('hidden');
+            document.getElementById('deliveryDetailScreen').classList.add('hidden');
+            
+            loadDeliveries();
+            updateDateDisplay();
+            updateStats();
+        }
+
+        function showDeliveryDetail(delivery) {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('registerScreen').classList.add('hidden');
+            document.getElementById('deliveryListScreen').classList.add('hidden');
+            document.getElementById('deliveryDetailScreen').classList.remove('hidden');
+            
+            loadDeliveryDetail(delivery);
+        }
+
+        // 로그인 처리
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const userId = document.getElementById('userId').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: userId, password })
+                });
+
+                const result = await response.json();
+                
+                if (response.ok && result.token) {
+                    authToken = result.token;
+                    currentUser = result.user;
+                    localStorage.setItem('token', authToken);
+                    localStorage.setItem('user', JSON.stringify(currentUser));
+                    showDeliveryList();
+                } else {
+                    alert(result.error || '로그인에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('로그인 오류:', error);
+                alert('서버 연결에 실패했습니다.');
+            }
+        });
+
+        // 회원가입 처리
+        document.getElementById('registerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const user_id = document.getElementById('regUserId').value;
+            const password = document.getElementById('regPassword').value;
+            const name = document.getElementById('regName').value;
+            const phone = document.getElementById('regPhone').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id, password, name, phone })
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert('회원가입이 완료되었습니다. 로그인해주세요.');
+                    showLogin();
+                } else {
+                    alert(result.error || '회원가입에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('회원가입 오류:', error);
+                alert('서버 연결에 실패했습니다.');
+            }
+        });
+
+        // 배송 목록 로드
+        async function loadDeliveries() {
+            try {
+                const response = await fetch(`${API_BASE}/api/delivery/list`, {
+                    headers: { 
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    deliveries = result.deliveries || dummyDeliveries;
+                } else {
+                    deliveries = dummyDeliveries;
+                }
+            } catch (error) {
+                console.error('배송 목록 로드 오류:', error);
+                deliveries = dummyDeliveries;
+            }
+
+            renderDeliveryList();
+        }
+
+        // 배송 목록 렌더링
+        function renderDeliveryList() {
+            const listContainer = document.getElementById('deliveryList');
+            listContainer.innerHTML = '';
+
+            deliveries.forEach(delivery => {
+                const card = document.createElement('div');
+                card.className = `delivery-card ${delivery.status}`;
+                card.onclick = () => showDeliveryDetail(delivery);
+                
+                card.innerHTML = `
+                    <div class="delivery-header">
+                        <span class="tracking-number">${delivery.tracking_number}</span>
+                        <span class="status-badge ${delivery.status}">${getStatusText(delivery.status)}</span>
+                    </div>
+                    <div class="customer-name">${delivery.customerName || delivery.receiver_name}</div>
+                    <div class="customer-address">${delivery.customerAddress || delivery.receiver_address}</div>
+                    <div class="delivery-info">
+                        <span>기사: ${delivery.assignedDriver || '미배정'}</span>
+                        <span>시간: ${delivery.assignmentTime || '미정'}</span>
+                    </div>
+                `;
+                
+                listContainer.appendChild(card);
+            });
+        }
+
+        // 상태 텍스트 변환
+        function getStatusText(status) {
+            const statusMap = {
+                'pending': '대기중',
+                'in_transit': '배송중',
+                'delivered': '완료',
+                'cancelled': '취소'
+            };
+            return statusMap[status] || status;
+        }
+
+        // 배송 상세 정보 로드
+        function loadDeliveryDetail(delivery) {
+            const detailContent = document.getElementById('detailContent');
+            
+            detailContent.innerHTML = `
+                <div class="detail-section">
+                    <h3 class="section-title">기본 정보</h3>
+                    <div class="detail-item">
+                        <span class="detail-label">운송장번호</span>
+                        <span class="detail-value">${delivery.tracking_number}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">고객명</span>
+                        <span class="detail-value">${delivery.customerName || delivery.receiver_name}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">연락처</span>
+                        <span class="detail-value">${delivery.customerPhone || delivery.receiver_phone}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">배송상태</span>
+                        <span class="detail-value">${getStatusText(delivery.status)}</span>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <h3 class="section-title">배송 주소</h3>
+                    <div class="detail-item">
+                        <span class="detail-label">주소</span>
+                        <span class="detail-value">${delivery.customerAddress || delivery.receiver_address}</span>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <h3 class="section-title">배송 정보</h3>
+                    <div class="detail-item">
+                        <span class="detail-label">요청사항</span>
+                        <span class="detail-value">${delivery.requestType || '-'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">시공유형</span>
+                        <span class="detail-value">${delivery.constructionType || '-'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">상품정보</span>
+                        <span class="detail-value">${delivery.productInfo || '-'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">담당기사</span>
+                        <span class="detail-value">${delivery.assignedDriver || '미배정'}</span>
+                    </div>
+                </div>
+
+                ${delivery.mainMemo ? `
+                <div class="detail-section">
+                    <h3 class="section-title">메모</h3>
+                    <div class="detail-item">
+                        <span class="detail-label">주요메모</span>
+                        <span class="detail-value">${delivery.mainMemo}</span>
+                    </div>
+                    ${delivery.driverMemo ? `
+                    <div class="detail-item">
+                        <span class="detail-label">기사메모</span>
+                        <span class="detail-value">${delivery.driverMemo}</span>
+                    </div>
+                    ` : ''}
+                </div>
+                ` : ''}
+
+                <div class="detail-section">
+                    <button class="btn-primary" onclick="updateStatus('${delivery.id}')">상태 변경</button>
+                </div>
+            `;
+        }
+
+        // 날짜 변경
+        function changeDate(direction) {
+            currentDate.setDate(currentDate.getDate() + direction);
+            updateDateDisplay();
+        }
+
+        // 날짜 표시 업데이트
+        function updateDateDisplay() {
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('currentDate').textContent = 
+                currentDate.toLocaleDateString('ko-KR', options);
+        }
+
+        // 통계 업데이트
+        function updateStats() {
+            const total = deliveries.length;
+            const completed = deliveries.filter(d => d.status === 'delivered').length;
+            
+            document.getElementById('totalCount').textContent = total;
+            document.getElementById('completedCount').textContent = completed;
+        }
+
+        // 상태 변경
+        async function updateStatus(deliveryId) {
+            const newStatus = prompt('새 상태를 선택하세요:\\n1: 대기중(pending)\\n2: 배송중(in_transit)\\n3: 완료(delivered)\\n4: 취소(cancelled)');
+            
+            const statusMap = {
+                '1': 'pending',
+                '2': 'in_transit', 
+                '3': 'delivered',
+                '4': 'cancelled'
+            };
+            
+            const status = statusMap[newStatus];
+            if (!status) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/api/delivery/${deliveryId}/status`, {
+                    method: 'PUT',
+                    headers: { 
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ status })
+                });
+
+                if (response.ok) {
+                    alert('상태가 업데이트되었습니다.');
+                    loadDeliveries();
+                    showDeliveryList();
+                } else {
+                    alert('상태 업데이트에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('상태 업데이트 오류:', error);
+                alert('서버 연결에 실패했습니다.');
+            }
+        }
+
+        // 로그아웃
+        function logout() {
+            authToken = '';
+            currentUser = null;
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            showLogin();
+        }
+    </script>
+</body>
+</html>

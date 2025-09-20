@@ -1,0 +1,59 @@
+{
+  "expo": {
+    "name": "이지픽스 가구배송",
+    "slug": "easypicks-delivery",
+    "version": "1.2.1",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "description": "이지픽스 가구배송 관리 모바일 앱 - Firebase Storage 통합, 배송 사진/오디오 관리",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.easypicks.delivery"
+    },
+    "android": {
+      "package": "com.easypicks.delivery",
+      "versionCode": 26,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "RECORD_AUDIO",
+        "INTERNET",
+        "ACCESS_NETWORK_STATE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "apiUrl": "https://efficient-abundance-production-d603.up.railway.app/api",
+      "environment": "production",
+      "eas": {
+        "projectId": "9bef9076-ac2a-40c3-83c3-c73a0f50be11"
+      }
+    },
+    "updates": {
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0,
+      "url": "https://u.expo.dev/9bef9076-ac2a-40c3-83c3-c73a0f50be11"
+    },
+    "runtimeVersion": "1.2.1",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "owner": "termpro2000"
+  }
+}

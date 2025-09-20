@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>미래코리아 배송 관리 시스템 테스트</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .section h2 {
+            margin-top: 0;
+            color: #444;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .response {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚚 미래코리아 배송 관리 시스템 테스트</h1>
+        
+        <!-- 회원가입 섹션 -->
+        <div class="section">
+            <h2>👤 회원가입</h2>
+            <form id="registerForm">
+                <div class="form-group">
+                    <label for="regUserId">사용자 ID:</label>
+                    <input type="text" id="regUserId" name="user_id" required>
+                </div>
+                <div class="form-group">
+                    <label for="regPassword">비밀번호:</label>
+                    <input type="password" id="regPassword" name="password" required>
+                </div>
+                <div class="form-group">
+                    <label for="regName">이름:</label>
+                    <input type="text" id="regName" name="name">
+                </div>
+                <div class="form-group">
+                    <label for="regPhone">전화번호:</label>
+                    <input type="tel" id="regPhone" name="phone">
+                </div>
+                <button type="submit">회원가입</button>
+            </form>
+            <div id="registerResponse" class="response" style="display:none;"></div>
+        </div>
+
+        <!-- 로그인 섹션 -->
+        <div class="section">
+            <h2>🔑 로그인</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="loginUserId">사용자 ID:</label>
+                    <input type="text" id="loginUserId" name="user_id" required>
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">비밀번호:</label>
+                    <input type="password" id="loginPassword" name="password" required>
+                </div>
+                <button type="submit">로그인</button>
+            </form>
+            <div id="loginResponse" class="response" style="display:none;"></div>
+        </div>
+
+        <!-- 배송 조회 섹션 -->
+        <div class="section">
+            <h2>📦 배송 목록 조회</h2>
+            <div class="form-group">
+                <label for="statusFilter">상태 필터:</label>
+                <select id="statusFilter">
+                    <option value="">전체</option>
+                    <option value="pending">대기중</option>
+                    <option value="in_transit">배송중</option>
+                    <option value="delivered">배송완료</option>
+                    <option value="cancelled">취소</option>
+                </select>
+            </div>
+            <button onclick="getDeliveries()">배송 목록 조회</button>
+            <button onclick="connectWebSocket()">실시간 업데이트 연결</button>
+            <div id="deliveryResponse" class="response" style="display:none;"></div>
+        </div>
+
+        <!-- 신규 배송 추가 섹션 -->
+        <div class="section">
+            <h2>➕ 신규 배송 추가</h2>
+            <form id="addDeliveryForm">
+                <div class="form-group">
+                    <label for="customerName">고객 이름:</label>
+                    <input type="text" id="customerName" name="customer_name" required>
+                </div>
+                <div class="form-group">
+                    <label for="customerPhone">고객 전화번호:</label>
+                    <input type="tel" id="customerPhone" name="customer_phone" required>
+                </div>
+                <div class="form-group">
+                    <label for="customerAddress">고객 주소:</label>
+                    <input type="text" id="customerAddress" name="customer_address" required>
+                </div>
+                <div class="form-group">
+                    <label for="productName">상품명:</label>
+                    <input type="text" id="productName" name="product_name" required>
+                </div>
+                <div class="form-group">
+                    <label for="assignedDriver">담당 기사:</label>
+                    <input type="text" id="assignedDriver" name="assigned_driver">
+                </div>
+                <button type="submit">신규 배송 추가</button>
+            </form>
+            <div id="addDeliveryResponse" class="response" style="display:none;"></div>
+        </div>
+
+        <!-- 배송 상태 업데이트 섹션 -->
+        <div class="section">
+            <h2>🔄 배송 상태 업데이트</h2>
+            <div class="form-group">
+                <label for="updateDeliveryId">배송 ID:</label>
+                <input type="number" id="updateDeliveryId" placeholder="1, 2, 3, 4, 5" required>
+            </div>
+            <div class="form-group">
+                <label for="updateStatus">새 상태:</label>
+                <select id="updateStatus" required>
+                    <option value="">상태 선택</option>
+                    <option value="pending">대기중</option>
+                    <option value="in_transit">배송중</option>
+                    <option value="delivered">배송완료</option>
+                    <option value="cancelled">취소</option>
+                </select>
+            </div>
+            <button onclick="updateDeliveryStatus()">상태 업데이트</button>
+            <div id="updateResponse" class="response" style="display:none;"></div>
+        </div>
+
+        <!-- 실시간 업데이트 로그 -->
+        <div class="section">
+            <h2>🔴 실시간 업데이트 로그</h2>
+            <div id="realtimeLog" class="response info" style="display:block; max-height: 150px;">
+                실시간 업데이트 연결을 클릭하세요...
+            </div>
+        </div>
+
+        <!-- 서버 상태 확인 -->
+        <div class="section">
+            <h2>🖥️ 서버 상태</h2>
+            <button onclick="checkServerStatus()">서버 상태 확인</button>
+            <div id="statusResponse" class="response" style="display:none;"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        const API_BASE = 'http://localhost:8080';
+        let authToken = localStorage.getItem('token') || '';
+        let socket = null;
+
+        // 응답 표시 함수
+        function showResponse(elementId, data, isError = false) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = `response ${isError ? 'error' : 'success'}`;
+            element.textContent = JSON.stringify(data, null, 2);
+        }
+
+        // 실시간 로그 추가 함수
+        function addRealtimeLog(message) {
+            const logElement = document.getElementById('realtimeLog');
+            const timestamp = new Date().toLocaleTimeString('ko-KR');
+            logElement.textContent += `\n[${timestamp}] ${message}`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        // WebSocket 연결
+        function connectWebSocket() {
+            if (socket && socket.connected) {
+                addRealtimeLog('이미 연결되어 있습니다.');
+                return;
+            }
+
+            socket = io(API_BASE);
+            
+            socket.on('connect', () => {
+                addRealtimeLog('실시간 업데이트 서버에 연결되었습니다.');
+                socket.emit('join_delivery_updates');
+            });
+
+            socket.on('disconnect', () => {
+                addRealtimeLog('실시간 업데이트 연결이 끊어졌습니다.');
+            });
+
+            socket.on('delivery_status_updated', (data) => {
+                addRealtimeLog(`배송 #${data.id} 상태 변경: ${data.status}`);
+                // 현재 표시된 배송 목록 자동 새로고침
+                if (document.getElementById('deliveryResponse').style.display !== 'none') {
+                    getDeliveries();
+                }
+            });
+
+            socket.on('delivery_added', (data) => {
+                addRealtimeLog(`새 배송 추가: ${data.tracking_number} (고객: ${data.customer_name})`);
+                // 현재 표시된 배송 목록 자동 새로고침
+                if (document.getElementById('deliveryResponse').style.display !== 'none') {
+                    getDeliveries();
+                }
+            });
+
+            socket.on('connect_error', (error) => {
+                addRealtimeLog('연결 오류: ' + error.message);
+            });
+        }
+
+        // 배송 상태 업데이트
+        async function updateDeliveryStatus() {
+            const deliveryId = document.getElementById('updateDeliveryId').value;
+            const status = document.getElementById('updateStatus').value;
+
+            if (!deliveryId || !status) {
+                showResponse('updateResponse', { error: '배송 ID와 상태를 모두 입력해주세요.' }, true);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/delivery/${deliveryId}/status`, {
+                    method: 'PUT',
+                    headers: { 
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ status })
+                });
+                const result = await response.json();
+                showResponse('updateResponse', result, !response.ok);
+            } catch (error) {
+                showResponse('updateResponse', { error: error.message }, true);
+            }
+        }
+
+        // 회원가입
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData);
+
+            console.log('회원가입 요청 데이터:', data);
+            console.log('API URL:', `${API_BASE}/api/auth/register`);
+
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                console.log('응답 상태:', response.status);
+                console.log('응답 헤더:', response.headers.get('content-type'));
+                
+                const responseText = await response.text();
+                console.log('응답 텍스트:', responseText);
+                
+                let result;
+                try {
+                    result = JSON.parse(responseText);
+                } catch (parseError) {
+                    result = { error: `JSON 파싱 오류: ${parseError.message}`, rawResponse: responseText };
+                }
+                
+                showResponse('registerResponse', result, !response.ok);
+            } catch (error) {
+                console.error('네트워크 오류:', error);
+                showResponse('registerResponse', { error: `네트워크 오류: ${error.message}` }, true);
+            }
+        });
+
+        // 로그인
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData);
+
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                
+                if (response.ok && result.token) {
+                    authToken = result.token;
+                    localStorage.setItem('token', authToken);
+                }
+                
+                showResponse('loginResponse', result, !response.ok);
+            } catch (error) {
+                showResponse('loginResponse', { error: error.message }, true);
+            }
+        });
+
+        // 신규 배송 추가
+        document.getElementById('addDeliveryForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData);
+
+            try {
+                const response = await fetch(`${API_BASE}/api/delivery/add`, {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                
+                if (response.ok) {
+                    // 성공 시 폼 초기화
+                    e.target.reset();
+                    
+                    // 배송 목록 자동 새로고침
+                    if (document.getElementById('deliveryResponse').style.display !== 'none') {
+                        getDeliveries();
+                    }
+                }
+                
+                showResponse('addDeliveryResponse', result, !response.ok);
+            } catch (error) {
+                showResponse('addDeliveryResponse', { error: error.message }, true);
+            }
+        });
+
+        // 배송 목록 조회
+        async function getDeliveries() {
+            const status = document.getElementById('statusFilter').value;
+            const url = `${API_BASE}/api/delivery/list${status ? `?status=${status}` : ''}`;
+
+            try {
+                const response = await fetch(url, {
+                    headers: { 
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const result = await response.json();
+                showResponse('deliveryResponse', result, !response.ok);
+            } catch (error) {
+                showResponse('deliveryResponse', { error: error.message }, true);
+            }
+        }
+
+        // 서버 상태 확인
+        async function checkServerStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/`);
+                const result = await response.text();
+                document.getElementById('statusResponse').style.display = 'block';
+                document.getElementById('statusResponse').className = 'response info';
+                document.getElementById('statusResponse').textContent = `서버 응답: ${result}`;
+            } catch (error) {
+                showResponse('statusResponse', { error: '서버에 연결할 수 없습니다: ' + error.message }, true);
+            }
+        }
+
+        // 페이지 로드 시 토큰 확인
+        if (authToken) {
+            document.getElementById('statusResponse').style.display = 'block';
+            document.getElementById('statusResponse').className = 'response info';
+            document.getElementById('statusResponse').textContent = '저장된 인증 토큰이 있습니다.';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expo 앱 테스트</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .title {
+            color: #2196F3;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .qr-container {
+            margin: 30px 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+        .url-box {
+            background-color: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .step {
+            text-align: left;
+            margin: 15px 0;
+            padding: 10px;
+            background-color: #f0f4f8;
+            border-radius: 6px;
+        }
+        .step-number {
+            background-color: #2196F3;
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="title">📱 미래코리아 배송 관리 앱</h1>
+        <p>Expo Go를 사용하여 실제 휴대폰에서 앱을 테스트하세요!</p>
+        
+        <div class="qr-container">
+            <h3>QR 코드</h3>
+            <div id="qr-code" style="margin: 20px 0;">
+                <canvas id="qrCanvas" width="256" height="256" style="border: 1px solid #ddd;"></canvas>
+            </div>
+            <p style="color: #666; font-size: 14px;">
+                QR 코드를 Expo Go 앱으로 스캔하세요
+            </p>
+        </div>
+        
+        <div class="url-box">
+            <strong>개발 서버 URL:</strong><br>
+            <span id="expo-url">exp://127.0.0.1:8082</span>
+        </div>
+        
+        <h3>📋 테스트 방법:</h3>
+        
+        <div class="step">
+            <span class="step-number">1</span>
+            <strong>Expo Go 앱 설치</strong><br>
+            • iOS: App Store에서 "Expo Go" 검색<br>
+            • Android: Google Play에서 "Expo Go" 검색
+        </div>
+        
+        <div class="step">
+            <span class="step-number">2</span>
+            <strong>QR 코드 스캔</strong><br>
+            • Expo Go 앱 열기<br>
+            • "Scan QR Code" 탭 선택<br>
+            • 위의 QR 코드를 스캔
+        </div>
+        
+        <div class="step">
+            <span class="step-number">3</span>
+            <strong>앱 테스트</strong><br>
+            • 회원가입 (예: ID: test, PW: 123456)<br>
+            • 로그인 후 배송 목록 확인<br>
+            • 날짜 변경, 상세 정보 확인 등
+        </div>
+        
+        <div style="margin-top: 30px; padding: 15px; background-color: #fff3e0; border-radius: 8px;">
+            <strong>💡 참고사항:</strong><br>
+            • 휴대폰과 컴퓨터가 같은 WiFi 네트워크에 연결되어 있어야 합니다<br>
+            • 백엔드 서버도 동시에 실행 중입니다 (localhost:8080)<br>
+            • 실제 앱과 동일한 기능을 테스트할 수 있습니다
+        </div>
+        
+        <div style="margin-top: 20px;">
+            <button onclick="refreshQR()" style="background-color: #2196F3; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">
+                QR 코드 새로고침
+            </button>
+        </div>
+    </div>
+
+    <!-- QR Code Generator -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <script>
+        const expoUrl = 'exp://127.0.0.1:8082';
+        
+        function generateQR() {
+            const canvas = document.getElementById('qrCanvas');
+            QRCode.toCanvas(canvas, expoUrl, {
+                width: 256,
+                height: 256,
+                colorDark: '#2196F3',
+                colorLight: '#ffffff',
+                margin: 2
+            }, function (error) {
+                if (error) console.error(error);
+                console.log('QR code generated successfully!');
+            });
+        }
+        
+        function refreshQR() {
+            generateQR();
+        }
+        
+        // 페이지 로드 시 QR 코드 생성
+        generateQR();
+        
+        // URL 표시
+        document.getElementById('expo-url').textContent = expoUrl;
+    </script>
+</body>
+</html>
