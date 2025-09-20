@@ -573,18 +573,46 @@ const DeliveryListScreen = ({ navigation }) => {
         {/* 날짜/시간 정보 표시 */}
         <View style={styles.dateTimeContainer}>
           <Text style={styles.visitDateTime}>
-            방문: {item.visitDate || item.visit_date || '-'} {(() => {
+            방문: {(() => {
+              // visit_date는 YYYY-MM-DD 형식만 표시
+              const date = item.visitDate || item.visit_date || '';
+              const displayDate = date ? date.split('T')[0] : '-'; // 시간 부분 제거
+              
+              // visit_time은 HH:MM 형식만 표시
               const time = item.visitTime || item.visit_time || '';
-              if (!time) return '';
-              const timeParts = time.split(':');
-              if (timeParts.length >= 2) {
-                return `${timeParts[0]}:${timeParts[1]}`; // 시:분만 표시
+              let displayTime = '';
+              if (time) {
+                const timeParts = time.split(':');
+                if (timeParts.length >= 2) {
+                  displayTime = `${timeParts[0]}:${timeParts[1]}`;
+                } else {
+                  displayTime = time;
+                }
               }
-              return time;
+              
+              return `${displayDate} ${displayTime}`.trim();
             })()}
           </Text>
           <Text style={styles.actionDateTime}>
-            처리: {item.action_date || '-'} {(item.action_time || '').substring(0, 5)}
+            처리: {(() => {
+              // action_date는 YYYY-MM-DD 형식만 표시
+              const date = item.action_date || '';
+              const displayDate = date ? date.split('T')[0] : '-'; // 시간 부분 제거
+              
+              // action_time은 HH:MM 형식만 표시
+              const time = item.action_time || '';
+              let displayTime = '';
+              if (time) {
+                const timeParts = time.split(':');
+                if (timeParts.length >= 2) {
+                  displayTime = `${timeParts[0]}:${timeParts[1]}`;
+                } else {
+                  displayTime = time.substring(0, 5);
+                }
+              }
+              
+              return `${displayDate} ${displayTime}`.trim();
+            })()}
           </Text>
         </View>
         
