@@ -14,6 +14,8 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DraggableFlatList from 'react-native-draggable-flatlist';
+import * as Updates from 'expo-updates';
+import Constants from 'expo-constants';
 import api from '../config/api';
 
 const DeliveryListScreen = ({ navigation }) => {
@@ -556,7 +558,10 @@ const DeliveryListScreen = ({ navigation }) => {
             <Text style={styles.userName}>{userInfo.name || userInfo.user_id}</Text>
           )}
         </View>
-        <Text style={styles.companyName}>이지픽스</Text>
+        <View style={styles.companyNameContainer}>
+          <Text style={styles.companyName}>이지픽스</Text>
+          <Text style={styles.versionText}>v{Updates.runtimeVersion || Constants.manifest?.version || '1.2.2'}</Text>
+        </View>
         <View style={styles.headerSpacer}>
           <TouchableOpacity style={styles.settingsButton} onPress={openSlideMenu}>
             <Text style={styles.settingsIcon}>⚙️</Text>
@@ -707,7 +712,13 @@ const DeliveryListScreen = ({ navigation }) => {
                 <Text style={styles.menuItemText}>🔔 알림 설정</Text>
               </TouchableOpacity>
               
-              <TouchableOpacity style={styles.menuItem}>
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => {
+                  setSlideMenuVisible(false);
+                  navigation.navigate('AppInfo');
+                }}
+              >
                 <Text style={styles.menuItemText}>📱 앱 정보</Text>
               </TouchableOpacity>
               
@@ -768,12 +779,23 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#1976D2',
   },
+  companyNameContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   companyName: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#fff',
     textAlign: 'center',
-    flex: 1,
+  },
+  versionText: {
+    fontSize: 12,
+    color: '#fff',
+    textAlign: 'center',
+    opacity: 0.8,
+    marginTop: 2,
   },
   headerSpacer: {
     width: 36,

@@ -15,6 +15,7 @@ import LoadingConfirmScreen from './src/screens/LoadingConfirmScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import MapSettingScreen from './src/screens/MapSettingScreen';
 import DeliveryMapViewScreen from './src/screens/DeliveryMapViewScreen';
+import AppInfoScreen from './src/screens/AppInfoScreen';
 
 const Stack = createStackNavigator();
 
@@ -272,6 +273,11 @@ const App = () => {
                 name="MapSetting"
                 component={MapSettingScreen}
                 options={{ title: '지도 설정' }}
+              />
+              <Stack.Screen
+                name="AppInfo"
+                component={AppInfoScreen}
+                options={{ title: '앱 정보', headerShown: false }}
               />
               <Stack.Screen
                 name="DeliveryMapView"
