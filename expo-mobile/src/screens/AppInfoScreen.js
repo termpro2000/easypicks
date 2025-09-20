@@ -1,15 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import * as Updates from 'expo-updates';
 import Constants from 'expo-constants';
 
 const AppInfoScreen = ({ navigation }) => {
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
   const appVersion = Updates.runtimeVersion || Constants.manifest?.version || '1.2.1';
   const appName = Constants.manifest?.name || '이지픽스 가구배송';
   
@@ -25,6 +28,85 @@ const AppInfoScreen = ({ navigation }) => {
       minute: '2-digit',
       second: '2-digit'
     });
+  };
+
+  // 수동 업데이트 체크 및 실행
+  const handleManualUpdate = async () => {
+    if (!Updates.isEnabled) {
+      Alert.alert(
+        '업데이트 불가',
+        '현재 환경에서는 업데이트가 지원되지 않습니다.\n(개발 모드 또는 Expo Go 환경)'
+      );
+      return;
+    }
+
+    setIsCheckingUpdate(true);
+    
+    try {
+      console.log('🔄 [수동 업데이트] 업데이트 확인 시작...');
+      console.log('📱 [수동 업데이트] 현재 업데이트 ID:', Updates.updateId);
+      
+      const update = await Updates.checkForUpdateAsync();
+      console.log('📋 [수동 업데이트] 업데이트 확인 결과:', JSON.stringify(update, null, 2));
+      
+      if (update.isAvailable) {
+        const newUpdateId = update.manifest?.id;
+        const currentUpdateId = Updates.updateId;
+        
+        console.log('🆕 [수동 업데이트] 새 업데이트 발견!');
+        console.log('📱 [수동 업데이트] 현재 ID:', currentUpdateId?.slice(0, 8));
+        console.log('📱 [수동 업데이트] 새 ID:', newUpdateId?.slice(0, 8));
+        
+        Alert.alert(
+          '업데이트 가능',
+          `새로운 업데이트가 있습니다.\n\n현재: ${currentUpdateId?.slice(0, 8) || 'N/A'}\n최신: ${newUpdateId?.slice(0, 8) || 'N/A'}\n\n업데이트를 다운로드하고 앱을 재시작하시겠습니까?`,
+          [
+            {
+              text: '취소',
+              style: 'cancel'
+            },
+            {
+              text: '업데이트',
+              onPress: async () => {
+                try {
+                  console.log('📥 [수동 업데이트] 업데이트 다운로드 시작...');
+                  await Updates.fetchUpdateAsync();
+                  console.log('📥 [수동 업데이트] 업데이트 다운로드 완료!');
+                  
+                  Alert.alert(
+                    '업데이트 완료',
+                    '앱을 재시작합니다.',
+                    [
+                      {
+                        text: '확인',
+                        onPress: () => {
+                          console.log('🔄 [수동 업데이트] 앱 재시작 중...');
+                          Updates.reloadAsync();
+                        }
+                      }
+                    ]
+                  );
+                } catch (downloadError) {
+                  console.error('❌ [수동 업데이트] 다운로드 실패:', downloadError);
+                  Alert.alert('오류', '업데이트 다운로드에 실패했습니다.');
+                }
+              }
+            }
+          ]
+        );
+      } else {
+        console.log('✅ [수동 업데이트] 최신 버전입니다.');
+        Alert.alert(
+          '최신 버전',
+          `이미 최신 버전을 사용하고 있습니다.\n\n업데이트 ID: ${Updates.updateId?.slice(0, 8) || 'N/A'}`
+        );
+      }
+    } catch (error) {
+      console.error('❌ [수동 업데이트] 체크 실패:', error);
+      Alert.alert('오류', '업데이트 확인 중 오류가 발생했습니다.');
+    } finally {
+      setIsCheckingUpdate(false);
+    }
   };
 
   return (
@@ -91,6 +173,24 @@ const AppInfoScreen = ({ navigation }) => {
               </Text>
             </View>
           </View>
+
+          {/* 수동 업데이트 버튼 */}
+          {Updates.isEnabled && (
+            <TouchableOpacity 
+              style={styles.updateButton}
+              onPress={handleManualUpdate}
+              disabled={isCheckingUpdate}
+            >
+              {isCheckingUpdate ? (
+                <View style={styles.updateButtonContent}>
+                  <ActivityIndicator color="#fff" size="small" />
+                  <Text style={[styles.updateButtonText, { marginLeft: 8 }]}>업데이트 확인 중...</Text>
+                </View>
+              ) : (
+                <Text style={styles.updateButtonText}>앱 업데이트</Text>
+              )}
+            </TouchableOpacity>
+          )}
 
           {/* 추가 정보 */}
           <View style={styles.additionalInfo}>
@@ -228,6 +328,30 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     lineHeight: 20,
+  },
+  updateButton: {
+    backgroundColor: '#2196F3',
+    borderRadius: 12,
+    padding: 16,
+    marginVertical: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  updateButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  updateButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 
