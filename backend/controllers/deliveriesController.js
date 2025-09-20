@@ -250,12 +250,22 @@ async function getDeliveries(req, res) {
       pool.execute(listQuery, listParams)
     );
 
-    // action_date/time 필드가 없는 경우 null로 설정
-    const processedDeliveries = (deliveries || []).map(delivery => ({
-      ...delivery,
-      action_date: delivery.action_date || null,
-      action_time: delivery.action_time || null
-    }));
+    // action_date/time 필드가 없는 경우 명시적으로 null 추가
+    const processedDeliveries = (deliveries || []).map(delivery => {
+      const processed = { ...delivery };
+      
+      // action_date 필드가 없으면 null로 추가
+      if (!('action_date' in processed)) {
+        processed.action_date = null;
+      }
+      
+      // action_time 필드가 없으면 null로 추가
+      if (!('action_time' in processed)) {
+        processed.action_time = null;
+      }
+      
+      return processed;
+    });
 
     // 결과가 없는 경우에도 빈 배열로 응답
     res.json({
