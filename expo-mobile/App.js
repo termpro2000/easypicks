@@ -108,21 +108,9 @@ const App = () => {
           await Updates.fetchUpdateAsync();
           console.log('📥 [EAS UPDATE] 업데이트 다운로드 완료!');
           
-          // 다운로드 완료 후 사용자에게 알림
-          Alert.alert(
-            '앱이 업데이트 되었습니다',
-            '새로운 기능과 개선사항이 적용되었습니다. 앱을 재시작합니다.',
-            [
-              { 
-                text: '확인', 
-                onPress: () => {
-                  console.log('🔄 [EAS UPDATE] 앱 재시작 중...');
-                  Updates.reloadAsync();
-                }
-              }
-            ],
-            { cancelable: false }
-          );
+          // 조용히 자동 재시작 (사용자 알림 없음)
+          console.log('🔄 [EAS UPDATE] 조용히 앱 재시작 중...');
+          Updates.reloadAsync();
         } catch (downloadError) {
           console.error('❌ [EAS UPDATE] 업데이트 다운로드 실패:', downloadError);
         }
@@ -174,7 +162,8 @@ const App = () => {
           ]
         );
       } else {
-        Alert.alert('알림', '이미 최신 버전입니다.');
+        // 조용히 로그만 남기고 사용자에게는 알리지 않음
+        console.log('✅ [EAS UPDATE] 수동 체크: 이미 최신 버전입니다.');
       }
     } catch (error) {
       Alert.alert('오류', '업데이트 확인 중 오류가 발생했습니다.');

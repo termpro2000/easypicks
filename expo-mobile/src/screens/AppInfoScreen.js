@@ -12,6 +12,20 @@ import Constants from 'expo-constants';
 const AppInfoScreen = ({ navigation }) => {
   const appVersion = Updates.runtimeVersion || Constants.manifest?.version || '1.2.1';
   const appName = Constants.manifest?.name || '이지픽스 가구배송';
+  
+  // EAS 업데이트 정보 포맷팅
+  const formatUpdateDate = (createdAt) => {
+    if (!createdAt) return 'N/A';
+    const date = new Date(createdAt);
+    return date.toLocaleString('ko-KR', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+  };
 
   return (
     <View style={styles.container}>
@@ -62,6 +76,18 @@ const AppInfoScreen = ({ navigation }) => {
               <Text style={styles.infoLabel}>빌드 환경</Text>
               <Text style={styles.infoValue}>
                 {__DEV__ ? '개발 모드' : '프로덕션'}
+              </Text>
+            </View>
+
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>마지막 업데이트</Text>
+              <Text style={styles.infoValue}>{formatUpdateDate(Updates.createdAt)}</Text>
+            </View>
+
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>업데이트 활성화</Text>
+              <Text style={styles.infoValue}>
+                {Updates.isEnabled ? '✅ 활성화' : '❌ 비활성화'}
               </Text>
             </View>
           </View>
