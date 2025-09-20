@@ -26,9 +26,9 @@ cd android && ./gradlew assembleRelease
 
 ### EAS Build & Update
 ```bash
-# OTA Updates (Over-The-Air)
+# OTA Updates (Over-The-Air) - MUST use production branch for APK compatibility
 eas update --branch production --message "Description"
-eas update --auto  # Auto-generate message
+eas update --branch production --auto  # Auto-generate message (ALWAYS use production branch)
 
 # Build APK/AAB
 eas build --platform android --profile production-apk  # APK
@@ -114,7 +114,9 @@ LoginScreen → DeliveryListScreen ↔ DeliveryDetailScreen
 ### EAS Update Strategy
 - **Manual Updates Only**: Automatic updates disabled by default (`global.checkForUpdates()` available)
 - **Runtime Version Matching**: Updates only apply to matching runtime versions
-- **Production Branch**: All updates deploy to `production` branch
+- **Production Branch**: All updates MUST deploy to `production` branch (APK compatibility)
+- **Channel Configuration**: app.json configured with `expo-channel-name: production`
+- **Critical**: APK builds use `production` channel - updates to other branches will NOT reach APK users
 - **Fallback**: Apps gracefully handle update failures
 
 ### Database Integration
