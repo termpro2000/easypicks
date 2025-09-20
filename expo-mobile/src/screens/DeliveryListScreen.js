@@ -236,6 +236,18 @@ const DeliveryListScreen = ({ navigation }) => {
         
         console.log('필터링된 배송 개수:', deliveriesData.length);
         
+        // action_date/time 필드 확인 로그
+        deliveriesData.forEach((delivery, index) => {
+          if (index < 3) { // 처음 3개만 로그 출력
+            console.log(`📋 배송 ${index + 1} action 필드 확인:`, {
+              trackingNumber: delivery.trackingNumber,
+              action_date: delivery.action_date,
+              action_time: delivery.action_time,
+              status: delivery.status
+            });
+          }
+        });
+        
         // 배송순서 모드에 따라 정렬 적용
         const sortedDeliveries = applyOrderMode(deliveriesData);
         setDeliveries(sortedDeliveries);
@@ -534,11 +546,6 @@ const DeliveryListScreen = ({ navigation }) => {
       onLongPress={orderMode === 'manual' ? drag : undefined}
       disabled={isActive}
     >
-      {/* 일련번호 표시 */}
-      <View style={styles.sequenceNumber}>
-        <Text style={styles.sequenceNumberText}>{index + 1}</Text>
-      </View>
-      
       {/* 수동 모드에서만 드래그 핸들 표시 */}
       {orderMode === 'manual' && (
         <View style={styles.dragHandle}>
@@ -564,7 +571,15 @@ const DeliveryListScreen = ({ navigation }) => {
         {/* 날짜/시간 정보 표시 */}
         <View style={styles.dateTimeContainer}>
           <Text style={styles.visitDateTime}>
-            방문: {item.visitDate || item.visit_date || '-'} {(item.visitTime || item.visit_time || '').substring(0, 5)}
+            방문: {item.visitDate || item.visit_date || '-'} {(() => {
+              const time = item.visitTime || item.visit_time || '';
+              if (!time) return '';
+              const timeParts = time.split(':');
+              if (timeParts.length >= 2) {
+                return `${timeParts[1]}분`; // 분만 표시
+              }
+              return time;
+            })()}
           </Text>
           <Text style={styles.actionDateTime}>
             처리: {item.action_date || '-'} {(item.action_time || '').substring(0, 5)}
