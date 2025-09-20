@@ -187,6 +187,8 @@ const DeliveryListScreen = ({ navigation }) => {
             constructionType: delivery.construction_type,
             visitDate: delivery.visit_date,
             visitTime: delivery.visit_time,
+            action_date: delivery.action_date,
+            action_time: delivery.action_time,
             furnitureCompany: delivery.furniture_company,
             emergencyContact: delivery.emergency_contact,
             buildingType: delivery.building_type,
@@ -576,7 +578,7 @@ const DeliveryListScreen = ({ navigation }) => {
               if (!time) return '';
               const timeParts = time.split(':');
               if (timeParts.length >= 2) {
-                return `${timeParts[1]}분`; // 분만 표시
+                return `${timeParts[0]}:${timeParts[1]}`; // 시:분만 표시
               }
               return time;
             })()}
