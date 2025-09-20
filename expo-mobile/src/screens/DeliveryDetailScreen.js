@@ -1699,6 +1699,47 @@ Storage Bucket: ${firebaseConfig?.storageBucket || '없음'}
     </View>
   );
 
+  const PhoneDetailItem = ({ label, value }) => {
+    const handlePhoneCall = () => {
+      if (value && value !== '-') {
+        const phoneNumber = value.replace(/[^0-9]/g, ''); // 숫자만 추출
+        const phoneUrl = `tel:${phoneNumber}`;
+        
+        Linking.canOpenURL(phoneUrl)
+          .then(supported => {
+            if (supported) {
+              return Linking.openURL(phoneUrl);
+            } else {
+              Alert.alert('오류', '전화 기능을 사용할 수 없습니다.');
+            }
+          })
+          .catch(err => {
+            console.error('전화걸기 오류:', err);
+            Alert.alert('오류', '전화 연결에 실패했습니다.');
+          });
+      } else {
+        Alert.alert('알림', '연락처 정보가 없습니다.');
+      }
+    };
+
+    return (
+      <View style={styles.detailItem}>
+        <Text style={styles.detailLabel}>{label}</Text>
+        <View style={styles.phoneRow}>
+          <Text style={styles.detailValue}>{value || '-'}</Text>
+          {value && value !== '-' && (
+            <TouchableOpacity 
+              style={styles.phoneButton} 
+              onPress={handlePhoneCall}
+            >
+              <Text style={styles.phoneButtonText}>전화</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+    );
+  };
+
   return (
     <View style={styles.container}>
       <ScrollView 
@@ -1741,7 +1782,7 @@ Storage Bucket: ${firebaseConfig?.storageBucket || '없음'}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>📍 방문지 정보</Text>
             <DetailItem label="고객이름" value={delivery.customerName || delivery.receiver_name} />
-            <DetailItem label="연락처" value={delivery.customerPhone || delivery.receiver_phone} />
+            <PhoneDetailItem label="연락처" value={delivery.customerPhone || delivery.receiver_phone} />
             
             <View style={styles.addressRow}>
               <View style={styles.addressInfo}>
@@ -3854,6 +3895,25 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: '#4CAF50',
     borderRadius: 2,
+  },
+  // 전화걸기 버튼 스타일
+  phoneRow: {
+    flex: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  phoneButton: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    marginLeft: 8,
+  },
+  phoneButtonText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
 });
 

@@ -252,41 +252,6 @@ const ProfileScreen = ({ navigation }) => {
         )}
       </TouchableOpacity>
 
-      {/* EAS 업데이트 체크 버튼 */}
-      <TouchableOpacity 
-        style={[styles.button, styles.updateButton]}
-        onPress={() => {
-          console.log('🔄 [EAS UPDATE] 수동 업데이트 체크 시작...');
-          Alert.alert('업데이트 체크 시작', '업데이트를 확인 중입니다...');
-          
-          if (global.checkForUpdates) {
-            global.checkForUpdates();
-          } else {
-            Alert.alert('오류', '업데이트 체크 기능을 사용할 수 없습니다. global.checkForUpdates가 정의되지 않았습니다.');
-          }
-        }}
-      >
-        <Text style={styles.buttonText}>🔄 업데이트 확인</Text>
-      </TouchableOpacity>
-
-      {/* Firebase 로그 확인 버튼 */}
-      <TouchableOpacity 
-        style={[styles.button, { backgroundColor: '#9C27B0' }]}
-        onPress={() => {
-          const { isFirebaseStorageConfigured } = require('../config/firebase');
-          
-          // Firebase 설정 상태 강제 확인
-          console.log('🔥 [DEBUG] Firebase 설정 강제 확인...');
-          const isConfigured = isFirebaseStorageConfigured();
-          
-          Alert.alert(
-            'Firebase 디버그 정보', 
-            `Firebase Storage 설정 상태: ${isConfigured ? '✅ 사용 가능' : '❌ 사용 불가'}\n\n자세한 정보는 콘솔 로그를 확인하세요.`
-          );
-        }}
-      >
-        <Text style={styles.buttonText}>🔥 Firebase 상태 확인</Text>
-      </TouchableOpacity>
 
       {/* 비밀번호 변경 버튼 */}
       <TouchableOpacity 
