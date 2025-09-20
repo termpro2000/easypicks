@@ -242,6 +242,11 @@ const DeliveryDetailScreen = ({ route, navigation }) => {
         audioFileName = await uploadAudioFile(trackingNumber, completionAudioFile);
       }
       
+      // 현재 날짜와 시간 생성
+      const now = new Date();
+      const actionDate = now.toISOString().split('T')[0]; // YYYY-MM-DD 형식
+      const actionTime = now.toTimeString().split(' ')[0]; // HH:MM:SS 형식
+      
       // 배송완료 데이터 준비
       const completionData = {
         deliveryId: delivery.id,
@@ -249,7 +254,9 @@ const DeliveryDetailScreen = ({ route, navigation }) => {
         customerRequestedCompletion: customerRequestedCompletion,
         furnitureCompanyRequestedCompletion: furnitureCompanyRequestedCompletion,
         completionAudioFile: audioFileName,
-        completedAt: new Date().toISOString()
+        completedAt: new Date().toISOString(),
+        action_date: actionDate,
+        action_time: actionTime
       };
       
       // 배송완료 처리 API 호출 (axios 인스턴스 사용)
@@ -864,9 +871,16 @@ Storage Bucket: ${firebaseConfig?.storageBucket || '없음'}
         return;
       }
       
+      // 현재 날짜와 시간 생성
+      const now = new Date();
+      const actionDate = now.toISOString().split('T')[0]; // YYYY-MM-DD 형식
+      const actionTime = now.toTimeString().split(' ')[0]; // HH:MM:SS 형식
+      
       const response = await api.post(`/deliveries/delay/${trackingNumber}`, {
         delayDate: postponeDate,
-        delayReason: postponeReason.trim()
+        delayReason: postponeReason.trim(),
+        action_date: actionDate,
+        action_time: actionTime
       });
       
       if (response.data.success) {
@@ -1012,8 +1026,15 @@ Storage Bucket: ${firebaseConfig?.storageBucket || '없음'}
     try {
       setLoading(true);
       
+      // 현재 날짜와 시간 생성
+      const now = new Date();
+      const actionDate = now.toISOString().split('T')[0]; // YYYY-MM-DD 형식
+      const actionTime = now.toTimeString().split(' ')[0]; // HH:MM:SS 형식
+      
       const response = await api.post(`/deliveries/cancel/${delivery.id}`, {
-        cancelReason: cancelReason.trim()
+        cancelReason: cancelReason.trim(),
+        action_date: actionDate,
+        action_time: actionTime
       });
       
       if (response.data.success) {
