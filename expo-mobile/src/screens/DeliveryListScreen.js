@@ -563,16 +563,12 @@ const DeliveryListScreen = ({ navigation }) => {
         
         {/* 날짜/시간 정보 표시 */}
         <View style={styles.dateTimeContainer}>
-          <View style={styles.leftDateTime}>
-            <Text style={styles.visitDateTime}>
-              방문: {item.visitDate || item.visit_date || '-'} {item.visitTime || item.visit_time || ''}
-            </Text>
-          </View>
-          <View style={styles.rightDateTime}>
-            <Text style={styles.actionDateTime}>
-              처리: {item.action_date || '-'} {item.action_time || ''}
-            </Text>
-          </View>
+          <Text style={styles.visitDateTime}>
+            방문: {item.visitDate || item.visit_date || '-'} {(item.visitTime || item.visit_time || '').substring(0, 5)}
+          </Text>
+          <Text style={styles.actionDateTime}>
+            처리: {item.action_date || '-'} {(item.action_time || '').substring(0, 5)}
+          </Text>
         </View>
         
       </View>
@@ -976,22 +972,15 @@ const styles = StyleSheet.create({
   },
   // 날짜/시간 정보 스타일
   dateTimeContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: 'column',
     marginBottom: 12,
     paddingHorizontal: 2,
-  },
-  leftDateTime: {
-    flex: 1,
-  },
-  rightDateTime: {
-    flex: 1,
-    alignItems: 'flex-end',
   },
   visitDateTime: {
     fontSize: 12,
     color: '#2196F3', // 파란색 - 방문 예정
     fontWeight: '500',
+    marginBottom: 2,
   },
   actionDateTime: {
     fontSize: 12,
