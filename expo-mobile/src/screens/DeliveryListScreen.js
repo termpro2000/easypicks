@@ -436,16 +436,26 @@ const DeliveryListScreen = ({ navigation }) => {
 
   // 배송순서 정렬 함수들
   const sortDeliveriesByAddress = (deliveriesList) => {
-    // 자동 모드: 주소 기준으로 간단한 정렬 (실제로는 지리적 거리 기반으로 구현 가능)
+    // 자동 모드: 상태 우선순위 기반 정렬 + 주소순 정렬
     return [...deliveriesList].sort((a, b) => {
-      // 상태 우선순위: 미상차 -> 상차완료 -> 배송중 -> 완료
+      // 상태 우선순위: 미상차 -> 상차완료 -> 배송중 -> 완료된/취소된/연기된 항목들(맨 아래)
       const statusPriority = {
         '미상차': 1,
         '상차완료': 2,  
         '배송중': 3,
         '완료': 4,
         'completed': 4,
-        'delivered': 4
+        'delivered': 4,
+        // 맨 아래로 보낼 상태들
+        '배송취소': 100,
+        '배송연기': 100,
+        '배송완료': 100,
+        'cancelled': 100,
+        'delivery_cancelled': 100,
+        'postponed': 100,
+        'delivery_postponed': 100,
+        'delivery_completed': 100,
+        'collection_completed': 100
       };
       
       const priorityA = statusPriority[a.status] || 5;
@@ -455,7 +465,7 @@ const DeliveryListScreen = ({ navigation }) => {
         return priorityA - priorityB;
       }
       
-      // 같은 상태면 주소순 정렬
+      // 같은 우선순위면 주소순 정렬
       const addressA = a.customerAddress || '';
       const addressB = b.customerAddress || '';
       return addressA.localeCompare(addressB, 'ko');
