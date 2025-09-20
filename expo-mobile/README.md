@@ -13,6 +13,8 @@ React Native/Expo 기반의 가구배송 관리 모바일 애플리케이션입�
 - **배송완료 처리**: 고객/가구사 요청별 완료 처리
 - **실시간 상태 업데이트**: AsyncStorage를 통한 실시간 상태 동기화
 - **상태별 색상 구분**: 배송연기(노란색), 배송취소(빨간색), 배송완료(녹색)
+- **동적 라인 색상**: 왼쪽 굵은 라인(6px)이 배송 상태에 따라 자동 색상 변경
+- **배송완료 시 수정 제한**: 배송완료 상태에서는 사진 추가만 가능, 수정버튼 숨김
 - QR 코드 스캔을 통한 빠른 배송 조회
 - 고객 서명 기능 (Canvas 기반 서명 패드)
 
@@ -37,8 +39,10 @@ React Native/Expo 기반의 가구배송 관리 모바일 애플리케이션입�
 
 ### ⚙️ 설정 관리
 - **지도 설정**: 기본 지도 앱 선택 (네이버지도, 카카오지도, 티맵, 구글지도)
+- **앱 정보**: 앱 이름, 버전, 개발사, 업데이트 ID 등 상세 정보 표시
+- **버전 표시**: 헤더에 실시간 runtime version 표시
 - **OTA 업데이트**: EAS Update를 통한 실시간 앱 업데이트 지원
-- **자동 업데이트 체크**: 앱 시작 시 자동으로 업데이트 확인 및 알림
+- **스마트 업데이트**: 변경사항이 있을 때만 업데이트 메시지 표시
 
 ## 기술 스택
 
@@ -209,7 +213,7 @@ MIT License
 ## 배포 정보
 
 ### APK 파일 (EAS Build)
-- **최신 버전**: v1.2.1 (versionCode: 22)
+- **최신 버전**: v1.2.2 (versionCode: 26)
 - **최신 APK**: https://expo.dev/artifacts/eas/o3baRndqgJ7sZH5bvqHVNJ.apk
 - **이전 APK**: https://expo.dev/artifacts/eas/4XbMk1VwyPijg9xewoneSB.apk
 - **빌드 플랫폼**: EAS Build (Expo Application Services)
@@ -218,9 +222,9 @@ MIT License
 ### OTA 업데이트 (EAS Update)
 - **EAS 프로젝트**: easypicks-delivery
 - **업데이트 URL**: https://u.expo.dev/9bef9076-ac2a-40c3-83c3-c73a0f50be11
-- **Runtime Version**: 1.2.1
+- **Runtime Version**: 1.2.2
 - **브랜치**: master
-- **자동 업데이트**: 앱 시작 시 체크 (`checkAutomatically: "ON_LOAD"`)
+- **자동 업데이트**: 앱 시작 후 3초 후 체크 (`checkAutomatically: "ON_ERROR_RECOVERY"`)
 
 #### 자동 업데이트 작동 조건
 - **Production Build 필요**: Development build에서는 자동 업데이트가 제한됨
@@ -232,6 +236,17 @@ MIT License
 - Development build 환경에서 권장되는 방법
 
 ## 업데이트 히스토리
+
+### v1.2.2 (2025-09-20)
+- ✨ **배송완료 상태 녹색 라인 표시**: 왼쪽 굵은 라인이 status 배경색과 동일하게 표시
+- ✨ **배송완료 시 사진 수정버튼 숨기기**: 배송완료 상태에서는 사진 추가만 가능, 수정 불가
+- ✨ **앱 버전 표시**: DeliveryListScreen 헤더에 '이지픽스' 옆에 버전 정보 표시
+- ✨ **앱정보 화면 추가**: 설정 메뉴에서 접근 가능한 상세 앱 정보 화면
+- 🔧 **EAS Update 이벤트 리스너 개선**: 업데이트 완료 시에만 메시지 표시, 변경사항 없으면 조용히 실행
+- 🔧 **왼쪽 라인 두께 증가**: 4px → 6px로 더 굵게 변경
+- 🔧 **동적 라인 색상**: 모든 배송 상태에 따라 왼쪽 라인 색상이 status 배지와 동일하게 표시
+- 🔧 **Runtime Version 관리**: 1.2.1 → 1.2.2로 증가, 앱 수정 시 맨 끝 번호 1씩 증가
+- 📱 **앱정보 화면 내용**: 앱 이름, 버전, 개발사, 업데이트 ID, 빌드 환경 등 상세 정보 제공
 
 ### v1.2.1 (2025-09-19)
 - 🔥 **Firebase Storage EAS Build 통합**: Expo Go에서는 비활성화, EAS Build에서만 활성화
