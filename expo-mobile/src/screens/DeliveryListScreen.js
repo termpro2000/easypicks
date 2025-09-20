@@ -174,6 +174,12 @@ const DeliveryListScreen = ({ navigation }) => {
         const deliveriesData = response.data.deliveries
           .map(delivery => {
             console.log('원본 배송 데이터:', delivery.id, delivery.tracking_number);
+            console.log('원본 action 필드:', {
+              action_date: delivery.action_date,
+              action_time: delivery.action_time,
+              hasActionDate: !!delivery.action_date,
+              hasActionTime: !!delivery.action_time
+            });
             return {
             id: delivery.id,
             trackingNumber: delivery.tracking_number,
@@ -238,14 +244,18 @@ const DeliveryListScreen = ({ navigation }) => {
         
         console.log('필터링된 배송 개수:', deliveriesData.length);
         
-        // action_date/time 필드 확인 로그
+        // action_date/time 필드 확인 로그 (자세한 디버깅)
         deliveriesData.forEach((delivery, index) => {
           if (index < 3) { // 처음 3개만 로그 출력
             console.log(`📋 배송 ${index + 1} action 필드 확인:`, {
               trackingNumber: delivery.trackingNumber,
               action_date: delivery.action_date,
               action_time: delivery.action_time,
-              status: delivery.status
+              status: delivery.status,
+              rawActionDate: delivery.action_date,
+              rawActionTime: delivery.action_time,
+              hasActionDate: !!delivery.action_date,
+              hasActionTime: !!delivery.action_time
             });
           }
         });

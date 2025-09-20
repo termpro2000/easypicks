@@ -192,14 +192,6 @@ const AppInfoScreen = ({ navigation }) => {
             </TouchableOpacity>
           )}
 
-          {/* 추가 정보 */}
-          <View style={styles.additionalInfo}>
-            <Text style={styles.additionalInfoTitle}>앱 설명</Text>
-            <Text style={styles.additionalInfoText}>
-              이지픽스 가구배송 기사용 모바일 앱입니다.{'\n'}
-              배송 관리, 사진 업로드, 고객 서명 등의 기능을 제공합니다.
-            </Text>
-          </View>
         </View>
       </ScrollView>
     </View>
@@ -304,30 +296,6 @@ const styles = StyleSheet.create({
     color: '#666',
     flex: 2,
     textAlign: 'right',
-  },
-  additionalInfo: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  additionalInfoTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 10,
-  },
-  additionalInfoText: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 20,
   },
   updateButton: {
     backgroundColor: '#2196F3',
