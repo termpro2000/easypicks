@@ -5,6 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Text, Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as Updates from 'expo-updates';
+import Constants from 'expo-constants';
 
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
@@ -25,7 +26,7 @@ const App = () => {
   const [globalMapPreference, setGlobalMapPreference] = useState(0); // 0: 네이버, 1: 카카오, 2: 티맵, 3: 구글
 
   useEffect(() => {
-    checkForUpdates(); // 자동 업데이트 체크 활성화
+    setupUpdateListener(); // EAS Update 이벤트 리스너 설정
     checkLoginStatus();
     
     // 로그아웃 이벤트 리스너 (전역적으로 로그아웃 처리)
@@ -66,38 +67,89 @@ const App = () => {
     };
   }, [globalMapPreference]);
 
+  // EAS Update 이벤트 리스너 설정
+  const setupUpdateListener = () => {
+    console.log('🔄 [EAS UPDATE] 이벤트 리스너 설정 시작...');
+    console.log('🔄 [EAS UPDATE] Updates.isEnabled:', Updates.isEnabled);
+    console.log('🔄 [EAS UPDATE] Updates.runtimeVersion:', Updates.runtimeVersion);
+    console.log('🔄 [EAS UPDATE] Updates.updateId:', Updates.updateId);
+    console.log('🔄 [EAS UPDATE] Constants.appOwnership:', Constants.appOwnership);
+    
+    if (!Updates.isEnabled) {
+      console.log('❌ [EAS UPDATE] 업데이트가 비활성화됨 (개발 모드 또는 Expo Go)');
+      return;
+    }
+
+    // 업데이트 이벤트 리스너 등록
+    const updateEventListener = Updates.addListener((event) => {
+      console.log('📱 [EAS UPDATE] 이벤트 발생:', event.type);
+      
+      if (event.type === Updates.UpdateEventType.UPDATE_AVAILABLE) {
+        console.log('✅ [EAS UPDATE] 새 업데이트 발견!');
+        console.log('📦 [EAS UPDATE] 업데이트 정보:', event.manifest);
+        
+        // 자동으로 다운로드 시작
+        Updates.fetchUpdateAsync();
+      } else if (event.type === Updates.UpdateEventType.UPDATE_DOWNLOADED) {
+        console.log('📥 [EAS UPDATE] 업데이트 다운로드 완료!');
+        
+        // 업데이트가 다운로드되면 사용자에게 알림
+        Alert.alert(
+          '앱이 업데이트 되었습니다',
+          '새로운 기능과 개선사항이 적용되었습니다.',
+          [
+            { 
+              text: '확인', 
+              onPress: () => {
+                console.log('🔄 [EAS UPDATE] 앱 재시작 중...');
+                Updates.reloadAsync();
+              }
+            }
+          ]
+        );
+      } else if (event.type === Updates.UpdateEventType.ERROR) {
+        console.error('❌ [EAS UPDATE] 업데이트 오류:', event.message);
+      }
+    });
+
+    // 앱 시작 시 즉시 업데이트 확인
+    checkForUpdatesOnStartup();
+
+    return updateEventListener;
+  };
+
+  // 앱 시작 시 업데이트 확인 (조용히)
+  const checkForUpdatesOnStartup = async () => {
+    try {
+      if (!Updates.isEnabled) {
+        return;
+      }
+
+      console.log('🔄 [EAS UPDATE] 시작 시 업데이트 확인...');
+      const update = await Updates.checkForUpdateAsync();
+      
+      if (update.isAvailable) {
+        console.log('✅ [EAS UPDATE] 새 업데이트 발견 - 자동 다운로드 시작');
+        // 자동으로 다운로드 (이벤트 리스너에서 처리)
+      } else {
+        console.log('✅ [EAS UPDATE] 최신 버전입니다.');
+      }
+    } catch (error) {
+      console.error('❌ [EAS UPDATE] 시작 시 업데이트 확인 오류:', error);
+    }
+  };
+
+  // 수동 업데이트 체크 (기존 호환성 유지)
   const checkForUpdates = async () => {
     try {
-      console.log('🔄 [EAS UPDATE] 업데이트 확인 시작...');
-      console.log('🔄 [EAS UPDATE] Updates.isEnabled:', Updates.isEnabled);
-      console.log('🔄 [EAS UPDATE] Updates.runtimeVersion:', Updates.runtimeVersion);
-      console.log('🔄 [EAS UPDATE] Updates.updateId:', Updates.updateId);
-      console.log('🔄 [EAS UPDATE] Updates.createdAt:', Updates.createdAt);
-      console.log('🔄 [EAS UPDATE] Updates.channel:', Updates.channel);
-      console.log('🔄 [EAS UPDATE] __DEV__:', __DEV__);
-      console.log('🔄 [EAS UPDATE] Constants.appOwnership:', Constants.appOwnership);
-      console.log('🔄 [EAS UPDATE] Constants.executionEnvironment:', Constants.executionEnvironment);
-      
       if (!Updates.isEnabled) {
-        console.log('❌ [EAS UPDATE] 업데이트가 비활성화됨 - 이유:');
-        console.log('   - 개발 모드(__DEV__):', __DEV__);
-        console.log('   - 앱 소유권:', Constants.appOwnership);
-        console.log('   - 실행 환경:', Constants.executionEnvironment);
-        
-        // 강제로 업데이트 체크 시도
-        console.log('🔄 [EAS UPDATE] 강제 업데이트 체크 시도...');
+        Alert.alert('알림', '업데이트는 프로덕션 빌드에서만 가능합니다.');
+        return;
       }
 
       const update = await Updates.checkForUpdateAsync();
-      console.log('📋 [EAS UPDATE] 업데이트 확인 결과:', JSON.stringify(update, null, 2));
       
       if (update.isAvailable) {
-        console.log('✅ [EAS UPDATE] 새 업데이트 발견!');
-        console.log('📦 [EAS UPDATE] 새 업데이트 정보:', {
-          updateId: update.manifest?.id,
-          createdAt: update.manifest?.createdAt,
-          runtimeVersion: update.manifest?.runtimeVersion
-        });
         Alert.alert(
           '업데이트 알림',
           '새 업데이트가 있습니다. 다운로드하시겠습니까?',
@@ -108,10 +160,8 @@ const App = () => {
               onPress: async () => {
                 try {
                   await Updates.fetchUpdateAsync();
-                  console.log('[업데이트 체크] 업데이트 다운로드 완료, 재시작 중...');
                   await Updates.reloadAsync();
                 } catch (error) {
-                  console.error('[업데이트 체크] 업데이트 다운로드 실패:', error);
                   Alert.alert('업데이트 오류', '업데이트 다운로드에 실패했습니다.');
                 }
               }
@@ -119,20 +169,10 @@ const App = () => {
           ]
         );
       } else {
-        console.log('✅ [EAS UPDATE] 최신 버전입니다.');
-        console.log('📱 [EAS UPDATE] 현재 앱 정보:', {
-          currentUpdateId: Updates.updateId,
-          currentRuntimeVersion: Updates.runtimeVersion,
-          createdAt: Updates.createdAt
-        });
+        Alert.alert('알림', '이미 최신 버전입니다.');
       }
     } catch (error) {
-      console.error('❌ [EAS UPDATE] 업데이트 확인 오류:', error);
-      console.error('❌ [EAS UPDATE] 오류 상세:', {
-        message: error.message,
-        code: error.code,
-        stack: error.stack
-      });
+      Alert.alert('오류', '업데이트 확인 중 오류가 발생했습니다.');
     }
   };
 
