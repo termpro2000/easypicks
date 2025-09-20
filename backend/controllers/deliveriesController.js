@@ -1339,6 +1339,44 @@ async function createTestData(req, res) {
 }
 
 /**
+ * 컬럼 상태 확인 (디버깅용)
+ * @param {Object} req - Express 요청 객체  
+ * @param {Object} res - Express 응답 객체
+ */
+async function checkColumns(req, res) {
+  try {
+    const [columns] = await pool.execute(`
+      SELECT COLUMN_NAME, DATA_TYPE, IS_NULLABLE, COLUMN_DEFAULT
+      FROM INFORMATION_SCHEMA.COLUMNS 
+      WHERE TABLE_SCHEMA = DATABASE() 
+      AND TABLE_NAME = 'deliveries' 
+      ORDER BY ORDINAL_POSITION
+    `);
+    
+    const actionColumns = columns.filter(col => 
+      col.COLUMN_NAME.includes('action') || 
+      col.COLUMN_NAME.includes('visit') ||
+      ['id', 'tracking_number', 'status'].includes(col.COLUMN_NAME)
+    );
+    
+    res.json({
+      success: true,
+      allColumns: columns.length,
+      relevantColumns: actionColumns,
+      hasActionDate: columns.some(col => col.COLUMN_NAME === 'action_date'),
+      hasActionTime: columns.some(col => col.COLUMN_NAME === 'action_time')
+    });
+  } catch (error) {
+    console.error('컬럼 확인 오류:', error);
+    res.status(500).json({
+      success: false,
+      message: '컬럼 확인 중 오류가 발생했습니다.',
+      error: error.message
+    });
+  }
+}
+
+/**
  * 수동 마이그레이션 실행 (개발/테스트용)
  * @param {Object} req - Express 요청 객체
  * @param {Object} res - Express 응답 객체
@@ -1381,5 +1419,6 @@ module.exports = {
   delayDelivery,
   cancelDelivery,
   createTestData,
-  runMigration
+  runMigration,
+  checkColumns
 };
