@@ -837,8 +837,13 @@ async function completeDelivery(req, res) {
       userId: req.user?.user_id
     });
     
-    // action_date/time 컬럼 확인 및 생성
-    await ensureActionDateTimeColumns();
+    // action_date/time 컬럼 확인 및 생성 (production 환경에서 실패할 수 있음)
+    let hasActionColumns = false;
+    try {
+      hasActionColumns = await ensureActionDateTimeColumns();
+    } catch (error) {
+      console.log('⚠️ action_date/time 컬럼 생성 실패, 기본 SQL 사용:', error.message);
+    }
     
     // 배송 정보 존재 여부 및 의뢰종류 확인
     const [deliveryCheck] = await pool.execute(
@@ -882,21 +887,24 @@ async function completeDelivery(req, res) {
       new Date(completedAt).toISOString().slice(0, 19).replace('T', ' ') :
       new Date().toISOString().slice(0, 19).replace('T', ' ');
     
-    // 배송완료 처리 (의뢰종류에 따른 적절한 status 설정)
-    const [updateResult] = await pool.execute(
-      `UPDATE deliveries SET 
-         status = ?,
-         driver_notes = ?,
-         customer_requested_completion = ?,
-         furniture_company_requested_completion = ?,
-         completion_audio_file = ?,
-         actual_delivery = ?,
-         action_date = ?,
-         action_time = ?,
-         updated_at = NOW()
-       WHERE id = ?`,
-      [
-        completedStatus,
+    // action_date/time 컬럼이 존재하는 경우와 없는 경우를 구분하여 처리
+    let updateResult;
+    if (hasActionColumns) {
+      // 컬럼이 존재하는 경우: action_date/time 포함
+      [updateResult] = await pool.execute(
+        `UPDATE deliveries SET 
+           status = ?,
+           driver_notes = ?,
+           customer_requested_completion = ?,
+           furniture_company_requested_completion = ?,
+           completion_audio_file = ?,
+           actual_delivery = ?,
+           action_date = ?,
+           action_time = ?,
+           updated_at = NOW()
+         WHERE id = ?`,
+        [
+          completedStatus,
         driverNotes || '',
         customerRequestedCompletion ? 1 : 0,
         furnitureCompanyRequestedCompletion ? 1 : 0,
@@ -907,6 +915,29 @@ async function completeDelivery(req, res) {
         deliveryId
       ]
     );
+    } else {
+      // 컬럼이 없는 경우: action_date/time 제외
+      [updateResult] = await pool.execute(
+        `UPDATE deliveries SET 
+           status = ?,
+           driver_notes = ?,
+           customer_requested_completion = ?,
+           furniture_company_requested_completion = ?,
+           completion_audio_file = ?,
+           actual_delivery = ?,
+           updated_at = NOW()
+         WHERE id = ?`,
+        [
+          completedStatus,
+          driverNotes || '',
+          customerRequestedCompletion ? 1 : 0,
+          furnitureCompanyRequestedCompletion ? 1 : 0,
+          completionAudioFile || null,
+          now,
+          deliveryId
+        ]
+      );
+    }
     
     if (updateResult.affectedRows === 0) {
       return res.status(500).json({
@@ -1158,22 +1189,43 @@ async function delayDelivery(req, res) {
       trackingNumber
     });
     
-    // action_date/time 컬럼 확인 및 생성
-    await ensureActionDateTimeColumns();
+    // action_date/time 컬럼 확인 및 생성 (production 환경에서 실패할 수 있음)
+    let hasActionColumns = false;
+    try {
+      hasActionColumns = await ensureActionDateTimeColumns();
+    } catch (error) {
+      console.log('⚠️ action_date/time 컬럼 생성 실패, 기본 SQL 사용:', error.message);
+    }
     
-    // driver_notes 필드에 연기 정보 업데이트 및 상태를 '배송연기'로 변경
-    const [updateResult] = await executeWithRetry(() =>
-      pool.execute(
-        `UPDATE deliveries SET 
-           status = '배송연기',
-           driver_notes = CONCAT(COALESCE(driver_notes, ''), IF(COALESCE(driver_notes, '') = '', '', '\n'), '배송연기 (', ?, ')', IF(? IS NOT NULL AND ? != '', CONCAT(': ', ?), '')),
-           action_date = ?,
-           action_time = ?,
-           updated_at = NOW()
-         WHERE tracking_number = ?`,
-        [delayDate, delayReason, delayReason, delayReason, action_date, action_time, trackingNumber]
-      )
-    );
+    // action_date/time 컬럼이 존재하는 경우와 없는 경우를 구분하여 처리
+    let updateResult;
+    if (hasActionColumns) {
+      // 컬럼이 존재하는 경우: action_date/time 포함
+      [updateResult] = await executeWithRetry(() =>
+        pool.execute(
+          `UPDATE deliveries SET 
+             status = '배송연기',
+             driver_notes = CONCAT(COALESCE(driver_notes, ''), IF(COALESCE(driver_notes, '') = '', '', '\n'), '배송연기 (', ?, ')', IF(? IS NOT NULL AND ? != '', CONCAT(': ', ?), '')),
+             action_date = ?,
+             action_time = ?,
+             updated_at = NOW()
+           WHERE tracking_number = ?`,
+          [delayDate, delayReason, delayReason, delayReason, action_date, action_time, trackingNumber]
+        )
+      );
+    } else {
+      // 컬럼이 없는 경우: action_date/time 제외
+      [updateResult] = await executeWithRetry(() =>
+        pool.execute(
+          `UPDATE deliveries SET 
+             status = '배송연기',
+             driver_notes = CONCAT(COALESCE(driver_notes, ''), IF(COALESCE(driver_notes, '') = '', '', '\n'), '배송연기 (', ?, ')', IF(? IS NOT NULL AND ? != '', CONCAT(': ', ?), '')),
+             updated_at = NOW()
+           WHERE tracking_number = ?`,
+          [delayDate, delayReason, delayReason, delayReason, trackingNumber]
+        )
+      );
+    }
     
     console.log('📝 [배송연기] SQL 실행 결과:', {
       affectedRows: updateResult.affectedRows,
@@ -1197,19 +1249,25 @@ async function delayDelivery(req, res) {
       delayReason
     });
     
+    const responseData = {
+      trackingNumber,
+      customerName: delivery.customer_name,
+      previousStatus: delivery.status,
+      newStatus: '배송연기',
+      delayDate,
+      delayReason: delayReason || null
+    };
+    
+    // action_date/time 컬럼이 존재하는 경우에만 포함
+    if (hasActionColumns) {
+      responseData.action_date = action_date;
+      responseData.action_time = action_time;
+    }
+
     res.json({
       success: true,
       message: '배송이 성공적으로 연기되었습니다.',
-      data: {
-        trackingNumber,
-        customerName: delivery.customer_name,
-        previousStatus: delivery.status,
-        newStatus: '배송연기',
-        delayDate,
-        delayReason: delayReason || null,
-        action_date,
-        action_time
-      }
+      data: responseData
     });
     
   } catch (error) {
@@ -1283,25 +1341,49 @@ async function cancelDelivery(req, res) {
     // action_date와 action_time 처리
     const { action_date, action_time } = req.body;
     
-    // action_date/time 컬럼 확인 및 생성
-    await ensureActionDateTimeColumns();
+    // action_date/time 컬럼 확인 및 생성 (production 환경에서 실패할 수 있음)
+    let hasActionColumns = false;
+    try {
+      hasActionColumns = await ensureActionDateTimeColumns();
+    } catch (error) {
+      console.log('⚠️ action_date/time 컬럼 생성 실패, 기본 SQL 사용:', error.message);
+    }
     
-    // 배송 취소 처리 (cancel_status, cancel_reason, canceled_at 및 상태를 '배송취소'로 업데이트)
-    const [updateResult] = await executeWithRetry(() =>
-      pool.execute(
-        `UPDATE deliveries SET 
-           cancel_status = 1,
-           cancel_reason = ?, 
-           canceled_at = ?,
-           status = '배송취소',
-           driver_notes = CONCAT(COALESCE(driver_notes, ''), IF(COALESCE(driver_notes, '') = '', '', '\n'), '배송취소 (', ?, '): ', ?),
-           action_date = ?,
-           action_time = ?,
-           updated_at = NOW()
-         WHERE id = ?`,
-        [cancelReason.trim(), now, now, cancelReason.trim(), action_date, action_time, deliveryId]
-      )
-    );
+    // action_date/time 컬럼이 존재하는 경우와 없는 경우를 구분하여 처리
+    let updateResult;
+    if (hasActionColumns) {
+      // 컬럼이 존재하는 경우: action_date/time 포함
+      [updateResult] = await executeWithRetry(() =>
+        pool.execute(
+          `UPDATE deliveries SET 
+             cancel_status = 1,
+             cancel_reason = ?, 
+             canceled_at = ?,
+             status = '배송취소',
+             driver_notes = CONCAT(COALESCE(driver_notes, ''), IF(COALESCE(driver_notes, '') = '', '', '\n'), '배송취소 (', ?, '): ', ?),
+             action_date = ?,
+             action_time = ?,
+             updated_at = NOW()
+           WHERE id = ?`,
+          [cancelReason.trim(), now, now, cancelReason.trim(), action_date, action_time, deliveryId]
+        )
+      );
+    } else {
+      // 컬럼이 없는 경우: action_date/time 제외
+      [updateResult] = await executeWithRetry(() =>
+        pool.execute(
+          `UPDATE deliveries SET 
+             cancel_status = 1,
+             cancel_reason = ?, 
+             canceled_at = ?,
+             status = '배송취소',
+             driver_notes = CONCAT(COALESCE(driver_notes, ''), IF(COALESCE(driver_notes, '') = '', '', '\n'), '배송취소 (', ?, '): ', ?),
+             updated_at = NOW()
+           WHERE id = ?`,
+          [cancelReason.trim(), now, now, cancelReason.trim(), deliveryId]
+        )
+      );
+    }
     
     if (updateResult.affectedRows === 0) {
       return res.status(500).json({
