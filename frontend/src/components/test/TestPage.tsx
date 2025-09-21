@@ -74,8 +74,7 @@ const TestPage: React.FC<TestPageProps> = ({ onNavigateBack }) => {
             {/* DB 구성도 보기 */}
             <button
               onClick={handleDbSchema}
-              disabled={isLoading}
-              className="flex flex-col items-center gap-4 p-6 bg-purple-50 hover:bg-purple-100 rounded-xl border-2 border-purple-200 hover:border-purple-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
+              className="flex flex-col items-center gap-4 p-6 bg-purple-50 hover:bg-purple-100 rounded-xl border-2 border-purple-200 hover:border-purple-300 transition-all group"
             >
               <div className="w-16 h-16 bg-purple-500 group-hover:bg-purple-600 rounded-full flex items-center justify-center transition-colors">
                 <Database className="w-8 h-8 text-white" />
