@@ -88,7 +88,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onOrderStatusChange }) => {
    */
   useEffect(() => {
     if (isAutoRefreshEnabled) {
-      intervalRef.current = setInterval(() => {
+      intervalRef.current = window.setInterval(() => {
         // 페이지가 보일 때만 새로고침
         if (visibilityRef.current) {
           fetchOrders(true); // 새로고침 인디케이터 표시

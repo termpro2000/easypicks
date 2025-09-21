@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Package, Plus, Users, BarChart3, Settings, Search, LogOut, User } from 'lucide-react';
+import React from 'react';
+import { Package, Plus, Users, BarChart3, Settings, Search, LogOut } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
 interface AdminDashboardProps {
