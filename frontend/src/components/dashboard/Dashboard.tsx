@@ -133,15 +133,16 @@ const Dashboard: React.FC<DashboardProps> = ({ onOrderStatusChange }) => {
       setOrders(ordersData);
       setLastUpdated(new Date());
       
-      // 통계 계산
+      // 통계 계산 (null 안전성 검사 추가)
+      const safeOrdersData = ordersData || [];
       const newStats = {
-        total: ordersData.length,
-        접수완료: ordersData.filter((o: ShippingOrder) => o.status === '접수완료').length,
-        배송준비: ordersData.filter((o: ShippingOrder) => o.status === '배송준비').length,
-        배송중: ordersData.filter((o: ShippingOrder) => o.status === '배송중').length,
-        배송완료: ordersData.filter((o: ShippingOrder) => o.status === '배송완료').length,
-        취소: ordersData.filter((o: ShippingOrder) => o.status === '취소').length,
-        반송: ordersData.filter((o: ShippingOrder) => o.status === '반송').length
+        total: safeOrdersData.length,
+        접수완료: safeOrdersData.filter((o: ShippingOrder) => o.status === '접수완료').length,
+        배송준비: safeOrdersData.filter((o: ShippingOrder) => o.status === '배송준비').length,
+        배송중: safeOrdersData.filter((o: ShippingOrder) => o.status === '배송중').length,
+        배송완료: safeOrdersData.filter((o: ShippingOrder) => o.status === '배송완료').length,
+        취소: safeOrdersData.filter((o: ShippingOrder) => o.status === '취소').length,
+        반송: safeOrdersData.filter((o: ShippingOrder) => o.status === '반송').length
       };
       setStats(newStats);
     } catch (error: any) {
@@ -178,7 +179,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onOrderStatusChange }) => {
     );
   };
 
-  const filteredOrders = orders.filter(order => {
+  const filteredOrders = (orders || []).filter(order => {
     const matchesSearch = 
       order.tracking_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.receiver_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||

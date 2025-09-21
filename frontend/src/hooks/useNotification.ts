@@ -81,7 +81,7 @@ export const useNotification = () => {
 
   // 토스트 제거
   const removeToast = useCallback((id: string) => {
-    setToasts(prev => prev.filter(toast => toast.id !== id));
+    setToasts(prev => (prev || []).filter(toast => toast.id !== id));
   }, []);
 
   // 모든 토스트 제거
