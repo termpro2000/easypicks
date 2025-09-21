@@ -7,7 +7,9 @@ const {
   login,
   logout,
   me,
-  profile
+  profile,
+  getMapPreference,
+  updateMapPreference
 } = require('../controllers/authController');
 
 // 회원가입
@@ -27,5 +29,11 @@ router.get('/me', authenticateToken, me);
 
 // 사용자 프로필 조회 (hy2 호환성)
 router.get('/profile', authenticateToken, profile);
+
+// 지도 설정 조회
+router.get('/map-preference', authenticateToken, getMapPreference);
+
+// 지도 설정 업데이트
+router.put('/map-preference', authenticateToken, updateMapPreference);
 
 module.exports = router;

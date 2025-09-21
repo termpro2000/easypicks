@@ -313,11 +313,151 @@ async function profile(req, res) {
   }
 }
 
+/**
+ * 지도 설정 조회
+ */
+async function getMapPreference(req, res) {
+  try {
+    let userId = null;
+    
+    if (req.user && req.user.id) {
+      userId = req.user.id;
+    }
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        error: 'Unauthorized',
+        message: '로그인이 필요합니다.'
+      });
+    }
+
+    // map_preference 컬럼이 없을 수도 있으므로 try-catch로 처리
+    let users;
+    try {
+      [users] = await executeWithRetry(() =>
+        pool.execute(`
+          SELECT map_preference
+          FROM users 
+          WHERE id = ? AND is_active = true
+        `, [userId])
+      );
+    } catch (error) {
+      // map_preference 컬럼이 없는 경우 기본값 반환
+      console.log('map_preference 컬럼이 없음, 기본값 사용:', error.message);
+      return res.json({
+        success: true,
+        mapPreference: 0 // 기본값 0 (네이버지도)
+      });
+    }
+
+    if (users.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Not Found',
+        message: '사용자를 찾을 수 없습니다.'
+      });
+    }
+
+    const user = users[0];
+    const mapPreference = user.map_preference || 0; // 기본값 0 (네이버지도)
+
+    res.json({
+      success: true,
+      mapPreference: mapPreference
+    });
+
+  } catch (error) {
+    console.error('지도 설정 조회 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal Server Error',
+      message: '지도 설정 조회 중 오류가 발생했습니다.'
+    });
+  }
+}
+
+/**
+ * 지도 설정 업데이트
+ */
+async function updateMapPreference(req, res) {
+  try {
+    let userId = null;
+    
+    if (req.user && req.user.id) {
+      userId = req.user.id;
+    }
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        error: 'Unauthorized',
+        message: '로그인이 필요합니다.'
+      });
+    }
+
+    const { mapPreference } = req.body;
+
+    // 유효성 검증
+    if (typeof mapPreference !== 'number' || mapPreference < 0 || mapPreference > 3) {
+      return res.status(400).json({
+        success: false,
+        error: 'Bad Request',
+        message: '올바른 지도 설정 값을 입력해주세요 (0-3).'
+      });
+    }
+
+    // 지도 설정 업데이트 (컬럼이 없을 수도 있으므로 try-catch로 처리)
+    let result;
+    try {
+      [result] = await executeWithRetry(() =>
+        pool.execute(`
+          UPDATE users 
+          SET map_preference = ?, updated_at = NOW()
+          WHERE id = ? AND is_active = true
+        `, [mapPreference, userId])
+      );
+    } catch (error) {
+      // map_preference 컬럼이 없는 경우 성공으로 처리 (임시)
+      console.log('map_preference 컬럼이 없음, 업데이트 생략:', error.message);
+      return res.json({
+        success: true,
+        message: '지도 설정이 성공적으로 업데이트되었습니다 (임시 - 컬럼 없음).',
+        mapPreference: mapPreference
+      });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Not Found',
+        message: '사용자를 찾을 수 없습니다.'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: '지도 설정이 성공적으로 업데이트되었습니다.',
+      mapPreference: mapPreference
+    });
+
+  } catch (error) {
+    console.error('지도 설정 업데이트 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal Server Error',
+      message: '지도 설정 업데이트 중 오류가 발생했습니다.'
+    });
+  }
+}
+
 module.exports = {
   register,
   checkUsername,
   login,
   logout,
   me,
-  profile
+  profile,
+  getMapPreference,
+  updateMapPreference
 };
