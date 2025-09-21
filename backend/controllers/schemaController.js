@@ -99,32 +99,55 @@ async function getSchemaInfo(req, res) {
 
     console.log(`인덱스 ${indexes.length}개 조회 완료`);
 
+    // 데이터베이스 이름 조회
+    const [dbInfo] = await executeWithRetry(() =>
+      pool.execute('SELECT DATABASE() as database_name')
+    );
+    
+    // 테이블별로 외래키와 인덱스 매핑
+    const tablesWithDetails = (tableDetails || []).map(table => {
+      const tableForeignKeys = (foreignKeys || []).filter(fk => fk.table_name === table.table_name);
+      const tableIndexes = (indexes || []).filter(idx => idx.table_name === table.table_name);
+      
+      return {
+        table_name: table.table_name,
+        table_comment: table.table_comment || '',
+        table_rows: table.table_rows || 0,
+        auto_increment: null,
+        create_time: table.create_time,
+        update_time: table.update_time,
+        columns: (table.columns || []).map(col => ({
+          COLUMN_NAME: col.column_name,
+          DATA_TYPE: col.data_type,
+          IS_NULLABLE: col.is_nullable,
+          COLUMN_DEFAULT: col.column_default,
+          COLUMN_COMMENT: col.column_comment || '',
+          COLUMN_KEY: col.column_key || '',
+          EXTRA: col.extra || '',
+          CHARACTER_MAXIMUM_LENGTH: col.max_length,
+          NUMERIC_PRECISION: col.numeric_precision,
+          NUMERIC_SCALE: col.numeric_scale
+        })),
+        foreign_keys: tableForeignKeys.map(fk => ({
+          COLUMN_NAME: fk.column_name,
+          REFERENCED_TABLE_NAME: fk.referenced_table,
+          REFERENCED_COLUMN_NAME: fk.referenced_column
+        })),
+        indexes: tableIndexes
+      };
+    });
+
     const schemaInfo = {
-      tables: tableDetails || [],
-      foreignKeys: foreignKeys || [],
-      indexes: indexes || [],
-      summary: {
-        totalTables: (tableDetails || []).length,
-        totalColumns: (tableDetails || []).reduce((sum, table) => sum + (table.columns || []).length, 0),
-        totalForeignKeys: (foreignKeys || []).length,
-        totalIndexes: indexes.reduce((acc, idx) => {
-          const key = `${idx.table_name}.${idx.index_name}`;
-          if (!acc.seen.has(key)) {
-            acc.seen.add(key);
-            acc.count++;
-          }
-          return acc;
-        }, { seen: new Set(), count: 0 }).count
-      },
-      generatedAt: new Date().toISOString()
+      database_name: dbInfo[0]?.database_name || 'unknown',
+      tables: tablesWithDetails
     };
 
-    console.log('스키마 정보 조회 성공:', schemaInfo.summary);
-
-    res.json({
-      success: true,
-      data: schemaInfo
+    console.log('스키마 정보 조회 성공:', { 
+      database: schemaInfo.database_name, 
+      tables: schemaInfo.tables.length 
     });
+
+    res.json(schemaInfo);
 
   } catch (error) {
     console.error('스키마 정보 조회 오류:', error);
