@@ -832,8 +832,13 @@ async function completeDelivery(req, res) {
       customerRequestedCompletion,
       furnitureCompanyRequestedCompletion,
       completionAudioFile,
+      action_date,
+      action_time,
       userId: req.user?.user_id
     });
+    
+    // action_date/time 컬럼 확인 및 생성
+    await ensureActionDateTimeColumns();
     
     // 배송 정보 존재 여부 및 의뢰종류 확인
     const [deliveryCheck] = await pool.execute(
@@ -944,7 +949,9 @@ async function completeDelivery(req, res) {
         completedAt: now,
         customerRequestedCompletion: customerRequestedCompletion,
         furnitureCompanyRequestedCompletion: furnitureCompanyRequestedCompletion,
-        completionAudioFile: completionAudioFile
+        completionAudioFile: completionAudioFile,
+        action_date,
+        action_time
       }
     });
     
@@ -1151,6 +1158,9 @@ async function delayDelivery(req, res) {
       trackingNumber
     });
     
+    // action_date/time 컬럼 확인 및 생성
+    await ensureActionDateTimeColumns();
+    
     // driver_notes 필드에 연기 정보 업데이트 및 상태를 '배송연기'로 변경
     const [updateResult] = await executeWithRetry(() =>
       pool.execute(
@@ -1196,7 +1206,9 @@ async function delayDelivery(req, res) {
         previousStatus: delivery.status,
         newStatus: '배송연기',
         delayDate,
-        delayReason: delayReason || null
+        delayReason: delayReason || null,
+        action_date,
+        action_time
       }
     });
     
@@ -1271,6 +1283,9 @@ async function cancelDelivery(req, res) {
     // action_date와 action_time 처리
     const { action_date, action_time } = req.body;
     
+    // action_date/time 컬럼 확인 및 생성
+    await ensureActionDateTimeColumns();
+    
     // 배송 취소 처리 (cancel_status, cancel_reason, canceled_at 및 상태를 '배송취소'로 업데이트)
     const [updateResult] = await executeWithRetry(() =>
       pool.execute(
@@ -1326,7 +1341,9 @@ async function cancelDelivery(req, res) {
         previousStatus: delivery.status,
         newStatus: '배송취소',
         cancelReason: cancelReason.trim(),
-        canceledAt: now
+        canceledAt: now,
+        action_date,
+        action_time
       }
     });
     
