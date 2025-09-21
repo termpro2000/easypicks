@@ -118,7 +118,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onLogout })
           </p>
         </div>
 
-        {/* 6개의 정사각형 버튼을 3x2 그리드로 배치 */}
+        {/* 4개의 정사각형 버튼을 2x2 그리드로 배치 */}
         <div className="max-w-2xl mx-auto">
           {/* 첫 번째 줄: 새배송접수, 배송조회 */}
           <div className="flex justify-center gap-8 mb-8">
