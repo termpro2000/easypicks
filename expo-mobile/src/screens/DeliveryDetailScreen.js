@@ -95,22 +95,41 @@ const DeliveryDetailScreen = ({ route, navigation }) => {
     loadUploadedPhotos();
   }, []);
 
-  // 전역 지도 설정 변경 감지 및 초기화
+  // AsyncStorage에서 지도 설정 로드
+  const loadMapPreference = async () => {
+    try {
+      const savedMapPreference = await AsyncStorage.getItem('mapPreference');
+      const mapPref = savedMapPreference ? parseInt(savedMapPreference, 10) : 0;
+      setCurrentMapPreference(mapPref);
+      console.log('DeliveryDetailScreen - 지도 설정 로드:', mapPref);
+    } catch (error) {
+      console.error('DeliveryDetailScreen - 지도 설정 로드 오류:', error);
+      setCurrentMapPreference(0); // 기본값
+    }
+  };
+
+  // 지도 설정 초기화 및 변경 감지
   useEffect(() => {
-    // 초기 설정 - 전역 상태에서 가져와서 초기화
-    const initialMapPreference = global.getMapPreference ? global.getMapPreference() : 0;
-    setCurrentMapPreference(initialMapPreference);
+    // AsyncStorage에서 초기 설정 로드
+    loadMapPreference();
     
-    const checkMapPreference = () => {
-      const globalMapPref = global.getMapPreference ? global.getMapPreference() : 0;
-      if (globalMapPref !== currentMapPreference) {
-        setCurrentMapPreference(globalMapPref);
+    const checkMapPreference = async () => {
+      try {
+        const savedMapPreference = await AsyncStorage.getItem('mapPreference');
+        const mapPref = savedMapPreference ? parseInt(savedMapPreference, 10) : 0;
+        if (mapPref !== currentMapPreference) {
+          setCurrentMapPreference(mapPref);
+          console.log('DeliveryDetailScreen - 지도 설정 변경 감지:', mapPref);
+        }
+      } catch (error) {
+        console.error('DeliveryDetailScreen - 지도 설정 확인 오류:', error);
       }
     };
     
-    // 전역 변경 감지 함수 등록
+    // 전역 변경 감지 함수 등록 (MapSettingScreen에서 호출)
     global.onMapPreferenceChange = (newValue) => {
       setCurrentMapPreference(newValue);
+      console.log('DeliveryDetailScreen - 전역 지도 설정 변경:', newValue);
     };
     
     // 지도 설정 변경 감지 (1초 간격)
@@ -1925,6 +1944,14 @@ Storage Bucket: ${firebaseConfig?.storageBucket || '없음'}
           </View>
 
           <View style={styles.section}>
+            <Text style={styles.sectionTitle}>메모 및 기타</Text>
+            <DetailItem label="주요메모" value={delivery.mainMemo} />
+            <DetailItem label="상품정보" value={delivery.productInfo} />
+            <DetailItem label="가구사요청사항" value={delivery.furnitureRequest} />
+            <DetailItem label="기사님메모" value={delivery.driverMemo} />
+          </View>
+
+          <View style={styles.section}>
             <Text style={styles.sectionTitle}>✍️ 기사님 메모</Text>
             
             {/* 배송완료처리 체크박스 섹션 */}
@@ -2236,13 +2263,6 @@ Storage Bucket: ${firebaseConfig?.storageBucket || '없음'}
             </View>
           </View>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>메모 및 기타</Text>
-            <DetailItem label="주요메모" value={delivery.mainMemo} />
-            <DetailItem label="상품정보" value={delivery.productInfo} />
-            <DetailItem label="가구사요청사항" value={delivery.furnitureRequest} />
-            <DetailItem label="기사님메모" value={delivery.driverMemo} />
-          </View>
         </View>
       </ScrollView>
 

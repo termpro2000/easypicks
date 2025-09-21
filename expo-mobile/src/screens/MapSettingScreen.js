@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
   SafeAreaView,
 } from 'react-native';
-import api from '../config/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const MapSettingScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
@@ -19,79 +19,69 @@ const MapSettingScreen = ({ navigation }) => {
     loadMapPreference();
   }, []);
 
-  // 지도 설정 로드
+  // 지도 설정 로드 (AsyncStorage 사용)
   const loadMapPreference = async () => {
     try {
       setLoading(true);
-      console.log('지도 설정 로드 시작 - API에서 최신 데이터 조회');
+      console.log('지도 설정 로드 시작 - AsyncStorage에서 로컬 데이터 조회');
       
-      const response = await api.get('/auth/map-preference');
-      console.log('지도 설정 로드 응답 전체:', JSON.stringify(response.data, null, 2));
-      console.log('response.data.success:', response.data.success);
-      console.log('response.data.mapPreference:', response.data.mapPreference);
+      const savedMapPreference = await AsyncStorage.getItem('mapPreference');
+      const mapPref = savedMapPreference ? parseInt(savedMapPreference, 10) : 0; // 기본값 0 (네이버지도)
       
-      if (response.data && response.data.success) {
-        const serverMapPref = response.data.mapPreference || 0;
-        setMapPreference(serverMapPref);
-        console.log('지도 설정 로드 완료:', serverMapPref);
-        
-        // 전역 상태도 업데이트
-        if (global.setMapPreference) {
-          global.setMapPreference(serverMapPref);
-          console.log('전역 지도 설정도 업데이트:', serverMapPref);
-        }
-      } else {
-        console.error('API 응답 형식 오류:', response.data);
-        Alert.alert('오류', `지도 설정 응답 형식이 올바르지 않습니다: ${JSON.stringify(response.data)}`);
+      setMapPreference(mapPref);
+      console.log('지도 설정 로드 완료:', mapPref);
+      
+      // 전역 상태도 업데이트
+      if (global.setMapPreference) {
+        global.setMapPreference(mapPref);
+        console.log('전역 지도 설정도 업데이트:', mapPref);
       }
     } catch (error) {
       console.error('지도 설정 로드 오류:', error);
-      console.error('오류 상세:', error.response?.data);
-      console.error('오류 메시지:', error.message);
-      console.error('오류 스택:', error.stack);
       
-      const errorDetail = error.response?.data 
-        ? JSON.stringify(error.response.data) 
-        : error.message || '알 수 없는 오류';
+      // AsyncStorage 오류 시 기본값 사용
+      const defaultMapPref = 0;
+      setMapPreference(defaultMapPref);
       
-      Alert.alert('오류', `지도 설정을 불러올 수 없습니다.\n상세: ${errorDetail}`);
+      if (global.setMapPreference) {
+        global.setMapPreference(defaultMapPref);
+      }
+      
+      Alert.alert('알림', '지도 설정을 불러오는 중 오류가 발생했습니다. 기본값(네이버지도)을 사용합니다.');
     } finally {
       setLoading(false);
     }
   };
 
-  // 지도 설정 변경
+  // 지도 설정 변경 (AsyncStorage 사용)
   const handleMapPreferenceChange = async (selectedMapIndex) => {
     try {
       setSaving(true);
       console.log('지도 설정 변경 시작:', selectedMapIndex);
       
-      const response = await api.put('/auth/map-preference', {
-        mapPreference: selectedMapIndex
-      });
+      // AsyncStorage에 저장
+      await AsyncStorage.setItem('mapPreference', selectedMapIndex.toString());
+      console.log('지도 설정 AsyncStorage 저장 완료:', selectedMapIndex);
       
-      console.log('지도 설정 변경 응답:', response.data);
+      setMapPreference(selectedMapIndex);
       
-      if (response.data.success) {
-        setMapPreference(selectedMapIndex);
-        // 전역 지도 설정도 업데이트
-        if (global.setMapPreference) {
-          global.setMapPreference(selectedMapIndex);
-        }
-        // DeliveryDetailScreen에 즉시 알림
-        if (global.onMapPreferenceChange) {
-          global.onMapPreferenceChange(selectedMapIndex);
-        }
-        
-        Alert.alert('성공', '지도 설정이 변경되었습니다.');
-      } else {
-        console.error('지도 설정 변경 실패:', response.data);
-        Alert.alert('오류', response.data.error || '지도 설정 변경에 실패했습니다.');
+      // 전역 지도 설정도 업데이트
+      if (global.setMapPreference) {
+        global.setMapPreference(selectedMapIndex);
+        console.log('전역 지도 설정 업데이트 완료:', selectedMapIndex);
       }
+      
+      // DeliveryDetailScreen에 즉시 알림
+      if (global.onMapPreferenceChange) {
+        global.onMapPreferenceChange(selectedMapIndex);
+        console.log('DeliveryDetailScreen 알림 완료:', selectedMapIndex);
+      }
+      
+      const mapNames = ['네이버지도', '카카오지도', '티맵', '구글지도'];
+      Alert.alert('성공', `지도 설정이 ${mapNames[selectedMapIndex]}로 변경되었습니다.`);
     } catch (error) {
       console.error('지도 설정 변경 오류:', error);
-      console.error('오류 상세:', error.response?.data);
-      Alert.alert('오류', `지도 설정 변경에 실패했습니다: ${error.response?.data?.error || error.message}`);
+      Alert.alert('오류', `지도 설정 변경에 실패했습니다: ${error.message}`);
     } finally {
       setSaving(false);
     }

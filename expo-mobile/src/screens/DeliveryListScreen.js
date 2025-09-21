@@ -838,9 +838,6 @@ const DeliveryListScreen = ({ navigation }) => {
             </View>
             
             <View style={styles.slideMenuContent}>
-              <TouchableOpacity style={styles.menuItem}>
-                <Text style={styles.menuItemText}>🔔 알림 설정</Text>
-              </TouchableOpacity>
               
               <TouchableOpacity 
                 style={styles.menuItem}
