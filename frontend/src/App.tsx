@@ -80,15 +80,15 @@ const AppContent: React.FC = () => {
     }
   };
 
-  // 관리자는 6개 버튼 AdminDashboard 표시
-  if (user?.role === 'admin' && currentPage === 'dashboard') {
-    return (
-      <AdminDashboard 
-        onNavigate={setCurrentPage}
-        onLogout={handleLogout}
-      />
-    );
-  }
+  // 관리자도 일반 대시보드 사용 (테스트 버튼 포함)
+  // if (user?.role === 'admin' && currentPage === 'dashboard') {
+  //   return (
+  //     <AdminDashboard 
+  //       onNavigate={setCurrentPage}
+  //       onLogout={handleLogout}
+  //     />
+  //   );
+  // }
 
   return (
     <div className="min-h-screen bg-gray-100">
