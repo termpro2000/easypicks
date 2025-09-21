@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
-const { executeWithRetry, pool } = require('../utils/database');
+const { executeWithRetry, pool } = require('../config/database');
 
 // 테이블 관계 정보 조회
 router.get('/table-relationships', authenticateToken, async (req, res) => {
