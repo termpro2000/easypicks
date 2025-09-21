@@ -67,7 +67,7 @@ const DbSchemaViewer: React.FC<DbSchemaViewerProps> = ({ onBack }) => {
         ? 'http://localhost:3001' 
         : 'https://efficient-abundance-production-d603.up.railway.app';
       
-      const response = await fetch(`${API_BASE_URL}/api/schema/info`, {
+      const response = await fetch(`${API_BASE_URL}/api/schema`, {
         headers: {
           'Authorization': `Bearer test-token`,
           'Content-Type': 'application/json'
