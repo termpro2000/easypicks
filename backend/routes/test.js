@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
-const { executeWithRetry } = require('../utils/database');
+const { executeWithRetry, pool } = require('../utils/database');
 
 // 테이블 관계 정보 조회
 router.get('/table-relationships', authenticateToken, async (req, res) => {
@@ -10,7 +10,7 @@ router.get('/table-relationships', authenticateToken, async (req, res) => {
     
     // 외래키 관계 정보 조회
     const [foreignKeys] = await executeWithRetry(() => 
-      req.db.execute(`
+      pool.execute(`
         SELECT 
           TABLE_NAME as table_name,
           COLUMN_NAME as column_name,
@@ -57,7 +57,7 @@ router.get('/connection', authenticateToken, async (req, res) => {
     console.log('[Test API] 데이터베이스 연결 테스트 요청');
     
     const [result] = await executeWithRetry(() => 
-      req.db.execute('SELECT 1 as test, NOW() as current_time')
+      pool.execute('SELECT 1 as test, NOW() as current_time')
     );
 
     console.log('[Test API] 데이터베이스 연결 테스트 성공');
