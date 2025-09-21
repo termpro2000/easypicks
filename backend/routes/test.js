@@ -98,10 +98,15 @@ router.get('/db-schema', authenticateToken, async (req, res) => {
     res.json({
       success: true,
       data: {
-        tables: tablesWithColumns,
-        foreignKeys,
-        indexes,
-        summary
+        tables: tablesWithColumns || [],
+        foreignKeys: foreignKeys || [],
+        indexes: indexes || [],
+        summary: summary || {
+          totalTables: 0,
+          totalColumns: 0,
+          totalForeignKeys: 0,
+          totalIndexes: 0
+        }
       }
     });
 

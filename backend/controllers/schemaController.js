@@ -100,13 +100,13 @@ async function getSchemaInfo(req, res) {
     console.log(`인덱스 ${indexes.length}개 조회 완료`);
 
     const schemaInfo = {
-      tables: tableDetails,
-      foreignKeys: foreignKeys,
-      indexes: indexes,
+      tables: tableDetails || [],
+      foreignKeys: foreignKeys || [],
+      indexes: indexes || [],
       summary: {
-        totalTables: tableDetails.length,
-        totalColumns: tableDetails.reduce((sum, table) => sum + table.columns.length, 0),
-        totalForeignKeys: foreignKeys.length,
+        totalTables: (tableDetails || []).length,
+        totalColumns: (tableDetails || []).reduce((sum, table) => sum + (table.columns || []).length, 0),
+        totalForeignKeys: (foreignKeys || []).length,
         totalIndexes: indexes.reduce((acc, idx) => {
           const key = `${idx.table_name}.${idx.index_name}`;
           if (!acc.seen.has(key)) {
