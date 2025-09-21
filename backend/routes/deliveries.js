@@ -10,6 +10,7 @@ const {
   updateDelivery,
   completeDelivery,
   postponeDelivery,
+  delayDelivery,
   cancelDelivery,
   createTestData,
   runMigration,
@@ -39,6 +40,9 @@ router.post('/complete/:id', authenticateToken, completeDelivery);
 
 // 배송 연기 처리 (JWT 인증 필요)
 router.post('/postpone/:id', authenticateToken, postponeDelivery);
+
+// 배송 연기 처리 - tracking number로 (JWT 인증 필요)
+router.post('/delay/:trackingNumber', authenticateToken, delayDelivery);
 
 // 배송 취소 처리 (JWT 인증 필요)
 router.post('/cancel/:id', authenticateToken, cancelDelivery);
