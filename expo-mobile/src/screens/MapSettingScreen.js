@@ -26,10 +26,12 @@ const MapSettingScreen = ({ navigation }) => {
       console.log('지도 설정 로드 시작 - API에서 최신 데이터 조회');
       
       const response = await api.get('/auth/map-preference');
-      console.log('지도 설정 로드 응답:', response.data);
+      console.log('지도 설정 로드 응답 전체:', JSON.stringify(response.data, null, 2));
+      console.log('response.data.success:', response.data.success);
+      console.log('response.data.mapPreference:', response.data.mapPreference);
       
-      if (response.data.success) {
-        const serverMapPref = response.data.mapPreference;
+      if (response.data && response.data.success) {
+        const serverMapPref = response.data.mapPreference || 0;
         setMapPreference(serverMapPref);
         console.log('지도 설정 로드 완료:', serverMapPref);
         
@@ -38,11 +40,21 @@ const MapSettingScreen = ({ navigation }) => {
           global.setMapPreference(serverMapPref);
           console.log('전역 지도 설정도 업데이트:', serverMapPref);
         }
+      } else {
+        console.error('API 응답 형식 오류:', response.data);
+        Alert.alert('오류', `지도 설정 응답 형식이 올바르지 않습니다: ${JSON.stringify(response.data)}`);
       }
     } catch (error) {
       console.error('지도 설정 로드 오류:', error);
       console.error('오류 상세:', error.response?.data);
-      Alert.alert('오류', '지도 설정을 불러올 수 없습니다.');
+      console.error('오류 메시지:', error.message);
+      console.error('오류 스택:', error.stack);
+      
+      const errorDetail = error.response?.data 
+        ? JSON.stringify(error.response.data) 
+        : error.message || '알 수 없는 오류';
+      
+      Alert.alert('오류', `지도 설정을 불러올 수 없습니다.\n상세: ${errorDetail}`);
     } finally {
       setLoading(false);
     }

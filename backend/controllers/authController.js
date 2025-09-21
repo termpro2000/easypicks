@@ -324,7 +324,14 @@ async function getMapPreference(req, res) {
       userId = req.user.id;
     }
 
+    console.log('🔍 [getMapPreference] JWT에서 추출한 사용자:', {
+      userId,
+      userObj: req.user,
+      hasUserId: !!userId
+    });
+
     if (!userId) {
+      console.log('❌ [getMapPreference] 사용자 ID 없음');
       return res.status(401).json({
         success: false,
         error: 'Unauthorized',
@@ -335,6 +342,7 @@ async function getMapPreference(req, res) {
     // map_preference 컬럼이 없을 수도 있으므로 try-catch로 처리
     let users;
     try {
+      console.log('🔍 [getMapPreference] SQL 쿼리 실행:', { userId });
       [users] = await executeWithRetry(() =>
         pool.execute(`
           SELECT map_preference
@@ -342,9 +350,13 @@ async function getMapPreference(req, res) {
           WHERE id = ? AND is_active = true
         `, [userId])
       );
+      console.log('🔍 [getMapPreference] SQL 결과:', { 
+        userCount: users.length,
+        users: users.map(u => ({ id: u.id, map_preference: u.map_preference }))
+      });
     } catch (error) {
       // map_preference 컬럼이 없는 경우 기본값 반환
-      console.log('map_preference 컬럼이 없음, 기본값 사용:', error.message);
+      console.log('⚠️ [getMapPreference] map_preference 컬럼이 없음, 기본값 사용:', error.message);
       return res.json({
         success: true,
         mapPreference: 0 // 기본값 0 (네이버지도)
@@ -352,6 +364,7 @@ async function getMapPreference(req, res) {
     }
 
     if (users.length === 0) {
+      console.log('❌ [getMapPreference] 사용자를 찾을 수 없음:', { userId });
       return res.status(404).json({
         success: false,
         error: 'Not Found',
