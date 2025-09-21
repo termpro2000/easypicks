@@ -221,3 +221,62 @@ Documented complete implementation strategy for notifications from frontend web 
 - **Update Process Logging**: Detailed console output for EAS update checks and downloads
 - **Database Migration Logging**: Clear feedback during column creation and validation
 - **Push Token Validation**: Proper error handling for missing or invalid push tokens
+
+### Latest Development Work (2025-09-21 Session)
+
+#### Project Structure Integration
+- **Problem Solved**: Git synchronization conflicts between multiple directories
+- **Solution**: Integrated all components into unified `hy2/` directory structure:
+  ```
+  hy2/
+  ├── expo-mobile/    (React Native/Expo mobile app)
+  ├── backend/        (Node.js/Express API server)
+  └── frontend/       (Web application)
+  ```
+- **Benefits**: Single repository management, no more git conflicts, simplified deployment
+
+#### Action Date/Time Persistence Issues
+- **Problem**: action_date/time displayed temporarily but disappeared after reload
+- **Root Cause**: Database columns didn't exist on production environment
+- **Solution**: Added `ensureActionDateTimeColumns()` calls to all delivery action APIs
+- **Result**: action_date/time now properly persisted in database across app restarts
+
+#### Database Migration Enhancement
+```javascript
+// Added to postpone, cancel, and complete delivery APIs
+await ensureActionDateTimeColumns();
+```
+- Automatically creates action_date (DATE) and action_time (TIME) columns if missing
+- Ensures backward compatibility with existing database schemas
+
+#### Mobile App Fallback Logic
+- **API Response Fallback**: When API doesn't return action_date/time, use current timestamp
+- **AsyncStorage Enhancement**: Includes action_date/time in real-time status updates
+- **Display Logic**: Only show action dates for status-changed deliveries
+
+#### API Routing Fix
+- **Problem**: Mobile app calling `/deliveries/delay/:trackingNumber` but route didn't exist
+- **Error**: "Not Found" when clicking postpone button
+- **Solution**: Added missing route in `backend/routes/deliveries.js`:
+  ```javascript
+  router.post('/delay/:trackingNumber', authenticateToken, delayDelivery);
+  ```
+
+#### Visit Time Display Enhancement
+- **Improvement**: Better parsing for visit_time display in delivery list
+- **Format**: Shows `방문: 2025-09-21 14:30` when time data available
+- **Fallback**: Shows only date if time data unavailable
+
+#### Current Status
+- **✅ Delivery Postpone**: Fixed "Not Found" error, action_date persistence working
+- **✅ Delivery Cancel**: action_date/time properly stored and displayed  
+- **✅ Delivery Complete**: action_date/time properly stored and displayed
+- **✅ Project Integration**: All components in unified structure
+- **✅ Database Migration**: Automatic column creation working
+- **✅ Real-time Updates**: AsyncStorage properly includes action timestamps
+
+#### Technical Implementation Details
+- **Button Text**: Changed '배송완료처리' → '배송완료' for better UX
+- **Date Format**: Standardized YYYY-MM-DD for dates, HH:MM for times
+- **Error Handling**: Added comprehensive API response validation
+- **Logging**: Enhanced debugging for action_date flow tracking
