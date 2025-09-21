@@ -160,3 +160,64 @@ LoginScreen → DeliveryListScreen ↔ DeliveryDetailScreen
 - **배송취소 (Cancel)**: Red (#F44336) 
 - **배송완료 (Complete)**: Green (#4CAF50)
 - **Other statuses**: Orange/Blue based on progress state
+
+## Recent Development Work
+
+### Database Schema Updates (2025-09-21)
+- **Action Date/Time Fields**: Added `action_date` (DATE) and `action_time` (TIME) columns to `deliveries` table
+- **Migration Strategy**: Implemented automatic column detection and creation in backend API
+- **Backward Compatibility**: API gracefully handles missing columns, returns null values when fields don't exist
+- **Database Commands**:
+```sql
+ALTER TABLE deliveries ADD COLUMN action_date DATE NULL;
+ALTER TABLE deliveries ADD COLUMN action_time TIME NULL;
+```
+
+### EAS Update Configuration Fixes
+- **Channel Alignment**: Fixed mismatch between APK builds and update channels
+- **Critical Fix**: APK builds were using `production` channel but updates were published to `master` branch
+- **Solution**: Updated app.json to use `expo-channel-name: production` for all updates
+- **Deployment Pattern**: All EAS updates MUST use `--branch production` for APK compatibility
+
+### UI/UX Improvements
+- **DeliveryListScreen**: 
+  - Fixed visit_time display to show HH:MM format only (was showing full timestamp)
+  - Added action_date/time field mapping with proper null handling
+  - Enhanced left border color coding to match status background colors
+- **AppInfoScreen**: 
+  - Removed app description section for cleaner interface
+  - Added manual update functionality with loading states
+  - Improved update ID display (first 8 characters only)
+
+### Push Notification Implementation Guide
+Documented complete implementation strategy for notifications from frontend web app to mobile drivers:
+
+#### Architecture Components
+1. **Frontend Web App**: Uses expo-server-sdk to send notifications
+2. **Backend API**: Stores driver push tokens, triggers notifications on assignment
+3. **Mobile App**: Registers for push notifications, handles incoming messages
+4. **Database**: Added `push_token` field to drivers table
+
+#### Key Implementation Files
+- **Frontend**: `services/pushNotificationService.js` (Expo SDK integration)
+- **Backend**: `controllers/notificationController.js` (notification endpoints)
+- **Mobile**: App.js notification setup with Expo Notifications SDK
+- **Database**: `drivers` table with push_token column
+
+#### Notification Flow
+1. Driver login → Register push token with backend
+2. Web assignment → Backend sends notification via Expo Push Service  
+3. Mobile receipt → App shows notification and can navigate to delivery detail
+4. Tap handling → Direct navigation to assigned delivery
+
+### Code Quality Improvements
+- **Error Handling**: Enhanced API error responses with detailed logging
+- **Database Migration**: Implemented column existence checks before adding new fields
+- **Consistent Formatting**: Standardized date (YYYY-MM-DD) and time (HH:MM) display formats
+- **Manual Update Control**: Added user-initiated update checking in App Info screen
+
+### Testing & Debugging Enhancements
+- **Action Field Debugging**: Added comprehensive logging for action_date/time field mapping
+- **Update Process Logging**: Detailed console output for EAS update checks and downloads
+- **Database Migration Logging**: Clear feedback during column creation and validation
+- **Push Token Validation**: Proper error handling for missing or invalid push tokens

@@ -2243,7 +2243,7 @@ Storage Bucket: ${firebaseConfig?.storageBucket || '없음'}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.registerButton} onPress={handleResultRegister}>
-            <Text style={styles.registerButtonText}>배송완료처리</Text>
+            <Text style={styles.registerButtonText}>배송완료</Text>
           </TouchableOpacity>
         </View>
       </View>
