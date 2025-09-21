@@ -625,16 +625,32 @@ const DeliveryListScreen = ({ navigation }) => {
                                      '배송완료', 'delivery_completed', 'collection_completed', 'processing_completed', 
                                      'delivered', 'completed'].includes(item.status);
               
-              if (!hasActionStatus || !item.action_date) {
+              if (!hasActionStatus) {
+                return '-';
+              }
+              
+              let date = item.action_date || '';
+              let time = item.action_time || '';
+              
+              // action_date/time이 없으면 driver_notes에서 파싱 시도
+              if (!date || !time) {
+                const notes = item.driver_notes || '';
+                // [액션: YYYY-MM-DD HH:MM:SS] 패턴 매칭
+                const actionMatch = notes.match(/\[액션:\s*(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}:\d{2})\]/);
+                if (actionMatch) {
+                  date = date || actionMatch[1];
+                  time = time || actionMatch[2];
+                }
+              }
+              
+              if (!date) {
                 return '-';
               }
               
               // action_date는 YYYY-MM-DD 형식만 표시
-              const date = item.action_date || '';
               const displayDate = date ? date.split('T')[0] : '-';
               
               // action_time은 HH:MM 형식만 표시
-              const time = item.action_time || '';
               let displayTime = '';
               if (time) {
                 const timeParts = time.split(':');
