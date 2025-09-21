@@ -6,7 +6,8 @@ import type {
   ShippingOrderData,
   ShippingOrder,
   ShippingOrderListItem,
-  Pagination 
+  Pagination,
+  DatabaseSchema
 } from '../types';
 
 /**
@@ -272,6 +273,24 @@ export const healthCheck = async () => {
     baseURL: import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3000'
   });
   return response.data;
+};
+
+/**
+ * 데이터베이스 스키마 관련 API 함수들
+ * 시스템 테스트 도구에서 사용되는 스키마 뷰어 기능
+ */
+export const schemaAPI = {
+  // 전체 데이터베이스 스키마 조회
+  getSchema: async (): Promise<{ success: boolean; data: DatabaseSchema }> => {
+    const response = await apiClient.get('/schema');
+    return response.data;
+  },
+
+  // 특정 테이블 상세 정보 조회
+  getTableDetails: async (tableName: string) => {
+    const response = await apiClient.get(`/schema/table/${tableName}`);
+    return response.data;
+  }
 };
 
 /**
