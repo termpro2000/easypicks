@@ -605,30 +605,14 @@ const DeliveryListScreen = ({ navigation }) => {
           </Text>
           <Text style={styles.actionDateTime}>
             처리: {(() => {
-              // 디버깅을 위한 로그
-              console.log(`🔍 [처리 날짜 디버깅] ${item.tracking_number}:`, {
-                status: item.status,
-                action_date: item.action_date,
-                action_time: item.action_time,
-                hasActionDate: !!item.action_date,
-                hasActionTime: !!item.action_time
-              });
-              
-              // 상태 변경이 일어난 경우에만 action_date 표시
-              const hasActionStatus = ['배송연기', 'delivery_postponed', '배송취소', 'delivery_cancelled', 'cancelled', 
-                                     '배송완료', 'delivery_completed', 'collection_completed', 'processing_completed', 
-                                     'delivered', 'completed'].includes(item.status);
-              
-              console.log(`🔍 [처리 날짜 디버깅] ${item.tracking_number} hasActionStatus:`, hasActionStatus);
-              
-              if (!hasActionStatus || !item.action_date) {
-                console.log(`🔍 [처리 날짜 디버깅] ${item.tracking_number} 조건 미충족, '-' 반환`);
-                return '-';
+              // 테스트: 모든 배송에 대해 action_date 표시 시도 (상태: {item.status})
+              if (!item.action_date) {
+                return `- (상태: ${item.status})`;
               }
               
               // action_date는 YYYY-MM-DD 형식만 표시
               const date = item.action_date || '';
-              const displayDate = date ? date.split('T')[0] : '-'; // 시간 부분 제거
+              const displayDate = date ? date.split('T')[0] : '-';
               
               // action_time은 HH:MM 형식만 표시
               const time = item.action_time || '';
@@ -642,9 +626,7 @@ const DeliveryListScreen = ({ navigation }) => {
                 }
               }
               
-              const result = `${displayDate} ${displayTime}`.trim();
-              console.log(`🔍 [처리 날짜 디버깅] ${item.tracking_number} 최종 결과:`, result);
-              return result;
+              return `${displayDate} ${displayTime} (${item.status})`.trim();
             })()}
           </Text>
         </View>
