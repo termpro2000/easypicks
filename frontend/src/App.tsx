@@ -8,6 +8,7 @@ import Dashboard from './components/dashboard/Dashboard';
 import AdminDashboard from './components/admin/AdminDashboard';
 import UserManagement from './components/admin/UserManagement';
 import TrackingPage from './components/tracking/TrackingPage';
+import SystemTestPage from './components/admin/SystemTestPage';
 import ToastContainer from './components/notifications/ToastContainer';
 import NotificationPermission from './components/notifications/NotificationPermission';
 
@@ -21,7 +22,7 @@ const AppContent: React.FC = () => {
     notifyOrderStatusChange,
     notifyNewOrder
   } = useNotification();
-  type PageType = 'dashboard' | 'new-order' | 'users' | 'tracking';
+  type PageType = 'dashboard' | 'new-order' | 'users' | 'tracking' | 'system-test';
   const [currentPage, setCurrentPage] = useState<PageType>('dashboard');
   const [showPermissionRequest, setShowPermissionRequest] = useState(false);
 
@@ -60,6 +61,11 @@ const AppContent: React.FC = () => {
   // 추적 페이지는 인증없이 접근 가능
   if (currentPage === 'tracking') {
     return <TrackingPage onNavigateBack={isAuthenticated ? () => setCurrentPage('dashboard' as PageType) : undefined} />;
+  }
+
+  // 시스템 테스트 페이지는 인증없이 접근 가능
+  if (currentPage === 'system-test') {
+    return <SystemTestPage onBack={() => setCurrentPage('dashboard' as PageType)} />;
   }
 
   if (!isAuthenticated) {
@@ -256,6 +262,14 @@ const AppContent: React.FC = () => {
           <div className="text-center text-sm text-gray-500">
             <p>&copy; 2024 배송접수 시스템. All rights reserved.</p>
             <p className="mt-1">안전하고 신뢰할 수 있는 배송 서비스를 제공합니다.</p>
+            <div className="mt-4">
+              <button
+                onClick={() => setCurrentPage('system-test' as PageType)}
+                className="inline-flex items-center px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-800 rounded text-xs transition-colors"
+              >
+                테스트
+              </button>
+            </div>
           </div>
         </div>
       </footer>
