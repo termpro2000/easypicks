@@ -57,7 +57,7 @@ router.get('/connection', authenticateToken, async (req, res) => {
     console.log('[Test API] 데이터베이스 연결 테스트 요청');
     
     const [result] = await executeWithRetry(() => 
-      pool.execute('SELECT 1 as test, NOW() as current_time')
+      pool.execute('SELECT 1 as test')
     );
 
     console.log('[Test API] 데이터베이스 연결 테스트 성공');
@@ -66,7 +66,7 @@ router.get('/connection', authenticateToken, async (req, res) => {
       success: true,
       data: {
         connected: true,
-        timestamp: result[0].current_time,
+        timestamp: new Date().toISOString(),
         message: '데이터베이스 연결이 정상적으로 작동합니다.'
       }
     });
