@@ -274,16 +274,21 @@ const DeliveryDetailScreen = ({ route, navigation }) => {
         
         // DeliveryListScreen으로 상태 업데이트 전달
         try {
+          // API에서 action_date/time이 없으면 현재 시간 사용
+          const now = new Date();
+          const currentActionDate = data.action_date || now.toISOString().split('T')[0];
+          const currentActionTime = data.action_time || now.toTimeString().split(' ')[0];
+          
           await AsyncStorage.setItem('updatedDeliveryStatus', JSON.stringify({
             updates: [{
               id: delivery.id,
               status: data.newStatus,
-              action_date: data.action_date,
-              action_time: data.action_time
+              action_date: currentActionDate,
+              action_time: currentActionTime
             }],
             timestamp: Date.now()
           }));
-          console.log('배송완료: 상태 업데이트 AsyncStorage 저장됨:', delivery.id, data.newStatus, data.action_date, data.action_time);
+          console.log('배송완료: 상태 업데이트 AsyncStorage 저장됨:', delivery.id, data.newStatus, currentActionDate, currentActionTime);
         } catch (asyncError) {
           console.error('배송완료: AsyncStorage 저장 오류:', asyncError);
         }
@@ -891,16 +896,27 @@ Storage Bucket: ${firebaseConfig?.storageBucket || '없음'}
         
         // DeliveryListScreen으로 상태 업데이트 전달
         try {
-          await AsyncStorage.setItem('updatedDeliveryStatus', JSON.stringify({
+          console.log('🔍 [배송연기] API 응답 data:', JSON.stringify(data, null, 2));
+          
+          // API에서 action_date/time이 없으면 현재 시간 사용
+          const now = new Date();
+          const currentActionDate = data.action_date || now.toISOString().split('T')[0];
+          const currentActionTime = data.action_time || now.toTimeString().split(' ')[0];
+          
+          const updateData = {
             updates: [{
               id: delivery.id,
               status: data.newStatus,
-              action_date: data.action_date,
-              action_time: data.action_time
+              action_date: currentActionDate,
+              action_time: currentActionTime
             }],
             timestamp: Date.now()
-          }));
-          console.log('배송연기: 상태 업데이트 AsyncStorage 저장됨:', delivery.id, data.newStatus, data.action_date, data.action_time);
+          };
+          
+          console.log('🔍 [배송연기] AsyncStorage 저장할 데이터:', JSON.stringify(updateData, null, 2));
+          
+          await AsyncStorage.setItem('updatedDeliveryStatus', JSON.stringify(updateData));
+          console.log('배송연기: 상태 업데이트 AsyncStorage 저장됨:', delivery.id, data.newStatus, currentActionDate, currentActionTime);
         } catch (asyncError) {
           console.error('배송연기: AsyncStorage 저장 오류:', asyncError);
         }
@@ -1047,16 +1063,21 @@ Storage Bucket: ${firebaseConfig?.storageBucket || '없음'}
         
         // DeliveryListScreen으로 상태 업데이트 전달
         try {
+          // API에서 action_date/time이 없으면 현재 시간 사용
+          const now = new Date();
+          const currentActionDate = data.action_date || now.toISOString().split('T')[0];
+          const currentActionTime = data.action_time || now.toTimeString().split(' ')[0];
+          
           await AsyncStorage.setItem('updatedDeliveryStatus', JSON.stringify({
             updates: [{
               id: delivery.id,
               status: data.newStatus,
-              action_date: data.action_date,
-              action_time: data.action_time
+              action_date: currentActionDate,
+              action_time: currentActionTime
             }],
             timestamp: Date.now()
           }));
-          console.log('배송취소: 상태 업데이트 AsyncStorage 저장됨:', delivery.id, data.newStatus, data.action_date, data.action_time);
+          console.log('배송취소: 상태 업데이트 AsyncStorage 저장됨:', delivery.id, data.newStatus, currentActionDate, currentActionTime);
         } catch (asyncError) {
           console.error('배송취소: AsyncStorage 저장 오류:', asyncError);
         }

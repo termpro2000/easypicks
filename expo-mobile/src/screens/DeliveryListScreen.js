@@ -88,6 +88,15 @@ const DeliveryListScreen = ({ navigation }) => {
               prevDeliveries.map(delivery => {
                 const updateItem = updates.find(update => update.id === delivery.id);
                 if (updateItem) {
+                  console.log('🔄 [AsyncStorage 업데이트]', {
+                    deliveryId: delivery.id,
+                    oldStatus: delivery.status,
+                    newStatus: updateItem.status,
+                    oldActionDate: delivery.action_date,
+                    newActionDate: updateItem.action_date,
+                    oldActionTime: delivery.action_time,
+                    newActionTime: updateItem.action_time
+                  });
                   return { 
                     ...delivery, 
                     status: updateItem.status,
@@ -609,7 +618,34 @@ const DeliveryListScreen = ({ navigation }) => {
             })()}
           </Text>
           <Text style={styles.actionDateTime}>
-            처리: {item.status} | action_date: {item.action_date || 'null'} | action_time: {item.action_time || 'null'}
+            처리: {(() => {
+              // 상태 변경이 일어난 경우에만 action_date 표시
+              const hasActionStatus = ['배송연기', 'delivery_postponed', '배송취소', 'delivery_cancelled', 'cancelled', 
+                                     '배송완료', 'delivery_completed', 'collection_completed', 'processing_completed', 
+                                     'delivered', 'completed'].includes(item.status);
+              
+              if (!hasActionStatus || !item.action_date) {
+                return '-';
+              }
+              
+              // action_date는 YYYY-MM-DD 형식만 표시
+              const date = item.action_date || '';
+              const displayDate = date ? date.split('T')[0] : '-';
+              
+              // action_time은 HH:MM 형식만 표시
+              const time = item.action_time || '';
+              let displayTime = '';
+              if (time) {
+                const timeParts = time.split(':');
+                if (timeParts.length >= 2) {
+                  displayTime = `${timeParts[0]}:${timeParts[1]}`;
+                } else {
+                  displayTime = time.substring(0, 5);
+                }
+              }
+              
+              return `${displayDate} ${displayTime}`.trim();
+            })()}
           </Text>
         </View>
         
