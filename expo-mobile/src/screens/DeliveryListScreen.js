@@ -88,7 +88,12 @@ const DeliveryListScreen = ({ navigation }) => {
               prevDeliveries.map(delivery => {
                 const updateItem = updates.find(update => update.id === delivery.id);
                 if (updateItem) {
-                  return { ...delivery, status: updateItem.status };
+                  return { 
+                    ...delivery, 
+                    status: updateItem.status,
+                    action_date: updateItem.action_date || delivery.action_date,
+                    action_time: updateItem.action_time || delivery.action_time
+                  };
                 }
                 return delivery;
               })
@@ -605,9 +610,13 @@ const DeliveryListScreen = ({ navigation }) => {
           </Text>
           <Text style={styles.actionDateTime}>
             처리: {(() => {
-              // 테스트: 모든 배송에 대해 action_date 표시 시도 (상태: {item.status})
-              if (!item.action_date) {
-                return `- (상태: ${item.status})`;
+              // 상태 변경이 일어난 경우에만 action_date 표시
+              const hasActionStatus = ['배송연기', 'delivery_postponed', '배송취소', 'delivery_cancelled', 'cancelled', 
+                                     '배송완료', 'delivery_completed', 'collection_completed', 'processing_completed', 
+                                     'delivered', 'completed'].includes(item.status);
+              
+              if (!hasActionStatus || !item.action_date) {
+                return '-';
               }
               
               // action_date는 YYYY-MM-DD 형식만 표시
@@ -626,7 +635,7 @@ const DeliveryListScreen = ({ navigation }) => {
                 }
               }
               
-              return `${displayDate} ${displayTime} (${item.status})`.trim();
+              return `${displayDate} ${displayTime}`.trim();
             })()}
           </Text>
         </View>

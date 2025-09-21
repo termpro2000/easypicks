@@ -277,11 +277,13 @@ const DeliveryDetailScreen = ({ route, navigation }) => {
           await AsyncStorage.setItem('updatedDeliveryStatus', JSON.stringify({
             updates: [{
               id: delivery.id,
-              status: data.newStatus
+              status: data.newStatus,
+              action_date: data.action_date,
+              action_time: data.action_time
             }],
             timestamp: Date.now()
           }));
-          console.log('배송완료: 상태 업데이트 AsyncStorage 저장됨:', delivery.id, data.newStatus);
+          console.log('배송완료: 상태 업데이트 AsyncStorage 저장됨:', delivery.id, data.newStatus, data.action_date, data.action_time);
         } catch (asyncError) {
           console.error('배송완료: AsyncStorage 저장 오류:', asyncError);
         }
@@ -892,11 +894,13 @@ Storage Bucket: ${firebaseConfig?.storageBucket || '없음'}
           await AsyncStorage.setItem('updatedDeliveryStatus', JSON.stringify({
             updates: [{
               id: delivery.id,
-              status: data.newStatus
+              status: data.newStatus,
+              action_date: data.action_date,
+              action_time: data.action_time
             }],
             timestamp: Date.now()
           }));
-          console.log('배송연기: 상태 업데이트 AsyncStorage 저장됨:', delivery.id, data.newStatus);
+          console.log('배송연기: 상태 업데이트 AsyncStorage 저장됨:', delivery.id, data.newStatus, data.action_date, data.action_time);
         } catch (asyncError) {
           console.error('배송연기: AsyncStorage 저장 오류:', asyncError);
         }
@@ -1046,11 +1050,13 @@ Storage Bucket: ${firebaseConfig?.storageBucket || '없음'}
           await AsyncStorage.setItem('updatedDeliveryStatus', JSON.stringify({
             updates: [{
               id: delivery.id,
-              status: data.newStatus
+              status: data.newStatus,
+              action_date: data.action_date,
+              action_time: data.action_time
             }],
             timestamp: Date.now()
           }));
-          console.log('배송취소: 상태 업데이트 AsyncStorage 저장됨:', delivery.id, data.newStatus);
+          console.log('배송취소: 상태 업데이트 AsyncStorage 저장됨:', delivery.id, data.newStatus, data.action_date, data.action_time);
         } catch (asyncError) {
           console.error('배송취소: AsyncStorage 저장 오류:', asyncError);
         }
