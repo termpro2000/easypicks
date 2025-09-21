@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Package, Search, Plus, LogOut, User, UserCheck, Users, Truck, TestTube } from 'lucide-react';
+import { Package, Plus, LogOut, UserCheck, Users, Truck, TestTube } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import AdminShippingForm from './AdminShippingForm';
 import UserManagement from './UserManagement';

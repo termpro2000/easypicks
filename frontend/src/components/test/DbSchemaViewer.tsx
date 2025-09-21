@@ -7,7 +7,6 @@ import {
   ArrowLeft,
   RefreshCw,
   Search,
-  Info,
   Link,
   Eye,
   EyeOff
@@ -57,7 +56,6 @@ const DbSchemaViewer: React.FC<DbSchemaViewerProps> = ({ onBack }) => {
   const [schemaInfo, setSchemaInfo] = useState<SchemaInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedTable, setSelectedTable] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [showDetails, setShowDetails] = useState<{ [key: string]: boolean }>({});
 

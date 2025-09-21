@@ -1,15 +1,9 @@
 import React, { useState } from 'react';
 import {
   Database,
-  Plus,
-  Trash2,
-  UserPlus,
-  Users,
-  Package,
   ArrowLeft,
   CheckCircle,
   XCircle,
-  List,
   AlertTriangle
 } from 'lucide-react';
 import DbSchemaViewer from './DbSchemaViewer';
@@ -20,7 +14,6 @@ interface TestPageProps {
 
 const TestPage: React.FC<TestPageProps> = ({ onNavigateBack }) => {
   const [currentView, setCurrentView] = useState<'main' | 'db-schema'>('main');
-  const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const handleDbSchema = () => {
