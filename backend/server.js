@@ -10,6 +10,7 @@ const authRoutes = require('./routes/auth');
 const deliveriesRoutes = require('./routes/deliveries');
 const userRoutes = require('./routes/users');
 const schemaRoutes = require('./routes/schema');
+const testRoutes = require('./routes/test');
 
 const app = express();
 const server = http.createServer(app);
@@ -119,6 +120,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/deliveries', deliveriesRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/schema', schemaRoutes);
+app.use('/api/test', testRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
