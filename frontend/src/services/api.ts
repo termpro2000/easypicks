@@ -294,6 +294,90 @@ export const schemaAPI = {
 };
 
 /**
+ * 테스트 관련 API 함수들
+ * 시스템 테스트 및 개발용 데이터 관리 기능 제공
+ */
+export const testAPI = {
+  // DB 스키마 정보 조회
+  getDbSchema: async () => {
+    const response = await apiClient.get('/test/db-schema');
+    return response.data;
+  },
+
+  // 테이블 관계 정보 조회
+  getTableRelationships: async () => {
+    const response = await apiClient.get('/test/table-relationships');
+    return response.data;
+  },
+
+  // 파트너사 목록 조회
+  getPartnersList: async () => {
+    const response = await apiClient.get('/test/partners');
+    return response.data;
+  },
+
+  // 모든 파트너사 삭제
+  deleteAllPartners: async () => {
+    const response = await apiClient.delete('/test/partners');
+    return response.data;
+  },
+
+  // 기사 목록 조회
+  getDriversList: async () => {
+    const response = await apiClient.get('/test/drivers');
+    return response.data;
+  },
+
+  // 모든 기사 삭제
+  deleteAllDrivers: async () => {
+    const response = await apiClient.delete('/test/drivers');
+    return response.data;
+  },
+
+  // 랜덤 기사 생성
+  createRandomDriver: async () => {
+    const response = await apiClient.post('/test/create-driver');
+    return response.data;
+  },
+
+  // 랜덤 파트너사 사용자 생성
+  createRandomPartner: async () => {
+    const response = await apiClient.post('/test/create-partner');
+    return response.data;
+  },
+
+  // 랜덤 배송 생성
+  createRandomDelivery: async (visitDate?: string) => {
+    const response = await apiClient.post('/test/create-delivery', visitDate ? { visit_date: visitDate } : {});
+    return response.data;
+  },
+
+  // 커스텀 배송 생성
+  createCustomDelivery: async (deliveryData: any) => {
+    const response = await apiClient.post('/test/create-custom-delivery', deliveryData);
+    return response.data;
+  },
+
+  // 모든 배송 삭제
+  deleteAllDeliveries: async () => {
+    const response = await apiClient.delete('/test/deliveries');
+    return response.data;
+  },
+
+  // 배송 목록 조회
+  getDeliveriesList: async () => {
+    const response = await apiClient.get('/test/deliveries');
+    return response.data;
+  },
+
+  // deliveries 테이블에 driver_id 컬럼 추가
+  addDriverIdColumn: async () => {
+    const response = await apiClient.post('/test/add-driver-column');
+    return response.data;
+  }
+};
+
+/**
  * JWT 토큰 관리 함수들
  */
 export const tokenAPI = {
