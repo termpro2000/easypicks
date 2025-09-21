@@ -80,6 +80,17 @@ const AppContent: React.FC = () => {
     }
   };
 
+  // 테스트 버튼 클릭 이벤트 리스너 추가
+  useEffect(() => {
+    const handleNavigateToTest = () => {
+      setCurrentPage('system-test' as PageType);
+    };
+    window.addEventListener('navigate-to-test', handleNavigateToTest);
+    return () => {
+      window.removeEventListener('navigate-to-test', handleNavigateToTest);
+    };
+  }, []);
+
   // 관리자는 AdminDashboard 사용 (테스트 버튼 포함)
   if (user?.role === 'admin' && currentPage === 'dashboard') {
     return (
