@@ -9,6 +9,7 @@ require('dotenv').config();
 const authRoutes = require('./routes/auth');
 const deliveriesRoutes = require('./routes/deliveries');
 const userRoutes = require('./routes/users');
+const schemaRoutes = require('./routes/schema');
 
 const app = express();
 const server = http.createServer(app);
@@ -104,7 +105,8 @@ app.get('/', (req, res) => {
     endpoints: {
       auth: '/api/auth',
       deliveries: '/api/deliveries',
-      users: '/api/users'
+      users: '/api/users',
+      schema: '/api/schema'
     }
   });
 });
@@ -116,6 +118,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/deliveries', deliveriesRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/schema', schemaRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
