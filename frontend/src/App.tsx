@@ -81,6 +81,7 @@ const AppContent: React.FC = () => {
   };
 
   // 관리자도 일반 대시보드 사용 (테스트 버튼 포함)
+  // AdminDashboard 비활성화: 관리자도 일반 대시보드를 사용하여 테스트 버튼에 접근
   // if (user?.role === 'admin' && currentPage === 'dashboard') {
   //   return (
   //     <AdminDashboard 
