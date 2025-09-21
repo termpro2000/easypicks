@@ -14,6 +14,7 @@ const {
   cancelDelivery,
   createTestData,
   runMigration,
+  forceCreateColumns,
   checkColumns
 } = require('../controllers/deliveriesController');
 
@@ -52,6 +53,9 @@ router.post('/create-test-data', authenticateToken, createTestData);
 
 // 수동 마이그레이션 실행 (개발용)
 router.post('/run-migration', authenticateToken, runMigration);
+
+// 강제 컬럼 생성 (production용)
+router.post('/force-create-columns', authenticateToken, forceCreateColumns);
 
 // 컬럼 상태 확인 (개발용)
 router.get('/debug/columns', authenticateToken, checkColumns);

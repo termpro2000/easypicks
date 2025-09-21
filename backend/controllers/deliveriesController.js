@@ -1541,6 +1541,83 @@ async function createTestData(req, res) {
 }
 
 /**
+ * 강제 컬럼 생성 (production용)
+ */
+async function forceCreateColumns(req, res) {
+  try {
+    console.log('🚀 강제 컬럼 생성 시작...');
+    
+    // 먼저 현재 컬럼 상태 확인
+    const [columns] = await pool.execute(`
+      SELECT COLUMN_NAME 
+      FROM INFORMATION_SCHEMA.COLUMNS 
+      WHERE TABLE_SCHEMA = DATABASE() 
+      AND TABLE_NAME = 'deliveries' 
+      AND COLUMN_NAME IN ('action_date', 'action_time')
+    `);
+    
+    const existingColumns = columns.map(col => col.COLUMN_NAME);
+    console.log('📋 기존 action 컬럼:', existingColumns);
+    
+    const results = [];
+    
+    // action_date 컬럼 강제 생성
+    if (!existingColumns.includes('action_date')) {
+      try {
+        await pool.execute(`ALTER TABLE deliveries ADD COLUMN action_date DATE NULL`);
+        console.log('✅ action_date 컬럼 추가 완료');
+        results.push({ column: 'action_date', status: 'created' });
+      } catch (error) {
+        console.error('❌ action_date 컬럼 추가 실패:', error.message);
+        results.push({ column: 'action_date', status: 'failed', error: error.message });
+      }
+    } else {
+      console.log('ℹ️ action_date 컬럼이 이미 존재함');
+      results.push({ column: 'action_date', status: 'already_exists' });
+    }
+    
+    // action_time 컬럼 강제 생성
+    if (!existingColumns.includes('action_time')) {
+      try {
+        await pool.execute(`ALTER TABLE deliveries ADD COLUMN action_time TIME NULL`);
+        console.log('✅ action_time 컬럼 추가 완료');
+        results.push({ column: 'action_time', status: 'created' });
+      } catch (error) {
+        console.error('❌ action_time 컬럼 추가 실패:', error.message);
+        results.push({ column: 'action_time', status: 'failed', error: error.message });
+      }
+    } else {
+      console.log('ℹ️ action_time 컬럼이 이미 존재함');
+      results.push({ column: 'action_time', status: 'already_exists' });
+    }
+    
+    // 최종 상태 확인
+    const [finalColumns] = await pool.execute(`
+      SELECT COLUMN_NAME 
+      FROM INFORMATION_SCHEMA.COLUMNS 
+      WHERE TABLE_SCHEMA = DATABASE() 
+      AND TABLE_NAME = 'deliveries' 
+      AND COLUMN_NAME IN ('action_date', 'action_time')
+    `);
+    
+    res.json({
+      success: true,
+      message: '강제 컬럼 생성 완료',
+      results,
+      finalColumns: finalColumns.map(col => col.COLUMN_NAME)
+    });
+    
+  } catch (error) {
+    console.error('❌ 강제 컬럼 생성 오류:', error);
+    res.status(500).json({
+      success: false,
+      message: '강제 컬럼 생성 중 오류가 발생했습니다.',
+      error: error.message
+    });
+  }
+}
+
+/**
  * 컬럼 상태 확인 (디버깅용)
  * @param {Object} req - Express 요청 객체  
  * @param {Object} res - Express 응답 객체
@@ -1622,5 +1699,6 @@ module.exports = {
   cancelDelivery,
   createTestData,
   runMigration,
+  forceCreateColumns,
   checkColumns
 };
