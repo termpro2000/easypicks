@@ -610,11 +610,12 @@ const DeliveryListScreen = ({ navigation }) => {
                 if (timeParts.length >= 2) {
                   displayTime = `${timeParts[0]}:${timeParts[1]}`;
                 } else {
-                  displayTime = time;
+                  displayTime = time.substring(0, 5); // HH:MM 형식으로 자르기
                 }
               }
               
-              return `${displayDate} ${displayTime}`.trim();
+              // 시간이 있으면 날짜와 함께 표시
+              return displayTime ? `${displayDate} ${displayTime}` : displayDate;
             })()}
           </Text>
           <Text style={styles.actionDateTime}>
