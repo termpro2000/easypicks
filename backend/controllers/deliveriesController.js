@@ -1197,6 +1197,13 @@ async function delayDelivery(req, res) {
       console.log('⚠️ action_date/time 컬럼 생성 실패, 기본 SQL 사용:', error.message);
     }
     
+    // PlanetScale 환경에서는 DDL 제한으로 인해 컬럼을 생성할 수 없음
+    // driver_notes에 JSON 형태로 action 정보 포함
+    const actionInfo = action_date && action_time ? 
+      ` [액션: ${action_date} ${action_time}]` : '';
+    
+    const noteText = `배송연기 (${delayDate})${delayReason ? ': ' + delayReason : ''}${actionInfo}`;
+    
     // action_date/time 컬럼이 존재하는 경우와 없는 경우를 구분하여 처리
     let updateResult;
     if (hasActionColumns) {
@@ -1205,24 +1212,24 @@ async function delayDelivery(req, res) {
         pool.execute(
           `UPDATE deliveries SET 
              status = '배송연기',
-             driver_notes = CONCAT(COALESCE(driver_notes, ''), IF(COALESCE(driver_notes, '') = '', '', '\n'), '배송연기 (', ?, ')', IF(? IS NOT NULL AND ? != '', CONCAT(': ', ?), '')),
+             driver_notes = CONCAT(COALESCE(driver_notes, ''), IF(COALESCE(driver_notes, '') = '', '', '\n'), ?),
              action_date = ?,
              action_time = ?,
              updated_at = NOW()
            WHERE tracking_number = ?`,
-          [delayDate, delayReason, delayReason, delayReason, action_date, action_time, trackingNumber]
+          [noteText, action_date, action_time, trackingNumber]
         )
       );
     } else {
-      // 컬럼이 없는 경우: action_date/time 제외
+      // 컬럼이 없는 경우: action_date/time을 driver_notes에 포함
       [updateResult] = await executeWithRetry(() =>
         pool.execute(
           `UPDATE deliveries SET 
              status = '배송연기',
-             driver_notes = CONCAT(COALESCE(driver_notes, ''), IF(COALESCE(driver_notes, '') = '', '', '\n'), '배송연기 (', ?, ')', IF(? IS NOT NULL AND ? != '', CONCAT(': ', ?), '')),
+             driver_notes = CONCAT(COALESCE(driver_notes, ''), IF(COALESCE(driver_notes, '') = '', '', '\n'), ?),
              updated_at = NOW()
            WHERE tracking_number = ?`,
-          [delayDate, delayReason, delayReason, delayReason, trackingNumber]
+          [noteText, trackingNumber]
         )
       );
     }
@@ -1349,6 +1356,13 @@ async function cancelDelivery(req, res) {
       console.log('⚠️ action_date/time 컬럼 생성 실패, 기본 SQL 사용:', error.message);
     }
     
+    // PlanetScale 환경에서는 DDL 제한으로 인해 컬럼을 생성할 수 없음  
+    // driver_notes에 action 정보 포함
+    const actionInfo = action_date && action_time ? 
+      ` [액션: ${action_date} ${action_time}]` : '';
+    
+    const noteText = `배송취소 (${now}): ${cancelReason.trim()}${actionInfo}`;
+    
     // action_date/time 컬럼이 존재하는 경우와 없는 경우를 구분하여 처리
     let updateResult;
     if (hasActionColumns) {
@@ -1360,16 +1374,16 @@ async function cancelDelivery(req, res) {
              cancel_reason = ?, 
              canceled_at = ?,
              status = '배송취소',
-             driver_notes = CONCAT(COALESCE(driver_notes, ''), IF(COALESCE(driver_notes, '') = '', '', '\n'), '배송취소 (', ?, '): ', ?),
+             driver_notes = CONCAT(COALESCE(driver_notes, ''), IF(COALESCE(driver_notes, '') = '', '', '\n'), ?),
              action_date = ?,
              action_time = ?,
              updated_at = NOW()
            WHERE id = ?`,
-          [cancelReason.trim(), now, now, cancelReason.trim(), action_date, action_time, deliveryId]
+          [cancelReason.trim(), now, noteText, action_date, action_time, deliveryId]
         )
       );
     } else {
-      // 컬럼이 없는 경우: action_date/time 제외
+      // 컬럼이 없는 경우: action_date/time을 driver_notes에 포함
       [updateResult] = await executeWithRetry(() =>
         pool.execute(
           `UPDATE deliveries SET 
@@ -1377,10 +1391,10 @@ async function cancelDelivery(req, res) {
              cancel_reason = ?, 
              canceled_at = ?,
              status = '배송취소',
-             driver_notes = CONCAT(COALESCE(driver_notes, ''), IF(COALESCE(driver_notes, '') = '', '', '\n'), '배송취소 (', ?, '): ', ?),
+             driver_notes = CONCAT(COALESCE(driver_notes, ''), IF(COALESCE(driver_notes, '') = '', '', '\n'), ?),
              updated_at = NOW()
            WHERE id = ?`,
-          [cancelReason.trim(), now, now, cancelReason.trim(), deliveryId]
+          [cancelReason.trim(), now, noteText, deliveryId]
         )
       );
     }
