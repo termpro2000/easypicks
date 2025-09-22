@@ -28,7 +28,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onLogout })
   const handleButtonClick = (action: string) => {
     switch (action) {
       case '새배송접수':
-        onNavigate('new-order');
+        setCurrentPage('new-order');
         break;
       case '기사배정':
         setCurrentPage('assignment');
