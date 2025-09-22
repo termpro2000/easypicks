@@ -119,6 +119,17 @@ app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
+// 디버그용 엔드포인트 (배포 확인용)
+app.get('/debug', (req, res) => {
+  res.json({
+    environment: process.env.NODE_ENV || 'development',
+    timestamp: new Date().toISOString(),
+    port: PORT,
+    hasTestRoutes: !!require('./routes/test'),
+    availableRoutes: ['/api/auth', '/api/deliveries', '/api/users', '/api/drivers', '/api/schema', '/api/test']
+  });
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/deliveries', deliveriesRoutes);
 app.use('/api/users', userRoutes);
