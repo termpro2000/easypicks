@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const driversController = require('../controllers/driversController');
-const authenticateToken = require('../middleware/authMiddleware');
+const { authenticateToken } = require('../middleware/auth');
 
 // 기사 관련 라우트
 router.get('/', authenticateToken, driversController.getAllDrivers);

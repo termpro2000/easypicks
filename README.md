@@ -1,12 +1,15 @@
 # 🚚 이지픽스 배송 관리 시스템
 
-React Native 모바일 앱과 Node.js 백엔드 서버로 구성된 완전한 배송 관리 시스템입니다.
+React Native 모바일 앱, React 웹 어드민, Node.js 백엔드 서버로 구성된 완전한 배송 관리 시스템입니다.
 
-> **최근 업데이트**: 2025-09-19 - Firebase Storage 설정 완료 및 EAS 프로덕션 빌드 구축 🎉
+> **최근 업데이트**: 2025-01-21 - 웹 어드민 대시보드 컴포넌트 복구 및 기사 관리 API 구현 완료 🎉
+> 
+> 🌟 **신규 기능**: React 웹 어드민 대시보드 - 상품관리, 배송접수, 기사관리, 기사배정 시스템 완전 복구!
 
 ## 📋 목차
 - [프로젝트 구조](#프로젝트-구조)
 - [주요 기능](#주요-기능)
+- [🌐 웹 어드민 대시보드](#-웹-어드민-대시보드)
 - [🆕 Status 관리 시스템](#-status-관리-시스템)
 - [🔥 Firebase Storage 시스템](#-firebase-storage-시스템)
 - [📱 EAS Build & Update 시스템](#-eas-build--update-시스템)
@@ -20,35 +23,58 @@ React Native 모바일 앱과 Node.js 백엔드 서버로 구성된 완전한 �
 
 ```
 hy2/
-├── 📁 백엔드 서버 (Node.js + Express)
+├── 📁 백엔드 서버 (Node.js + Express + MySQL)
 │   ├── server.js              # 서버 진입점
 │   ├── package.json           # 백엔드 의존성
 │   ├── .env                   # 환경 변수
-│   ├── db/
-│   │   ├── connection.js      # 데이터베이스 연결 (메모리 내 DB)
-│   │   └── init.sql          # 데이터베이스 스키마
-│   └── routes/
-│       ├── auth.js           # 인증 관련 API (메모리 DB 사용)
-│       └── delivery.js       # 배송 관련 API (더미 데이터)
+│   ├── config/
+│   │   └── database.js        # MySQL 데이터베이스 연결 (PlanetScale)
+│   ├── controllers/
+│   │   ├── authController.js  # 인증 로직
+│   │   ├── deliveryController.js # 배송 관리 로직
+│   │   └── driversController.js # 기사 관리 로직 (신규)
+│   ├── routes/
+│   │   ├── auth.js           # 인증 관련 API
+│   │   ├── delivery.js       # 배송 관련 API
+│   │   └── drivers.js        # 기사 관리 API (신규)
+│   └── middleware/
+│       └── authMiddleware.js  # JWT 인증 미들웨어
+├── 📁 React 웹 어드민 대시보드 (신규)
+│   └── frontend/
+│       ├── src/
+│       │   ├── components/
+│       │   │   ├── admin/
+│       │   │   │   ├── AdminDashboard.tsx    # 메인 대시보드
+│       │   │   │   ├── AdminShippingForm.tsx # 배송 접수 폼
+│       │   │   │   └── UserManagement.tsx    # 사용자 관리
+│       │   │   ├── products/
+│       │   │   │   └── ProductManagement.tsx # 상품 관리 (복구)
+│       │   │   ├── drivers/
+│       │   │   │   └── DriverManagement.tsx  # 기사 관리 (복구)
+│       │   │   └── assignment/
+│       │   │       └── DriverAssignment.tsx  # 기사 배정 (복구)
+│       │   └── services/
+│       │       └── api.ts             # API 서비스 레이어
+│       ├── package.json               # 프론트엔드 의존성
+│       └── vite.config.ts            # Vite 빌드 설정
 ├── 📁 React Native 모바일 앱
-│   ├── mobile/
-│   │   ├── App.js            # 앱 진입점
-│   │   ├── package.json      # 모바일 의존성
-│   │   └── src/
-│   │       ├── config/
-│   │       │   └── api.js    # API 설정
-│   │       └── screens/
-│   │           ├── LoginScreen.js
-│   │           ├── RegisterScreen.js
-│   │           ├── DeliveryListScreen.js
-│   │           └── DeliveryDetailScreen.js
-│   └── miraekorea-expo/      # Expo 프로젝트
-├── 📁 웹 테스트 인터페이스
-│   └── test-web/
-│       └── index.html        # 웹 기반 테스트 UI
+│   └── expo-mobile/
+│       ├── App.js                    # 앱 진입점
+│       ├── package.json              # 모바일 의존성
+│       ├── app.json                  # Expo 설정
+│       ├── eas.json                  # EAS Build 설정
+│       └── src/
+│           ├── config/
+│           │   ├── api.js            # API 설정
+│           │   └── firebase.js       # Firebase 설정
+│           └── screens/
+│               ├── LoginScreen.js
+│               ├── DeliveryListScreen.js
+│               └── DeliveryDetailScreen.js
 └── 📁 문서
-    ├── README.md             # 이 파일
-    └── expo-info.html        # Expo QR 코드 페이지
+    ├── README.md                     # 이 파일
+    ├── frontend/CLAUDE.md            # 웹 개발 로그 (신규)
+    └── expo-mobile/CLAUDE.md         # 모바일 개발 로그
 ```
 
 ## ✨ 주요 기능
@@ -101,6 +127,110 @@ hy2/
 - [x] **데이터 동기화**: 실시간 상태 업데이트
 - [x] **오프라인 지원**: AsyncStorage 기반 로컬 캐싱
 - [x] **배송완료 처리**: 체크박스 기반 귀책사항 선택 + 녹음파일 업로드
+
+## 🌐 웹 어드민 대시보드
+
+### 🎛️ 관리자 대시보드 시스템
+완전한 React/TypeScript 기반 웹 어드민 인터페이스가 HTML 커버리지 파일에서 복구되어 구현되었습니다:
+
+#### 📊 AdminDashboard (메인 허브)
+- **통합 네비게이션**: 모든 관리 기능에 대한 중앙 집중식 접근
+- **내부 상태 관리**: `setCurrentPage` 기반 SPA 라우팅
+- **실시간 통계**: 배송 현황 및 운영 지표 대시보드
+- **반응형 디자인**: Tailwind CSS 기반 모바일 친화적 UI
+
+#### 📦 ProductManagement (상품 관리)
+- **완전한 CRUD 작업**: 상품 생성, 읽기, 업데이트, 삭제
+- **사진 관리**: 상품 이미지 업로드 및 편집 기능
+- **QR 코드 통합**: 상품 추적을 위한 QR 코드 생성
+- **모달 시스템**: 사용자 친화적인 폼 인터페이스
+- **API 통합**: `productsAPI` 및 `productPhotosAPI` 완전 구현
+
+#### 🚚 AdminShippingForm (배송 접수)
+- **종합 배송 폼**: 1,040+ 줄의 완전한 단일 페이지 폼
+- **파트너 선택**: 동적 파트너 선택 및 관리
+- **주소 검색**: 통합 주소 검색 및 유효성 검사
+- **폼 검증**: 포괄적인 클라이언트 측 유효성 검사
+- **단계별 → 통합**: 이전 다단계 폼에서 현대적인 단일 폼으로 업그레이드
+
+#### 👥 UserManagement (사용자 관리)
+- **이중 탭 인터페이스**: 사용자 및 기사 관리를 위한 별도 탭
+- **파트너 등록**: 주소 검색 통합을 통한 파트너 등록
+- **역할 기반 접근**: 역할 기반 사용자 편집 및 삭제
+- **기사 통계**: 기사 성과 추적 및 관리 지표
+- **포괄적인 API**: 완전한 CRUD 작업을 위한 `userAPI`
+
+#### 🚛 DriverManagement (기사 관리)
+- **전용 기사 인터페이스**: 기사 관리를 위한 전문 구성 요소
+- **차량 정보**: 차량 유형, 번호, 라이선스 관리
+- **검색 및 필터링**: 고급 기사 검색 기능
+- **모달 기반 폼**: 생성/편집 작업을 위한 깔끔한 모달
+- **연락처 관리**: 포괄적인 기사 연락처 정보
+- **백엔드 통합**: 완전한 백엔드 API 지원 및 데이터베이스 스키마
+
+#### 🎯 DriverAssignment (기사 배정)
+- **자동 배정**: 가용성 및 위치 기반 지능형 기사 배정
+- **수동 배정**: 특정 요구 사항에 대한 관리자 수동 제어
+- **실시간 업데이트**: 배정 상태의 실시간 동기화
+- **배정 히스토리**: 배정 결정의 포괄적인 추적
+- **통합 API**: 향상된 `deliveriesAPI` 및 `driversAPI` 기능
+
+### 🔧 백엔드 API 개발
+
+#### 새로운 Drivers API 구현
+완전한 기사 관리 백엔드 시스템이 처음부터 구현되었습니다:
+
+**컨트롤러 기능** (`driversController.js`):
+- `getAllDrivers`: 페이지네이션을 통한 모든 기사 가져오기
+- `getDriver`: 단일 기사 검색
+- `createDriver`: 새 기사 등록
+- `updateDriver`: 기사 정보 업데이트
+- `deleteDriver`: 기사 제거
+- `searchDrivers`: 이름, 사용자 이름, 전화번호, 차량 번호로 검색
+
+**데이터베이스 스키마** (자동 생성):
+```sql
+CREATE TABLE IF NOT EXISTS drivers (
+  driver_id INT AUTO_INCREMENT PRIMARY KEY,
+  username VARCHAR(100) UNIQUE NOT NULL,
+  password VARCHAR(255) NOT NULL,
+  name VARCHAR(100) NOT NULL,
+  phone VARCHAR(20),
+  email VARCHAR(100),
+  vehicle_type VARCHAR(50),
+  vehicle_number VARCHAR(20),
+  license_number VARCHAR(50),
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+```
+
+**인증 및 보안**:
+- JWT 토큰 기반 인증 모든 엔드포인트에 적용
+- 입력 유효성 검사 및 데이터 정규화
+- 포괄적인 오류 처리 및 로깅
+- 검색 성능을 위한 데이터베이스 인덱스
+
+### 🎨 기술적 우수성
+
+#### 컴포넌트 아키텍처
+- **일관된 오류 처리**: 모든 API에서 표준화된 오류 응답
+- **인증 통합**: 보호된 모든 엔드포인트에 대한 JWT 토큰 통합
+- **데이터 유효성 검사**: 필수 필드 유효성 검사 및 유형 확인
+- **응답 형식**: 일관된 JSON 응답 구조
+
+#### 상태 관리
+- **모달 시스템**: 폼을 위한 재사용 가능한 모달 패턴
+- **상태 관리**: 적절한 정리가 있는 로컬 상태
+- **오류 경계**: 컴포넌트의 우아한 오류 처리
+- **로딩 상태**: 사용자 친화적인 로딩 표시기
+
+#### 빌드 및 배포
+- **TypeScript 규정 준수**: 모든 컴포넌트가 엄격한 유형 검사를 통과
+- **빌드 최적화**: 540KB+ 번들로 성공적으로 빌드
+- **Vercel 통합**: git push 시 자동 배포
+- **개발 워크플로**: 일관된 개발 및 테스트 프로세스
 
 ## 🆕 Status 관리 시스템
 
