@@ -11,50 +11,14 @@ router.get('/', authenticateToken, async (req, res) => {
     
     console.log('[Products API] 상품 목록 조회 요청:', { page, limit, search });
     
-    // products 테이블이 있는지 확인
-    const [tables] = await executeWithRetry(() =>
-      pool.execute(`
-        SELECT TABLE_NAME 
-        FROM information_schema.TABLES 
-        WHERE TABLE_SCHEMA = DATABASE() 
-        AND TABLE_NAME = 'products'
-      `)
-    );
-
-    if (tables.length === 0) {
-      // products 테이블이 없으면 생성
-      await executeWithRetry(() =>
-        pool.execute(`
-          CREATE TABLE IF NOT EXISTS products (
-            id INT PRIMARY KEY AUTO_INCREMENT,
-            name VARCHAR(255) NOT NULL,
-            description TEXT,
-            weight DECIMAL(10,2),
-            dimensions VARCHAR(100),
-            price DECIMAL(10,2),
-            category VARCHAR(100),
-            sku VARCHAR(100) UNIQUE,
-            barcode VARCHAR(100),
-            is_active BOOLEAN DEFAULT true,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            created_by INT,
-            INDEX idx_name (name),
-            INDEX idx_category (category),
-            INDEX idx_sku (sku),
-            INDEX idx_active (is_active)
-          )
-        `)
-      );
-      console.log('[Products API] products 테이블 생성 완료');
-    }
+    // 기존 products 테이블 구조 사용 (별도 테이블 생성 불필요)
 
     // 검색 조건 구성
     let whereClause = 'WHERE 1=1';
     let queryParams = [];
     
     if (search) {
-      whereClause += ' AND (name LIKE ? OR description LIKE ? OR sku LIKE ? OR barcode LIKE ?)';
+      whereClause += ' AND (name LIKE ? OR memo LIKE ? OR maincode LIKE ? OR subcode LIKE ?)';
       const searchPattern = `%${search}%`;
       queryParams.push(searchPattern, searchPattern, searchPattern, searchPattern);
     }
@@ -70,15 +34,15 @@ router.get('/', authenticateToken, async (req, res) => {
       pool.execute(`
         SELECT 
           id,
+          user_id,
+          maincode,
+          subcode,
           name,
-          description,
           weight,
-          dimensions,
-          price,
-          category,
-          sku,
-          barcode,
-          is_active,
+          size,
+          cost1,
+          cost2,
+          memo,
           created_at,
           updated_at
         FROM products 
@@ -121,15 +85,15 @@ router.get('/:id', authenticateToken, async (req, res) => {
       pool.execute(`
         SELECT 
           id,
+          user_id,
+          maincode,
+          subcode,
           name,
-          description,
           weight,
-          dimensions,
-          price,
-          category,
-          sku,
-          barcode,
-          is_active,
+          size,
+          cost1,
+          cost2,
+          memo,
           created_at,
           updated_at
         FROM products 
@@ -166,13 +130,13 @@ router.post('/', authenticateToken, async (req, res) => {
   try {
     const {
       name,
-      description,
+      maincode,
+      subcode,
       weight,
-      dimensions,
-      price,
-      category,
-      sku,
-      barcode
+      size,
+      cost1,
+      cost2,
+      memo
     } = req.body;
 
     console.log('[Products API] 상품 생성 요청:', name);
@@ -185,26 +149,12 @@ router.post('/', authenticateToken, async (req, res) => {
       });
     }
 
-    // SKU 중복 확인
-    if (sku) {
-      const [existing] = await executeWithRetry(() =>
-        pool.execute('SELECT id FROM products WHERE sku = ?', [sku])
-      );
-      
-      if (existing.length > 0) {
-        return res.status(400).json({
-          success: false,
-          error: '이미 존재하는 SKU입니다.'
-        });
-      }
-    }
-
     const [result] = await executeWithRetry(() =>
       pool.execute(`
         INSERT INTO products (
-          name, description, weight, dimensions, price, category, sku, barcode, created_by
+          user_id, name, maincode, subcode, weight, size, cost1, cost2, memo
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `, [name, description, weight, dimensions, price, category, sku, barcode, req.user.id])
+      `, [req.user.id, name, maincode, subcode, weight, size, cost1, cost2, memo])
     );
 
     console.log('[Products API] 상품 생성 완료:', result.insertId);
@@ -231,14 +181,13 @@ router.put('/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
     const {
       name,
-      description,
+      maincode,
+      subcode,
       weight,
-      dimensions,
-      price,
-      category,
-      sku,
-      barcode,
-      is_active
+      size,
+      cost1,
+      cost2,
+      memo
     } = req.body;
 
     console.log('[Products API] 상품 수정 요청:', id);
@@ -255,27 +204,13 @@ router.put('/:id', authenticateToken, async (req, res) => {
       });
     }
 
-    // SKU 중복 확인 (자기 자신 제외)
-    if (sku) {
-      const [duplicate] = await executeWithRetry(() =>
-        pool.execute('SELECT id FROM products WHERE sku = ? AND id != ?', [sku, id])
-      );
-      
-      if (duplicate.length > 0) {
-        return res.status(400).json({
-          success: false,
-          error: '이미 존재하는 SKU입니다.'
-        });
-      }
-    }
-
     await executeWithRetry(() =>
       pool.execute(`
         UPDATE products SET 
-          name = ?, description = ?, weight = ?, dimensions = ?, 
-          price = ?, category = ?, sku = ?, barcode = ?, is_active = ?
+          name = ?, maincode = ?, subcode = ?, weight = ?, 
+          size = ?, cost1 = ?, cost2 = ?, memo = ?
         WHERE id = ?
-      `, [name, description, weight, dimensions, price, category, sku, barcode, is_active, id])
+      `, [name, maincode, subcode, weight, size, cost1, cost2, memo, id])
     );
 
     console.log('[Products API] 상품 수정 완료:', id);
@@ -334,32 +269,32 @@ router.delete('/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// 카테고리 목록 조회
+// 메인코드 목록 조회 (카테고리 대신)
 router.get('/categories/list', authenticateToken, async (req, res) => {
   try {
-    console.log('[Products API] 카테고리 목록 조회 요청');
+    console.log('[Products API] 메인코드 목록 조회 요청');
 
-    const [categories] = await executeWithRetry(() =>
+    const [maincodes] = await executeWithRetry(() =>
       pool.execute(`
-        SELECT DISTINCT category 
+        SELECT DISTINCT maincode 
         FROM products 
-        WHERE category IS NOT NULL AND category != ''
-        ORDER BY category
+        WHERE maincode IS NOT NULL AND maincode != ''
+        ORDER BY maincode
       `)
     );
 
-    console.log('[Products API] 카테고리 목록 조회 완료:', categories.length);
+    console.log('[Products API] 메인코드 목록 조회 완료:', maincodes.length);
 
     res.json({
       success: true,
-      categories: categories.map(row => row.category)
+      categories: maincodes.map(row => row.maincode)
     });
 
   } catch (error) {
-    console.error('[Products API] 카테고리 목록 조회 오류:', error);
+    console.error('[Products API] 메인코드 목록 조회 오류:', error);
     res.status(500).json({
       success: false,
-      error: '카테고리 목록을 조회할 수 없습니다.',
+      error: '메인코드 목록을 조회할 수 없습니다.',
       details: error.message
     });
   }
