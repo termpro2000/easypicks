@@ -8,6 +8,10 @@ interface Delivery {
   // 상품 정보
   product_name?: string;
   product_code?: string;
+  product_quantity?: number;
+  product_size?: string;
+  product_weight?: string;
+  product_sku?: string;
   request_type?: string;
   request_category?: string;
   // 배송 상태 및 일정
@@ -20,18 +24,31 @@ interface Delivery {
   sender_name?: string;
   sender_phone?: string;
   sender_address?: string;
+  sender_detail_address?: string;
+  sender_zipcode?: string;
+  sender_company?: string;
+  sender_email?: string;
   // 수취인 정보 (고객)
-  receiver_name?: string;
-  receiver_phone?: string;
-  receiver_address?: string;
   customer_name?: string;
   customer_phone?: string;
   customer_address?: string;
   // 기사 정보
   driver_id?: number;
   driver_name?: string;
-  // 추가 정보
+  // 배송 관련 정보
+  delivery_fee?: number;
+  cod_amount?: number;
+  insurance_amount?: number;
+  requires_signature?: boolean;
+  is_fragile?: boolean;
+  is_frozen?: boolean;
+  // 메모 및 지시사항
   special_instructions?: string;
+  delivery_memo?: string;
+  main_memo?: string;
+  driver_notes?: string;
+  detail_notes?: string;
+  // 설치 및 사진
   installation_photos?: string | string[];
   // 타임스탬프
   created_at: string;
@@ -329,7 +346,7 @@ const DeliveryDetail: React.FC<DeliveryDetailProps> = ({ delivery: initialDelive
             상품 정보
           </h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">상품명</label>
               <div className="text-gray-900">{delivery.product_name || '-'}</div>
@@ -339,12 +356,51 @@ const DeliveryDetail: React.FC<DeliveryDetailProps> = ({ delivery: initialDelive
               <div className="text-gray-900 font-mono">{delivery.product_code || '-'}</div>
             </div>
             <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">SKU</label>
+              <div className="text-gray-900 font-mono">{delivery.product_sku || '-'}</div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">수량</label>
+              <div className="text-gray-900">{delivery.product_quantity || '-'}</div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">크기</label>
+              <div className="text-gray-900">{delivery.product_size || '-'}</div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">무게</label>
+              <div className="text-gray-900">{delivery.product_weight || '-'}</div>
+            </div>
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">의뢰종류</label>
               <div className="text-gray-900">{delivery.request_type || '-'}</div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">의뢰타입</label>
               <div className="text-gray-900">{delivery.request_category || '-'}</div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">특성</label>
+              <div className="flex gap-2 flex-wrap">
+                {delivery.is_fragile && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                    취급주의
+                  </span>
+                )}
+                {delivery.is_frozen && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    냉동
+                  </span>
+                )}
+                {delivery.requires_signature && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    서명필요
+                  </span>
+                )}
+                {!delivery.is_fragile && !delivery.is_frozen && !delivery.requires_signature && (
+                  <span className="text-gray-500">-</span>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -356,7 +412,7 @@ const DeliveryDetail: React.FC<DeliveryDetailProps> = ({ delivery: initialDelive
             발송인 정보
           </h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">이름</label>
               <div className="text-gray-900">{delivery.sender_name || '-'}</div>
@@ -368,11 +424,29 @@ const DeliveryDetail: React.FC<DeliveryDetailProps> = ({ delivery: initialDelive
                 {delivery.sender_phone || '-'}
               </div>
             </div>
-            <div className="md:col-span-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">이메일</label>
+              <div className="text-gray-900">{delivery.sender_email || '-'}</div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">회사명</label>
+              <div className="text-gray-900">{delivery.sender_company || '-'}</div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">우편번호</label>
+              <div className="text-gray-900 font-mono">{delivery.sender_zipcode || '-'}</div>
+            </div>
+            <div></div>
+            <div className="lg:col-span-3">
               <label className="block text-sm font-medium text-gray-700 mb-1">주소</label>
               <div className="flex items-start gap-2 text-gray-900">
                 <MapPin className="w-4 h-4 text-gray-400 mt-0.5" />
-                {delivery.sender_address || '-'}
+                <div>
+                  <div>{delivery.sender_address || '-'}</div>
+                  {delivery.sender_detail_address && (
+                    <div className="text-gray-600 text-sm mt-1">{delivery.sender_detail_address}</div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -419,26 +493,91 @@ const DeliveryDetail: React.FC<DeliveryDetailProps> = ({ delivery: initialDelive
           </div>
         )}
 
-        {/* 특별 지시사항 */}
+        {/* 배송 비용 정보 */}
+        {(delivery.delivery_fee || delivery.cod_amount || delivery.insurance_amount) && (
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <FileText className="w-5 h-5 text-green-600" />
+              배송 비용 정보
+            </h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">배송비</label>
+                <div className="text-gray-900">
+                  {delivery.delivery_fee ? `${delivery.delivery_fee.toLocaleString()}원` : '-'}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">착불요금</label>
+                <div className="text-gray-900">
+                  {delivery.cod_amount ? `${delivery.cod_amount.toLocaleString()}원` : '-'}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">보험료</label>
+                <div className="text-gray-900">
+                  {delivery.insurance_amount ? `${delivery.insurance_amount.toLocaleString()}원` : '-'}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 메모 및 지시사항 */}
         <div className="bg-white rounded-lg shadow-sm border p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <FileText className="w-5 h-5 text-red-600" />
-            특별 지시사항
+            메모 및 지시사항
           </h2>
           
-          {isEditing ? (
-            <textarea
-              value={editData.special_instructions}
-              onChange={(e) => handleInputChange('special_instructions', e.target.value)}
-              placeholder="특별 지시사항을 입력하세요..."
-              rows={4}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          ) : (
-            <div className="text-gray-900 whitespace-pre-wrap">
-              {delivery.special_instructions || '특별 지시사항이 없습니다.'}
+          <div className="space-y-6">
+            {/* 특별 지시사항 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">특별 지시사항</label>
+              {isEditing ? (
+                <textarea
+                  value={editData.special_instructions}
+                  onChange={(e) => handleInputChange('special_instructions', e.target.value)}
+                  placeholder="특별 지시사항을 입력하세요..."
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              ) : (
+                <div className="text-gray-900 whitespace-pre-wrap bg-gray-50 p-3 rounded-lg">
+                  {delivery.special_instructions || '특별 지시사항이 없습니다.'}
+                </div>
+              )}
             </div>
-          )}
+
+            {/* 기타 메모들 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">배송 메모</label>
+                <div className="text-gray-900 bg-gray-50 p-3 rounded-lg min-h-[60px]">
+                  {delivery.delivery_memo || '-'}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">주요 메모</label>
+                <div className="text-gray-900 bg-gray-50 p-3 rounded-lg min-h-[60px]">
+                  {delivery.main_memo || '-'}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">기사 메모</label>
+                <div className="text-gray-900 bg-gray-50 p-3 rounded-lg min-h-[60px]">
+                  {delivery.driver_notes || '-'}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">상세 메모</label>
+                <div className="text-gray-900 bg-gray-50 p-3 rounded-lg min-h-[60px]">
+                  {delivery.detail_notes || '-'}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* 설치 사진 */}
