@@ -10,9 +10,10 @@ const pool = mysql.createPool({
   ssl: { rejectUnauthorized: true },
   connectionLimit: 10,
   queueLimit: 0,
-  acquireTimeout: 60000,
-  timeout: 60000,
-  reconnect: true
+  acquireTimeout: 60000,  // Connection pool acquire timeout
+  idleTimeout: 300000,    // Connection idle timeout (5 minutes)
+  enableKeepAlive: true,  // Keep connections alive
+  keepAliveInitialDelay: 0
 });
 
 /**
