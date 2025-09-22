@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Package, Clock, CheckCircle, Truck, AlertCircle, Eye, Camera, FileText, User, Phone, MapPin, Calendar, Weight } from 'lucide-react';
+import { ArrowLeft, Package, Clock, CheckCircle, Truck, AlertCircle, Camera, FileText, User, Phone, MapPin, Calendar, Weight } from 'lucide-react';
 import { deliveriesAPI } from '../../services/api';
 
 interface DeliveryDetail {

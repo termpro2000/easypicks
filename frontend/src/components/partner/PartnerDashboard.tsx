@@ -10,7 +10,7 @@ interface PartnerDashboardProps {
   onShowProfile: () => void;
 }
 
-type PartnerPageType = 'main' | 'tracking' | 'shipping' | 'products';
+type PartnerPageType = 'main' | 'tracking' | 'shipping' | 'products' | 'product-list';
 
 const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ onShowProfile }) => {
   const { user, logout } = useAuth();

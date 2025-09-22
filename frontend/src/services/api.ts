@@ -205,7 +205,7 @@ export const shippingAPI = {
   }) => {
     const response = await apiClient.post('/shipping/shipments', data);
     return response.data;
-  }
+  },
 
   // 관리자용 운송장 번호 할당
   assignTrackingNumber: async (id: number, trackingData: {

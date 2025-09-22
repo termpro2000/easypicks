@@ -5,7 +5,7 @@ import {
   ArrowLeft, Check, AlertTriangle, Tag, Camera, X, Upload, QrCode
 } from 'lucide-react';
 import { productsAPI, productPhotosAPI } from '../../services/api';
-import { useAuth } from '../../hooks/useAuth';
+// import { useAuth } from '../../hooks/useAuth';
 import LabelPhotographyModal from './LabelPhotographyModal';
 import QRCodeScannerModal from './QRCodeScannerModal';
 
@@ -59,7 +59,7 @@ const InfoCell: React.FC<InfoCellProps> = ({ label, icon: Icon, children, requir
 };
 
 const PartnerProductForm: React.FC<PartnerProductFormProps> = ({ onNavigateBack }) => {
-  const { user } = useAuth();
+  // const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitResult, setSubmitResult] = useState<{ success: boolean; message: string; productId?: number } | null>(null);
   const [selectedPhotos, setSelectedPhotos] = useState<File[]>([]);
