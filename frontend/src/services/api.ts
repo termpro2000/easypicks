@@ -439,6 +439,12 @@ export const productPhotosAPI = {
  * 배송 조회, 수정, 기사 배정을 위한 API 함수들
  */
 export const deliveriesAPI = {
+  // 새 배송 생성
+  createDelivery: async (data: any) => {
+    const response = await apiClient.post('/deliveries', data);
+    return response.data;
+  },
+
   // 배송 목록 조회
   getDeliveries: async (page: number = 1, limit: number = 50) => {
     const response = await apiClient.get(`/deliveries?page=${page}&limit=${limit}`);

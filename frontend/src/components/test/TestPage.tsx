@@ -12,6 +12,7 @@ import {
   List,
   AlertTriangle
 } from 'lucide-react';
+import { deliveriesAPI } from '../../services/api';
 import DbSchemaViewer from './DbSchemaViewer';
 import PartnersListModal from './PartnersListModal';
 import DriversListModal from './DriversListModal';
@@ -30,7 +31,7 @@ const TestPage: React.FC<TestPageProps> = ({ onNavigateBack }) => {
   const [showDriversModal, setShowDriversModal] = useState(false);
   const [showDeliveriesModal, setShowDeliveriesModal] = useState(false);
   const [deliveries] = useState<any[]>([]);
-  const [isCreating] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showDriverDeleteConfirm, setShowDriverDeleteConfirm] = useState(false);
   const [showDeliveriesDeleteConfirm, setShowDeliveriesDeleteConfirm] = useState(false);
@@ -174,6 +175,62 @@ const TestPage: React.FC<TestPageProps> = ({ onNavigateBack }) => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // 새로운 배송 생성 함수
+  const handleCreateDelivery = async (deliveryData: any) => {
+    setIsCreating(true);
+    setMessage(null);
+    
+    try {
+      // deliveriesAPI를 사용해 실제 배송 생성
+      const createData = {
+        sender_name: deliveryData.sender_name,
+        sender_address: deliveryData.sender_address,
+        customer_name: deliveryData.customer_name,
+        customer_phone: deliveryData.customer_phone,
+        customer_address: deliveryData.customer_address,
+        product_name: deliveryData.product_name,
+        request_type: deliveryData.request_type,
+        status: deliveryData.status,
+        visit_date: deliveryData.visit_date,
+        visit_time: deliveryData.visit_time,
+        special_instructions: deliveryData.special_instructions,
+        main_memo: deliveryData.main_memo,
+        delivery_memo: `테스트 생성 - ${new Date().toLocaleString()}`,
+        delivery_fee: deliveryData.delivery_fee,
+        cod_amount: deliveryData.cod_amount,
+        insurance_amount: deliveryData.insurance_value,
+        is_fragile: deliveryData.fragile,
+        driver_notes: deliveryData.driver_notes,
+        detail_notes: deliveryData.detail_notes
+      };
+
+      const response = await deliveriesAPI.createDelivery ? 
+        deliveriesAPI.createDelivery(createData) : 
+        await fetch('/api/deliveries', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('jwt_token')}`
+          },
+          body: JSON.stringify(createData)
+        }).then(res => res.json());
+
+      setShowDeliveryCreateModal(false);
+      setMessage({
+        type: 'success',
+        text: `새 배송이 성공적으로 생성되었습니다!\n운송장번호: ${response.trackingNumber || deliveryData.tracking_number}\n고객명: ${deliveryData.customer_name}\n상품명: ${deliveryData.product_name}`
+      });
+    } catch (error: any) {
+      console.error('배송 생성 오류:', error);
+      setMessage({
+        type: 'error',
+        text: '배송 생성에 실패했습니다: ' + (error.message || '알 수 없는 오류')
+      });
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -436,7 +493,7 @@ const TestPage: React.FC<TestPageProps> = ({ onNavigateBack }) => {
         <DeliveryCreateModal 
           isOpen={showDeliveryCreateModal}
           onClose={() => setShowDeliveryCreateModal(false)}
-          onSave={() => {}}
+          onSave={handleCreateDelivery}
           isLoading={isCreating}
         />
       )}
