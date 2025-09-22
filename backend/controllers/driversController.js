@@ -5,7 +5,7 @@ const ensureDriversTable = async () => {
   try {
     const createTableQuery = `
       CREATE TABLE IF NOT EXISTS drivers (
-        driver_id INT AUTO_INCREMENT PRIMARY KEY,
+        id INT AUTO_INCREMENT PRIMARY KEY,
         username VARCHAR(100) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
         name VARCHAR(100) NOT NULL,
@@ -38,7 +38,7 @@ exports.getAllDrivers = async (req, res) => {
     await ensureDriversTable();
     const query = `
       SELECT 
-        driver_id,
+        id as driver_id,
         username,
         name,
         phone,
@@ -76,7 +76,7 @@ exports.getDriver = async (req, res) => {
     
     const query = `
       SELECT 
-        driver_id,
+        id as driver_id,
         username,
         name,
         phone,
@@ -88,7 +88,7 @@ exports.getDriver = async (req, res) => {
         created_at,
         updated_at
       FROM drivers
-      WHERE driver_id = ?
+      WHERE id = ?
     `;
     
     const [drivers] = await pool.execute(query, [id]);
@@ -137,7 +137,7 @@ exports.createDriver = async (req, res) => {
     }
 
     // 중복 사용자명 확인
-    const checkQuery = 'SELECT driver_id FROM drivers WHERE username = ?';
+    const checkQuery = 'SELECT id FROM drivers WHERE username = ?';
     const [existing] = await pool.execute(checkQuery, [username]);
     
     if (existing.length > 0) {
@@ -170,7 +170,7 @@ exports.createDriver = async (req, res) => {
     res.status(201).json({
       success: true,
       message: '기사가 성공적으로 등록되었습니다.',
-      driver_id: result.insertId
+      id: result.insertId
     });
   } catch (error) {
     console.error('기사 등록 실패:', error);
@@ -199,7 +199,7 @@ exports.updateDriver = async (req, res) => {
     } = req.body;
 
     // 기사 존재 확인
-    const checkQuery = 'SELECT driver_id FROM drivers WHERE driver_id = ?';
+    const checkQuery = 'SELECT id FROM drivers WHERE id = ?';
     const [existing] = await pool.execute(checkQuery, [id]);
     
     if (existing.length === 0) {
@@ -255,7 +255,7 @@ exports.updateDriver = async (req, res) => {
     const updateQuery = `
       UPDATE drivers
       SET ${updateFields.join(', ')}
-      WHERE driver_id = ?
+      WHERE id = ?
     `;
     
     updateValues.push(id);
@@ -282,7 +282,7 @@ exports.deleteDriver = async (req, res) => {
     const { id } = req.params;
 
     // 기사 존재 확인
-    const checkQuery = 'SELECT driver_id FROM drivers WHERE driver_id = ?';
+    const checkQuery = 'SELECT id FROM drivers WHERE id = ?';
     const [existing] = await pool.execute(checkQuery, [id]);
     
     if (existing.length === 0) {
@@ -294,7 +294,7 @@ exports.deleteDriver = async (req, res) => {
 
     // 기사 삭제 (또는 비활성화)
     // 실제로는 is_active = 0으로 설정하는 것이 좋을 수 있음
-    const deleteQuery = 'DELETE FROM drivers WHERE driver_id = ?';
+    const deleteQuery = 'DELETE FROM drivers WHERE id = ?';
     await pool.execute(deleteQuery, [id]);
 
     res.json({
@@ -323,7 +323,7 @@ exports.searchDrivers = async (req, res) => {
     const searchTerm = `%${q}%`;
     const query = `
       SELECT 
-        driver_id,
+        id,
         username,
         name,
         phone,
