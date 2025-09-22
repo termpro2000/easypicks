@@ -228,4 +228,265 @@ router.get('/api-status', authenticateToken, async (req, res) => {
   }
 });
 
+// 파트너사 목록 조회
+router.get('/partners', authenticateToken, async (req, res) => {
+  try {
+    console.log('[Test API] 파트너사 목록 조회 요청');
+    
+    const [partners] = await executeWithRetry(() =>
+      pool.execute(`
+        SELECT 
+          id,
+          username,
+          name,
+          email,
+          phone,
+          company,
+          role,
+          is_active,
+          default_sender_address,
+          default_sender_detail_address,
+          default_sender_zipcode,
+          created_at,
+          updated_at
+        FROM users 
+        WHERE role IN ('user', 'manager', 'admin')
+        ORDER BY created_at DESC
+      `)
+    );
+
+    console.log(`[Test API] 파트너사 목록 조회 완료: ${partners.length}개`);
+
+    res.json({
+      success: true,
+      partners: partners.map(partner => ({
+        ...partner,
+        default_sender_name: partner.name,
+        default_sender_company: partner.company,
+        default_sender_phone: partner.phone
+      }))
+    });
+
+  } catch (error) {
+    console.error('[Test API] 파트너사 목록 조회 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '파트너사 목록을 조회할 수 없습니다.',
+      details: error.message
+    });
+  }
+});
+
+// 모든 파트너사 삭제
+router.delete('/partners', authenticateToken, async (req, res) => {
+  try {
+    console.log('[Test API] 모든 파트너사 삭제 요청');
+    
+    // 현재 로그인한 사용자는 삭제하지 않음
+    const [result] = await executeWithRetry(() =>
+      pool.execute(`
+        DELETE FROM users 
+        WHERE role IN ('user', 'manager') 
+        AND id != ?
+      `, [req.user.id])
+    );
+
+    console.log(`[Test API] 파트너사 삭제 완료: ${result.affectedRows}개 삭제`);
+
+    res.json({
+      success: true,
+      message: `${result.affectedRows}개의 파트너사가 삭제되었습니다.`,
+      deletedCount: result.affectedRows
+    });
+
+  } catch (error) {
+    console.error('[Test API] 파트너사 삭제 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '파트너사 삭제에 실패했습니다.',
+      details: error.message
+    });
+  }
+});
+
+// 기사 목록 조회
+router.get('/drivers', authenticateToken, async (req, res) => {
+  try {
+    console.log('[Test API] 기사 목록 조회 요청');
+    
+    // drivers 테이블이 있는지 확인
+    const [tables] = await executeWithRetry(() =>
+      pool.execute(`
+        SELECT TABLE_NAME 
+        FROM information_schema.TABLES 
+        WHERE TABLE_SCHEMA = DATABASE() 
+        AND TABLE_NAME = 'drivers'
+      `)
+    );
+
+    if (tables.length === 0) {
+      // drivers 테이블이 없으면 빈 배열 반환
+      console.log('[Test API] drivers 테이블이 존재하지 않음');
+      return res.json({
+        success: true,
+        drivers: []
+      });
+    }
+
+    const [drivers] = await executeWithRetry(() =>
+      pool.execute(`
+        SELECT 
+          driver_id as id,
+          username,
+          name,
+          email,
+          phone,
+          vehicle_type,
+          vehicle_number,
+          license_number,
+          is_active,
+          created_at,
+          updated_at
+        FROM drivers 
+        ORDER BY created_at DESC
+      `)
+    );
+
+    console.log(`[Test API] 기사 목록 조회 완료: ${drivers.length}개`);
+
+    res.json({
+      success: true,
+      drivers: drivers
+    });
+
+  } catch (error) {
+    console.error('[Test API] 기사 목록 조회 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '기사 목록을 조회할 수 없습니다.',
+      details: error.message
+    });
+  }
+});
+
+// 모든 기사 삭제
+router.delete('/drivers', authenticateToken, async (req, res) => {
+  try {
+    console.log('[Test API] 모든 기사 삭제 요청');
+    
+    // drivers 테이블이 있는지 확인
+    const [tables] = await executeWithRetry(() =>
+      pool.execute(`
+        SELECT TABLE_NAME 
+        FROM information_schema.TABLES 
+        WHERE TABLE_SCHEMA = DATABASE() 
+        AND TABLE_NAME = 'drivers'
+      `)
+    );
+
+    if (tables.length === 0) {
+      console.log('[Test API] drivers 테이블이 존재하지 않음');
+      return res.json({
+        success: true,
+        message: '삭제할 기사가 없습니다.',
+        deletedCount: 0
+      });
+    }
+
+    const [result] = await executeWithRetry(() =>
+      pool.execute('DELETE FROM drivers')
+    );
+
+    console.log(`[Test API] 기사 삭제 완료: ${result.affectedRows}개 삭제`);
+
+    res.json({
+      success: true,
+      message: `${result.affectedRows}개의 기사가 삭제되었습니다.`,
+      deletedCount: result.affectedRows
+    });
+
+  } catch (error) {
+    console.error('[Test API] 기사 삭제 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '기사 삭제에 실패했습니다.',
+      details: error.message
+    });
+  }
+});
+
+// 배송 목록 조회 (테스트용)
+router.get('/deliveries', authenticateToken, async (req, res) => {
+  try {
+    console.log('[Test API] 배송 목록 조회 요청');
+    
+    const [deliveries] = await executeWithRetry(() =>
+      pool.execute(`
+        SELECT 
+          id,
+          tracking_number,
+          status,
+          sender_name,
+          sender_address,
+          customer_name,
+          customer_phone,
+          customer_address,
+          product_name,
+          visit_date,
+          driver_id,
+          driver_name,
+          delivery_fee,
+          special_instructions,
+          created_at,
+          updated_at
+        FROM deliveries 
+        ORDER BY created_at DESC
+        LIMIT 100
+      `)
+    );
+
+    console.log(`[Test API] 배송 목록 조회 완료: ${deliveries.length}개`);
+
+    res.json({
+      success: true,
+      deliveries: deliveries
+    });
+
+  } catch (error) {
+    console.error('[Test API] 배송 목록 조회 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '배송 목록을 조회할 수 없습니다.',
+      details: error.message
+    });
+  }
+});
+
+// 모든 배송 삭제
+router.delete('/deliveries', authenticateToken, async (req, res) => {
+  try {
+    console.log('[Test API] 모든 배송 삭제 요청');
+    
+    const [result] = await executeWithRetry(() =>
+      pool.execute('DELETE FROM deliveries')
+    );
+
+    console.log(`[Test API] 배송 삭제 완료: ${result.affectedRows}개 삭제`);
+
+    res.json({
+      success: true,
+      message: `${result.affectedRows}개의 배송이 삭제되었습니다.`,
+      deletedCount: result.affectedRows
+    });
+
+  } catch (error) {
+    console.error('[Test API] 배송 삭제 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '배송 삭제에 실패했습니다.',
+      details: error.message
+    });
+  }
+});
+
 module.exports = router;
