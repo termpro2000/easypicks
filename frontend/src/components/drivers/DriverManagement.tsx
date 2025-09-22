@@ -545,6 +545,9 @@ const DriverManagement: React.FC = () => {
                     {isSubmitting ? '등록 중...' : '등록'}
                   </button>
                 </div>
+                <div className="mt-2 text-xs text-gray-400 text-center">
+                  DriverManagement.tsx
+                </div>
               </div>
             </form>
           </div>
@@ -705,6 +708,9 @@ const DriverManagement: React.FC = () => {
                   >
                     {isSubmitting ? '수정 중...' : '수정'}
                   </button>
+                </div>
+                <div className="mt-2 text-xs text-gray-400 text-center">
+                  DriverManagement.tsx
                 </div>
               </div>
             </form>

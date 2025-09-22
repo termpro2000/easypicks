@@ -692,6 +692,11 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess, onNewO
           ) : null}
         </div>
       )}
+      
+      {/* 파일명 표시 */}
+      <div className="mt-4 text-xs text-gray-400 text-center">
+        ShippingOrderForm.tsx
+      </div>
     </div>
   );
 };

@@ -285,6 +285,11 @@ const AuthPage: React.FC = () => {
             {isLogin ? '회원가입하기' : '이미 계정이 있나요? 로그인하기'}
           </button>
         </div>
+        
+        {/* 파일명 표시 */}
+        <div className="mt-4 text-xs text-gray-400 text-center">
+          AuthPage.tsx
+        </div>
       </div>
     </div>
   );

@@ -1048,6 +1048,10 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
               </button>
             </div>
           </div>
+          {/* 파일명 표시 */}
+          <div className="mt-4 text-xs text-gray-400 text-center">
+            AdminShippingForm.tsx
+          </div>
         </form>
       </main>
 

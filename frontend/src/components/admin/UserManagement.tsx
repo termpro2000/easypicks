@@ -888,6 +888,10 @@ const UserManagement: React.FC<UserManagementProps> = ({ initialTab = 'users' })
                     저장
                   </button>
                 </div>
+                {/* 파일명 표시 */}
+                <div className="mt-2 text-xs text-gray-400 text-center">
+                  UserManagement.tsx
+                </div>
               </form>
             </div>
           </div>
@@ -1057,6 +1061,10 @@ const UserManagement: React.FC<UserManagementProps> = ({ initialTab = 'users' })
                   >
                     확인
                   </button>
+                </div>
+                {/* 파일명 표시 */}
+                <div className="mt-2 text-xs text-gray-400 text-center">
+                  UserManagement.tsx
                 </div>
               </form>
             </div>

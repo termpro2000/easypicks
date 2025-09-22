@@ -504,6 +504,10 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ onNavigateBack })
                 {editingProduct ? '수정' : '추가'}
               </button>
             </div>
+            {/* 파일명 표시 */}
+            <div className="mt-4 text-xs text-gray-400 text-center">
+              ProductManagement.tsx
+            </div>
           </div>
         </div>
       )}
