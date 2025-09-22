@@ -5,21 +5,35 @@ import { deliveriesAPI } from '../../services/api';
 interface Delivery {
   id: number;
   tracking_number: string;
+  // 상품 정보
   product_name?: string;
   product_code?: string;
   request_type?: string;
   request_category?: string;
+  // 배송 상태 및 일정
   status: string;
   visit_date?: string;
+  visit_time?: string;
+  action_date?: string;
+  action_time?: string;
+  // 발송인 정보
   sender_name?: string;
   sender_phone?: string;
   sender_address?: string;
+  // 수취인 정보 (고객)
   receiver_name?: string;
   receiver_phone?: string;
   receiver_address?: string;
+  customer_name?: string;
+  customer_phone?: string;
+  customer_address?: string;
+  // 기사 정보
   driver_id?: number;
   driver_name?: string;
+  // 추가 정보
   special_instructions?: string;
+  installation_photos?: string | string[];
+  // 타임스탬프
   created_at: string;
   updated_at: string;
 }
@@ -36,6 +50,9 @@ const DeliveryDetail: React.FC<DeliveryDetailProps> = ({ delivery: initialDelive
   const [editData, setEditData] = useState({
     status: delivery.status,
     visit_date: delivery.visit_date || '',
+    visit_time: delivery.visit_time || '',
+    action_date: delivery.action_date || '',
+    action_time: delivery.action_time || '',
     special_instructions: delivery.special_instructions || ''
   });
 
@@ -103,6 +120,9 @@ const DeliveryDetail: React.FC<DeliveryDetailProps> = ({ delivery: initialDelive
     setEditData({
       status: delivery.status,
       visit_date: delivery.visit_date || '',
+      visit_time: delivery.visit_time || '',
+      action_date: delivery.action_date || '',
+      action_time: delivery.action_time || '',
       special_instructions: delivery.special_instructions || ''
     });
     setIsEditing(true);
@@ -202,7 +222,7 @@ const DeliveryDetail: React.FC<DeliveryDetailProps> = ({ delivery: initialDelive
             </span>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 현재 상태
@@ -239,6 +259,63 @@ const DeliveryDetail: React.FC<DeliveryDetailProps> = ({ delivery: initialDelive
                 <div className="flex items-center gap-2 text-gray-900">
                   <Calendar className="w-4 h-4 text-gray-400" />
                   {formatDate(delivery.visit_date)}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                방문 예정시간
+              </label>
+              {isEditing ? (
+                <input
+                  type="time"
+                  value={editData.visit_time}
+                  onChange={(e) => handleInputChange('visit_time', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              ) : (
+                <div className="flex items-center gap-2 text-gray-900">
+                  <Clock className="w-4 h-4 text-gray-400" />
+                  {delivery.visit_time || '-'}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                실행 예정일
+              </label>
+              {isEditing ? (
+                <input
+                  type="date"
+                  value={editData.action_date}
+                  onChange={(e) => handleInputChange('action_date', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              ) : (
+                <div className="flex items-center gap-2 text-gray-900">
+                  <Calendar className="w-4 h-4 text-gray-400" />
+                  {formatDate(delivery.action_date)}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                실행 예정시간
+              </label>
+              {isEditing ? (
+                <input
+                  type="time"
+                  value={editData.action_time}
+                  onChange={(e) => handleInputChange('action_time', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              ) : (
+                <div className="flex items-center gap-2 text-gray-900">
+                  <Clock className="w-4 h-4 text-gray-400" />
+                  {delivery.action_time || '-'}
                 </div>
               )}
             </div>
@@ -311,20 +388,20 @@ const DeliveryDetail: React.FC<DeliveryDetailProps> = ({ delivery: initialDelive
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">이름</label>
-              <div className="text-gray-900">{delivery.receiver_name || '-'}</div>
+              <div className="text-gray-900">{delivery.customer_name || '-'}</div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">연락처</label>
               <div className="flex items-center gap-2 text-gray-900">
                 <Phone className="w-4 h-4 text-gray-400" />
-                {delivery.receiver_phone || '-'}
+                {delivery.customer_phone || '-'}
               </div>
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">주소</label>
               <div className="flex items-start gap-2 text-gray-900">
                 <MapPin className="w-4 h-4 text-gray-400 mt-0.5" />
-                {delivery.receiver_address || '-'}
+                {delivery.customer_address || '-'}
               </div>
             </div>
           </div>
@@ -363,6 +440,50 @@ const DeliveryDetail: React.FC<DeliveryDetailProps> = ({ delivery: initialDelive
             </div>
           )}
         </div>
+
+        {/* 설치 사진 */}
+        {delivery.installation_photos && (
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <FileText className="w-5 h-5 text-purple-600" />
+              설치 사진
+            </h2>
+            
+            <div className="space-y-2">
+              {Array.isArray(delivery.installation_photos) ? (
+                delivery.installation_photos.length > 0 ? (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {delivery.installation_photos.map((photo, index) => (
+                      <div key={index} className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                        <img 
+                          src={photo} 
+                          alt={`설치 사진 ${index + 1}`}
+                          className="w-full h-full object-cover hover:scale-105 transition-transform cursor-pointer"
+                          onClick={() => window.open(photo, '_blank')}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-gray-500">설치 사진이 없습니다.</div>
+                )
+              ) : (
+                typeof delivery.installation_photos === 'string' && delivery.installation_photos ? (
+                  <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden max-w-xs">
+                    <img 
+                      src={delivery.installation_photos} 
+                      alt="설치 사진"
+                      className="w-full h-full object-cover hover:scale-105 transition-transform cursor-pointer"
+                      onClick={() => window.open(delivery.installation_photos as string, '_blank')}
+                    />
+                  </div>
+                ) : (
+                  <div className="text-gray-500">설치 사진이 없습니다.</div>
+                )
+              )}
+            </div>
+          </div>
+        )}
 
         {/* 시간 정보 */}
         <div className="bg-white rounded-lg shadow-sm border p-6">
