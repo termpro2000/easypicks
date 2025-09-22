@@ -459,6 +459,18 @@ export const driversAPI = {
   updateDriver: async (id: number, data: any) => {
     const response = await apiClient.put(`/drivers/${id}`, data);
     return response.data;
+  },
+
+  // 기사 검색
+  searchDrivers: async (searchTerm: string) => {
+    const response = await apiClient.get(`/drivers/search?q=${encodeURIComponent(searchTerm)}`);
+    return response.data;
+  },
+
+  // 기사 삭제
+  deleteDriver: async (id: number) => {
+    const response = await apiClient.delete(`/drivers/${id}`);
+    return response.data;
   }
 };
 

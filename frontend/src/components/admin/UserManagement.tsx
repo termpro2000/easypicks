@@ -38,11 +38,15 @@ interface Driver {
   rating?: number;
 }
 
-const UserManagement: React.FC = () => {
+interface UserManagementProps {
+  initialTab?: 'users' | 'drivers';
+}
+
+const UserManagement: React.FC<UserManagementProps> = ({ initialTab = 'users' }) => {
   const { user: currentUser } = useAuth();
   
   // 탭 상태
-  const [activeTab, setActiveTab] = useState<'users' | 'drivers'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'drivers'>(initialTab);
   
   // 사용자 관련 상태
   const [users, setUsers] = useState<User[]>([]);
