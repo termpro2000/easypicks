@@ -8,12 +8,9 @@ const pool = mysql.createPool({
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   ssl: { rejectUnauthorized: true },
+  // Only use well-supported MySQL2 pool options
   connectionLimit: 10,
-  queueLimit: 0,
-  acquireTimeout: 60000,  // Connection pool acquire timeout
-  idleTimeout: 300000,    // Connection idle timeout (5 minutes)
-  enableKeepAlive: true,  // Keep connections alive
-  keepAliveInitialDelay: 0
+  queueLimit: 0
 });
 
 /**
