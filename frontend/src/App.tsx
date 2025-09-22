@@ -85,7 +85,6 @@ const AppContent: React.FC = () => {
   if (user?.role === 'admin' && currentPage === 'dashboard') {
     return (
       <AdminDashboard 
-        onNavigate={setCurrentPage}
         onLogout={handleLogout}
       />
     );
@@ -235,7 +234,7 @@ const AppContent: React.FC = () => {
               onOrderStatusChange={notifyOrderStatusChange}
             />
           ) : currentPage === 'users' ? (
-            <UserManagement />
+            <UserManagement onNavigateBack={() => setCurrentPage('dashboard' as PageType)} />
           ) : (currentPage as string) === 'tracking' ? (
             <TrackingPage onNavigateBack={() => setCurrentPage('dashboard' as PageType)} />
           ) : (

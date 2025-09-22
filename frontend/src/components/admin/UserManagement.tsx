@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, Edit, Trash2, Search, Eye, EyeOff, Truck, UserIcon } from 'lucide-react';
-import { userAPI, deliveriesAPI } from '../../services/api';
+import { Users, Plus, Edit, Trash2, Search, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { userAPI } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
 
 interface User {
@@ -20,29 +20,13 @@ interface User {
   default_sender_zipcode?: string;
 }
 
-interface Driver {
-  id: number;
-  name: string;
-  phone?: string;
-  company?: string;
-  username: string;
-  is_active: boolean;
-  created_at: string;
-  // 배송 통계
-  currentOrders: number;
-  totalDeliveries: number;
-  // 추가 기사 정보 (확장 가능)
-  vehicle?: string;
-  license?: string;
-  location?: string;
-  rating?: number;
+
+interface UserManagementProps {
+  onNavigateBack: () => void;
 }
 
-const UserManagement: React.FC = () => {
+const UserManagement: React.FC<UserManagementProps> = ({ onNavigateBack }) => {
   const { user: currentUser } = useAuth();
-  
-  // 탭 상태
-  const [activeTab, setActiveTab] = useState<'users' | 'drivers'>('users');
   
   // 사용자 관련 상태
   const [users, setUsers] = useState<User[]>([]);
@@ -54,11 +38,6 @@ const UserManagement: React.FC = () => {
   const [showPartnerModal, setShowPartnerModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   
-  // 기사 관련 상태
-  const [drivers, setDrivers] = useState<Driver[]>([]);
-  const [driversLoading, setDriversLoading] = useState(true);
-  const [driverSearchTerm, setDriverSearchTerm] = useState('');
-  const [driverSearchInput, setDriverSearchInput] = useState('');
   
   // 공통 상태
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -96,12 +75,8 @@ const UserManagement: React.FC = () => {
   const [showPartnerPassword, setShowPartnerPassword] = useState(false);
 
   useEffect(() => {
-    if (activeTab === 'users') {
-      fetchUsers();
-    } else {
-      fetchDrivers();
-    }
-  }, [activeTab]);
+    fetchUsers();
+  }, []);
 
   const fetchUsers = async () => {
     try {
@@ -116,71 +91,10 @@ const UserManagement: React.FC = () => {
     }
   };
 
-  const fetchDrivers = async () => {
-    try {
-      setDriversLoading(true);
-      // 모든 배송 데이터를 가져와서 driver_id가 있는 것들을 기준으로 기사 목록 생성
-      const deliveriesResponse = await deliveriesAPI.getDeliveries(1, 1000);
-      
-      // driver_id, driver_name, assigned_driver 필드에서 기사 정보 추출
-      const driverMap = new Map<string, Driver>();
-      
-      deliveriesResponse.deliveries.forEach((delivery: any) => {
-        const driverInfo = {
-          id: delivery.driver_id || delivery.assigned_driver || delivery.driver_name,
-          name: delivery.driver_name || delivery.assigned_driver || 'Unknown Driver'
-        };
-        
-        if (driverInfo.id && !driverMap.has(driverInfo.id)) {
-          // 해당 기사의 배송 건수 계산
-          const driverDeliveries = deliveriesResponse.deliveries.filter((d: any) => 
-            d.driver_id === driverInfo.id || 
-            d.driver_name === driverInfo.name ||
-            d.assigned_driver === driverInfo.name
-          );
-          
-          const currentOrders = driverDeliveries.filter((d: any) => 
-            ['pending', 'in_transit'].includes(d.status)
-          ).length;
-          
-          driverMap.set(driverInfo.id, {
-            id: parseInt(driverInfo.id) || 0,
-            name: driverInfo.name,
-            phone: '010-0000-0000', // 실제로는 별도 테이블에서 가져와야 함
-            company: '배송업체',
-            username: `driver_${driverInfo.id}`,
-            is_active: true,
-            created_at: new Date().toISOString(),
-            currentOrders,
-            totalDeliveries: driverDeliveries.length,
-            vehicle: '배송차량',
-            license: '운전면허',
-            location: '서울시',
-            rating: 4.0 + Math.random()
-          });
-        }
-      });
-      
-      setDrivers(Array.from(driverMap.values()));
-    } catch (error: any) {
-      console.error('기사 목록 조회 실패:', error);
-      showNotification('error', '기사 목록을 불러오는데 실패했습니다.');
-    } finally {
-      setDriversLoading(false);
-    }
-  };
 
   useEffect(() => {
-    if (activeTab === 'users') {
-      fetchUsers();
-    }
+    fetchUsers();
   }, [searchTerm, roleFilter]);
-
-  useEffect(() => {
-    if (activeTab === 'drivers') {
-      fetchDrivers();
-    }
-  }, [driverSearchTerm]);
 
   const showNotification = (type: 'success' | 'error', message: string) => {
     setNotification({ type, message });
@@ -191,9 +105,6 @@ const UserManagement: React.FC = () => {
     setSearchTerm(searchInput);
   };
 
-  const handleDriverSearch = () => {
-    setDriverSearchTerm(driverSearchInput);
-  };
 
   const handleUserSearchKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
@@ -201,11 +112,6 @@ const UserManagement: React.FC = () => {
     }
   };
 
-  const handleDriverSearchKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleDriverSearch();
-    }
-  };
 
   const resetPartnerForm = () => {
     setPartnerFormData({
@@ -352,20 +258,13 @@ const UserManagement: React.FC = () => {
     return new Date(dateString).toLocaleDateString('ko-KR');
   };
 
-  const filteredDrivers = drivers.filter(driver =>
-    driver.name.toLowerCase().includes(driverSearchTerm.toLowerCase()) ||
-    (driver.phone && driver.phone.includes(driverSearchTerm)) ||
-    (driver.company && driver.company.toLowerCase().includes(driverSearchTerm.toLowerCase()))
-  );
 
-  if ((activeTab === 'users' && loading) || (activeTab === 'drivers' && driversLoading)) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="bg-white rounded-lg shadow-lg p-8 text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">
-            {activeTab === 'users' ? '사용자 목록을 로딩 중...' : '기사 목록을 로딩 중...'}
-          </p>
+          <p className="text-gray-600">사용자 목록을 로딩 중...</p>
         </div>
       </div>
     );
@@ -387,305 +286,155 @@ const UserManagement: React.FC = () => {
       {/* 헤더 */}
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex items-center justify-between mb-6">
+          {/* 뒤로가기 버튼 */}
+          <button
+            onClick={onNavigateBack}
+            className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span>돌아가기</span>
+          </button>
+          
+          {/* 중앙 제목 */}
           <div className="flex items-center gap-3">
-            {activeTab === 'users' ? (
-              <Users className="w-8 h-8 text-blue-500" />
-            ) : (
-              <Truck className="w-8 h-8 text-green-500" />
-            )}
+            <Users className="w-8 h-8 text-blue-500" />
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">
-                {activeTab === 'users' ? '사용자 관리' : '기사 관리'}
-              </h2>
-              <p className="text-gray-600">
-                {activeTab === 'users' ? '시스템 사용자를 관리합니다' : '배송 기사 정보를 관리합니다'}
-              </p>
+              <h2 className="text-2xl font-bold text-gray-900">사용자 관리</h2>
+              <p className="text-gray-600">시스템 사용자를 관리합니다</p>
             </div>
           </div>
-        </div>
-
-        {/* 탭 네비게이션 */}
-        <div className="border-b border-gray-200 mb-6">
-          <nav className="-mb-px flex space-x-8">
-            <button
-              onClick={() => setActiveTab('users')}
-              className={`py-3 px-4 border-b-2 font-medium text-base transition-colors ${
-                activeTab === 'users'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <UserIcon className="w-5 h-5" />
-                사용자 ({users.length})
-              </div>
-            </button>
-            <button
-              onClick={() => setActiveTab('drivers')}
-              className={`py-3 px-4 border-b-2 font-medium text-base transition-colors ${
-                activeTab === 'drivers'
-                  ? 'border-green-500 text-green-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <Truck className="w-5 h-5" />
-                기사 ({drivers.length})
-              </div>
-            </button>
-          </nav>
-        </div>
-
-        {/* 관리 버튼들 */}
-        <div className="flex gap-4 mb-6">
-          {activeTab === 'users' && (
-            <button
-              onClick={() => {
-                resetPartnerForm();
-                setShowPartnerModal(true);
-              }}
-              className="flex items-center justify-center gap-3 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-              <span className="font-medium">파트너사 등록</span>
-            </button>
-          )}
           
-          {activeTab === 'drivers' && (
-            <button
-              onClick={() => {
-                // TODO: 기사 등록 기능 구현
-                showNotification('success', '기사 등록 기능은 준비 중입니다.');
-              }}
-              className="flex items-center justify-center gap-3 px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-              <span className="font-medium">기사 등록</span>
-            </button>
-          )}
+          {/* 파트너사 등록 버튼 */}
+          <button
+            onClick={() => {
+              resetPartnerForm();
+              setShowPartnerModal(true);
+            }}
+            className="flex items-center justify-center gap-3 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Plus className="w-5 h-5" />
+            <span className="font-medium">파트너사 등록</span>
+          </button>
         </div>
 
         {/* 검색 및 필터 */}
-        {activeTab === 'users' ? (
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <div className="relative flex">
-                <div className="relative flex-1">
-                  <Search className="w-5 h-5 absolute left-3 top-3 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="사용자명, 이름, 회사명으로 검색..."
-                    className="w-full pl-10 pr-4 py-2 border rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={searchInput}
-                    onChange={(e) => setSearchInput(e.target.value)}
-                    onKeyPress={handleUserSearchKeyPress}
-                  />
-                </div>
-                <button
-                  onClick={handleUserSearch}
-                  className="px-4 py-2 bg-blue-600 text-white border border-blue-600 rounded-r-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-                >
-                  검색
-                </button>
+        <div className="flex gap-4">
+          <div className="flex-1">
+            <div className="relative flex">
+              <div className="relative flex-1">
+                <Search className="w-5 h-5 absolute left-3 top-3 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="사용자명, 이름, 회사명으로 검색..."
+                  className="w-full pl-10 pr-4 py-2 border rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  onKeyPress={handleUserSearchKeyPress}
+                />
               </div>
-            </div>
-            
-            <select
-              className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
-            >
-              <option value="">모든 역할</option>
-              <option value="admin">관리자</option>
-              <option value="manager">매니저</option>
-              <option value="user">파트너사</option>
-            </select>
-          </div>
-        ) : (
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <div className="relative flex">
-                <div className="relative flex-1">
-                  <Search className="w-5 h-5 absolute left-3 top-3 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="기사명, 전화번호, 회사명으로 검색..."
-                    className="w-full pl-10 pr-4 py-2 border rounded-l-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                    value={driverSearchInput}
-                    onChange={(e) => setDriverSearchInput(e.target.value)}
-                    onKeyPress={handleDriverSearchKeyPress}
-                  />
-                </div>
-                <button
-                  onClick={handleDriverSearch}
-                  className="px-4 py-2 bg-green-600 text-white border border-green-600 rounded-r-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors"
-                >
-                  검색
-                </button>
-              </div>
+              <button
+                onClick={handleUserSearch}
+                className="px-4 py-2 bg-blue-600 text-white border border-blue-600 rounded-r-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+              >
+                검색
+              </button>
             </div>
           </div>
-        )}
+          
+          <select
+            className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+          >
+            <option value="">모든 역할</option>
+            <option value="admin">관리자</option>
+            <option value="manager">매니저</option>
+            <option value="user">파트너사</option>
+          </select>
+        </div>
       </div>
 
-      {/* 목록 (사용자 또는 기사) */}
+      {/* 사용자 목록 */}
       <div className="bg-white rounded-lg shadow">
         <div className="overflow-x-auto">
-          {activeTab === 'users' ? (
-            // 사용자 테이블
-            <table className="w-full">
-              <thead className="bg-gray-50">
+          <table className="w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  사용자
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  역할
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  상태
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  마지막 로그인
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  가입일
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  액션
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {users.length === 0 ? (
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    사용자
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    역할
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    상태
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    마지막 로그인
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    가입일
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    액션
-                  </th>
+                  <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                    등록된 사용자가 없습니다.
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {users.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
-                      등록된 사용자가 없습니다.
+              ) : (
+                users.map((user) => (
+                  <tr key={user.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{user.name}</p>
+                        <p className="text-sm text-gray-500">@{user.username}</p>
+                        {user.company && <p className="text-xs text-gray-400">{user.company}</p>}
+                      </div>
                     </td>
-                  </tr>
-                ) : (
-                  users.map((user) => (
-                    <tr key={user.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">{user.name}</p>
-                          <p className="text-sm text-gray-500">@{user.username}</p>
-                          {user.company && <p className="text-xs text-gray-400">{user.company}</p>}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {getRoleBadge(user.role)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {getStatusBadge(user.is_active)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {user.last_login ? formatDate(user.last_login) : '로그인 기록 없음'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {formatDate(user.created_at)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex items-center gap-2">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {getRoleBadge(user.role)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {getStatusBadge(user.is_active)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {user.last_login ? formatDate(user.last_login) : '로그인 기록 없음'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {formatDate(user.created_at)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => openEditModal(user)}
+                          className="text-blue-600 hover:text-blue-900 p-1 rounded"
+                          title="편집"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        
+                        {currentUser?.role === 'admin' && currentUser.id !== user.id && (
                           <button
-                            onClick={() => openEditModal(user)}
-                            className="text-blue-600 hover:text-blue-900 p-1 rounded"
-                            title="편집"
+                            onClick={() => handleDeleteUser(user)}
+                            className="text-red-600 hover:text-red-900 p-1 rounded"
+                            title="삭제"
                           >
-                            <Edit className="w-4 h-4" />
+                            <Trash2 className="w-4 h-4" />
                           </button>
-                          
-                          {currentUser?.role === 'admin' && currentUser.id !== user.id && (
-                            <button
-                              onClick={() => handleDeleteUser(user)}
-                              className="text-red-600 hover:text-red-900 p-1 rounded"
-                              title="삭제"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          ) : (
-            // 기사 테이블
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    기사 정보
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    연락처
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    현재 배송
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    총 배송건수
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    평점
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    차량 정보
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredDrivers.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
-                      {drivers.length === 0 ? '등록된 기사가 없습니다.' : '검색 조건에 맞는 기사가 없습니다.'}
+                        )}
+                      </div>
                     </td>
                   </tr>
-                ) : (
-                  filteredDrivers.map((driver) => (
-                    <tr key={driver.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">{driver.name}</p>
-                          <p className="text-sm text-gray-500">@{driver.username}</p>
-                          {driver.company && <p className="text-xs text-gray-400">{driver.company}</p>}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <p className="text-sm text-gray-900">{driver.phone}</p>
-                          {driver.location && <p className="text-xs text-gray-400">{driver.location}</p>}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          driver.currentOrders > 0 ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
-                        }`}>
-                          {driver.currentOrders}건 배송중
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {driver.totalDeliveries}건
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <span className="text-sm text-gray-900">⭐ {driver.rating?.toFixed(1) || '0.0'}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <p className="text-sm text-gray-900">{driver.vehicle || '-'}</p>
-                          {driver.license && <p className="text-xs text-gray-400">{driver.license}</p>}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          )}
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 

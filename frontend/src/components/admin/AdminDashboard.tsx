@@ -9,13 +9,12 @@ import DriverAssignment from '../assignment/DriverAssignment';
 import DriverManagement from '../drivers/DriverManagement';
 
 interface AdminDashboardProps {
-  onNavigate: (page: 'dashboard' | 'new-order' | 'users' | 'tracking') => void;
   onLogout: () => void;
 }
 
 type AdminPageType = 'main' | 'new-order' | 'assignment' | 'products' | 'users' | 'drivers' | 'test';
 
-const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onLogout }) => {
+const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
   const { user } = useAuth();
   const [currentPage, setCurrentPage] = useState<AdminPageType>('main');
 
@@ -39,7 +38,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onLogout })
         setCurrentPage('products');
         break;
       case '사용자관리':
-        onNavigate('users');
+        setCurrentPage('users');
         break;
       case '기사관리':
         setCurrentPage('drivers');
@@ -82,17 +81,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onLogout })
   // 사용자관리 페이지 표시
   if (currentPage === 'users') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="p-6">
-          <button
-            onClick={() => setCurrentPage('main')}
-            className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors mb-4"
-          >
-            ← 관리자화면으로 돌아가기
-          </button>
-        </div>
-        <UserManagement />
-      </div>
+      <UserManagement 
+        onNavigateBack={() => setCurrentPage('main')}
+      />
     );
   }
 
