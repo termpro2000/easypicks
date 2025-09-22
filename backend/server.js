@@ -11,6 +11,7 @@ const deliveriesRoutes = require('./routes/deliveries');
 const userRoutes = require('./routes/users');
 const schemaRoutes = require('./routes/schema');
 const testRoutes = require('./routes/test');
+const driversRoutes = require('./routes/drivers');
 
 const app = express();
 const server = http.createServer(app);
@@ -107,6 +108,7 @@ app.get('/', (req, res) => {
       auth: '/api/auth',
       deliveries: '/api/deliveries',
       users: '/api/users',
+      drivers: '/api/drivers',
       schema: '/api/schema'
     }
   });
@@ -119,6 +121,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/deliveries', deliveriesRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/drivers', driversRoutes);
 app.use('/api/schema', schemaRoutes);
 app.use('/api/test', testRoutes);
 
