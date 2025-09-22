@@ -5,7 +5,7 @@ import {
   ArrowLeft, Check, AlertTriangle, Tag, Camera, X, Upload, QrCode
 } from 'lucide-react';
 import { productsAPI, productPhotosAPI } from '../../services/api';
-// import { useAuth } from '../../hooks/useAuth'; // 향후 사용 예정
+import { useAuth } from '../../hooks/useAuth';
 import LabelPhotographyModal from './LabelPhotographyModal';
 import QRCodeScannerModal from './QRCodeScannerModal';
 
@@ -59,7 +59,7 @@ const InfoCell: React.FC<InfoCellProps> = ({ label, icon: Icon, children, requir
 };
 
 const PartnerProductForm: React.FC<PartnerProductFormProps> = ({ onNavigateBack }) => {
-  // const { user } = useAuth(); // 향후 사용 예정
+  const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitResult, setSubmitResult] = useState<{ success: boolean; message: string; productId?: number } | null>(null);
   const [selectedPhotos, setSelectedPhotos] = useState<File[]>([]);
@@ -95,7 +95,7 @@ const PartnerProductForm: React.FC<PartnerProductFormProps> = ({ onNavigateBack 
           );
           
           const uploadResults = await Promise.all(uploadPromises);
-          const newUploadedPhotos = uploadResults.map((result: any) => result.photo);
+          const newUploadedPhotos = uploadResults.map(result => result.photo);
           
           setUploadedPhotos(newUploadedPhotos);
           setSelectedPhotos([]);
@@ -182,7 +182,7 @@ const PartnerProductForm: React.FC<PartnerProductFormProps> = ({ onNavigateBack 
       );
       
       const results = await Promise.all(uploadPromises);
-      const newUploadedPhotos = results.map((result: any) => result.photo);
+      const newUploadedPhotos = results.map(result => result.photo);
       
       setUploadedPhotos(prev => [...prev, ...newUploadedPhotos]);
       setSelectedPhotos([]);
@@ -268,7 +268,7 @@ const PartnerProductForm: React.FC<PartnerProductFormProps> = ({ onNavigateBack 
                   onClick={onNavigateBack}
                   className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
                 >
-                  목록으로
+                  메인으로
                 </button>
               </div>
             </div>
@@ -292,7 +292,7 @@ const PartnerProductForm: React.FC<PartnerProductFormProps> = ({ onNavigateBack 
             </button>
             
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+              <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
                 <Package className="w-6 h-6 text-white" />
               </div>
               <div className="text-center">
@@ -538,18 +538,15 @@ const PartnerProductForm: React.FC<PartnerProductFormProps> = ({ onNavigateBack 
                         onClick={handleUploadPhotos}
                         disabled={isUploadingPhotos}
                         className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                          // @ts-ignore
-                          submitResult?.productId 
-                            ? 'bg-green-500 text-white hover:bg-green-600'
-                            : 'bg-yellow-500 text-white hover:bg-yellow-600' 
+                          !submitResult?.productId 
+                            ? 'bg-yellow-500 text-white hover:bg-yellow-600' 
+                            : 'bg-green-500 text-white hover:bg-green-600'
                         } ${isUploadingPhotos ? 'opacity-50' : ''}`}
                       >
                         <Upload className="w-4 h-4" />
                         {isUploadingPhotos ? '업로드 중...' : 
-                         // @ts-ignore
-                         submitResult?.productId 
-                           ? `사진올리기 (${selectedPhotos.length}장)`
-                           : `임시저장 (${selectedPhotos.length}장)`}
+                         !submitResult?.productId ? `임시저장 (${selectedPhotos.length}장)` : 
+                         `사진올리기 (${selectedPhotos.length}장)`}
                       </button>
                     )}
                   </div>
@@ -619,7 +616,6 @@ const PartnerProductForm: React.FC<PartnerProductFormProps> = ({ onNavigateBack 
                     </div>
                   )}
 
-                  {/* @ts-ignore */}
                   {!submitResult?.productId && selectedPhotos.length > 0 && (
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                       <p className="text-sm text-blue-700">
@@ -665,13 +661,18 @@ const PartnerProductForm: React.FC<PartnerProductFormProps> = ({ onNavigateBack 
             </div>
           </div>
         </form>
+      </main>
 
-        {/* 상품 등록 가이드 */}
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mt-6">
-          <h3 className="text-lg font-semibold text-blue-900 mb-4">📋 상품 등록 가이드</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+      {/* 도움말 섹션 */}
+      <div className="max-w-7xl mx-auto px-6 pb-8">
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
+          <h3 className="text-lg font-semibold text-blue-900 mb-3 flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5" />
+            상품 등록 도움말
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-blue-800">
             <div>
-              <h4 className="font-medium mb-2">🏷️ 상품명 작성 요령</h4>
+              <h4 className="font-medium mb-2">📝 상품명 작성 팁</h4>
               <ul className="space-y-1 text-blue-700">
                 <li>• 구체적이고 명확한 이름 사용</li>
                 <li>• 브랜드명, 모델명 포함 권장</li>
@@ -704,21 +705,23 @@ const PartnerProductForm: React.FC<PartnerProductFormProps> = ({ onNavigateBack 
             </div>
           </div>
         </div>
-      </main>
+      </div>
 
       {/* 라벨촬영 모달 */}
       <LabelPhotographyModal
         isOpen={isLabelModalOpen}
         onClose={() => setIsLabelModalOpen(false)}
-        onCapture={(result: any) => handleProductNameExtracted(result.productName || '')}
+        onProductNameExtracted={handleProductNameExtracted}
       />
 
       {/* QR코드 스캐너 모달 */}
       <QRCodeScannerModal
         isOpen={isQRModalOpen}
         onClose={() => setIsQRModalOpen(false)}
-        onScan={(result: any) => handleQRCodeScanned(result.code || '')}
+        onQRCodeScanned={handleQRCodeScanned}
       />
+      
+      <div className="mt-4 text-xs text-gray-400 text-center">PartnerProductForm.tsx</div>
     </div>
   );
 };

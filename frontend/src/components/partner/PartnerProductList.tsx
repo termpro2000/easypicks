@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Search, Package, ArrowLeft, RefreshCw, Filter,
-  Weight, Ruler, DollarSign, FileText, Edit, Trash2
-  // Tag, // 사용하지 않음
+  Search, Package, Plus, Edit, Trash2, Filter, 
+  Tag, Weight, Ruler, DollarSign, ArrowLeft,
+  MoreVertical
 } from 'lucide-react';
 import { productsAPI } from '../../services/api';
-// import { useAuth } from '../../hooks/useAuth'; // 향후 사용 예정
 
 interface Product {
   id: number;
@@ -25,165 +24,22 @@ interface PartnerProductListProps {
   onNavigateBack: () => void;
 }
 
-interface SearchCellProps {
-  children: React.ReactNode;
-}
-
-const SearchCell: React.FC<SearchCellProps> = ({ children }) => {
-  return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4">
-      {children}
-    </div>
-  );
-};
-
-interface ProductCardProps {
-  product: Product;
-  onEdit?: (product: Product) => void;
-  onDelete?: (productId: number) => void;
-}
-
-const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit, onDelete }) => {
-  const formatPrice = (price?: number) => {
-    if (!price) return '-';
-    return new Intl.NumberFormat('ko-KR').format(price) + '원';
-  };
-
-  return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6 hover:border-blue-300 transition-colors shadow-sm hover:shadow-md">
-      {/* 상품 헤더 */}
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-            <Package className="w-5 h-5 text-blue-600" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-gray-900 text-lg">{product.name}</h3>
-            <div className="flex items-center gap-4 text-sm text-gray-500">
-              <span>상품 ID: #{product.id}</span>
-              {product.maincode && <span>상품코드: {product.maincode}</span>}
-              {product.subcode && <span>내부코드: {product.subcode}</span>}
-            </div>
-          </div>
-        </div>
-        
-        {/* 액션 버튼들 */}
-        <div className="flex items-center gap-2">
-          {onEdit && (
-            <button
-              onClick={() => onEdit(product)}
-              className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-              title="상품 수정"
-            >
-              <Edit className="w-4 h-4" />
-            </button>
-          )}
-          {onDelete && (
-            <button
-              onClick={() => onDelete(product.id)}
-              className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-              title="상품 삭제"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* 상품 상세 정보 */}
-      <div className="grid grid-cols-2 gap-4">
-        {/* 무게 */}
-        <div className="flex items-center gap-2">
-          <Weight className="w-4 h-4 text-gray-400" />
-          <div>
-            <p className="text-xs text-gray-500">무게</p>
-            <p className="text-sm font-medium text-gray-900">
-              {product.weight ? `${product.weight}kg` : '-'}
-            </p>
-          </div>
-        </div>
-
-        {/* 크기 */}
-        <div className="flex items-center gap-2">
-          <Ruler className="w-4 h-4 text-gray-400" />
-          <div>
-            <p className="text-xs text-gray-500">크기</p>
-            <p className="text-sm font-medium text-gray-900">
-              {product.size || '-'}
-            </p>
-          </div>
-        </div>
-
-        {/* 기본 배송비 */}
-        <div className="flex items-center gap-2">
-          <DollarSign className="w-4 h-4 text-green-500" />
-          <div>
-            <p className="text-xs text-gray-500">기본 배송비</p>
-            <p className="text-sm font-medium text-gray-900">
-              {formatPrice(product.cost1)}
-            </p>
-          </div>
-        </div>
-
-        {/* 특수 배송비 */}
-        <div className="flex items-center gap-2">
-          <DollarSign className="w-4 h-4 text-orange-500" />
-          <div>
-            <p className="text-xs text-gray-500">특수 배송비</p>
-            <p className="text-sm font-medium text-gray-900">
-              {formatPrice(product.cost2)}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* 상품 메모 */}
-      {product.memo && (
-        <div className="mt-4 pt-4 border-t border-gray-100">
-          <div className="flex items-start gap-2">
-            <FileText className="w-4 h-4 text-gray-400 mt-0.5" />
-            <div className="flex-1">
-              <p className="text-xs text-gray-500 mb-1">상품 메모</p>
-              <p className="text-sm text-gray-700 line-clamp-2">
-                {product.memo}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 등록일 */}
-      <div className="mt-4 pt-3 border-t border-gray-100">
-        <p className="text-xs text-gray-500">
-          등록일: {new Date(product.created_at).toLocaleDateString('ko-KR')}
-        </p>
-      </div>
-    </div>
-  );
-};
-
 const PartnerProductList: React.FC<PartnerProductListProps> = ({ onNavigateBack }) => {
-  // const { user } = useAuth(); // 향후 사용 예정
   const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
 
   // 상품 목록 조회
-  const fetchProducts = async (refresh = false) => {
+  const fetchProducts = async () => {
     try {
-      if (refresh) setIsRefreshing(true);
-      else setLoading(true);
-
+      setLoading(true);
       const response = await productsAPI.getAllProducts();
-      
       setProducts(response.products || []);
     } catch (error) {
       console.error('상품 목록 조회 오류:', error);
-      setProducts([]);
     } finally {
       setLoading(false);
-      setIsRefreshing(false);
     }
   };
 
@@ -195,30 +51,33 @@ const PartnerProductList: React.FC<PartnerProductListProps> = ({ onNavigateBack 
   const filteredProducts = products.filter(product => 
     !searchTerm || 
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.id.toString().includes(searchTerm)
+    product.id.toString().includes(searchTerm) ||
+    product.maincode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.subcode?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // 상품 삭제 핸들러
-  const handleDeleteProduct = async (productId: number) => {
-    if (!window.confirm('이 상품을 삭제하시겠습니까?')) {
-      return;
-    }
+  // 가격 포맷팅
+  const formatPrice = (price?: number) => {
+    if (!price) return '-';
+    return new Intl.NumberFormat('ko-KR').format(price) + '원';
+  };
 
-    try {
-      await productsAPI.deleteProduct(productId);
-      await fetchProducts(true); // 목록 새로고침
-      alert('상품이 삭제되었습니다.');
-    } catch (error) {
-      console.error('상품 삭제 오류:', error);
-      alert('상품 삭제 중 오류가 발생했습니다.');
+  // 전체 선택/해제
+  const handleSelectAll = () => {
+    if (selectedProducts.length === filteredProducts.length) {
+      setSelectedProducts([]);
+    } else {
+      setSelectedProducts(filteredProducts.map(product => product.id));
     }
   };
 
-  // 상품 수정 핸들러 (추후 구현)
-  const handleEditProduct = (product: Product) => {
-    console.log('상품 수정:', product);
-    // TODO: 상품 수정 모달 또는 페이지로 이동
-    alert('상품 수정 기능은 곧 추가될 예정입니다.');
+  // 개별 선택/해제
+  const handleSelectProduct = (productId: number) => {
+    setSelectedProducts(prev => 
+      prev.includes(productId) 
+        ? prev.filter(id => id !== productId)
+        : [...prev, productId]
+    );
   };
 
   return (
@@ -239,178 +98,246 @@ const PartnerProductList: React.FC<PartnerProductListProps> = ({ onNavigateBack 
             
             {/* 중앙 제목 */}
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center">
+              <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
                 <Package className="w-6 h-6 text-white" />
               </div>
               <div className="text-center">
-                <h1 className="text-2xl font-bold text-gray-900">상품조회_업체용</h1>
-                <p className="text-sm text-orange-600 font-medium">등록된 상품을 확인하세요</p>
+                <h1 className="text-2xl font-bold text-gray-900">상품관리_업체용</h1>
+                <p className="text-sm text-blue-600 font-medium">등록된 상품을 관리하세요</p>
               </div>
             </div>
             
-            {/* 새로고침 버튼 */}
-            <button
-              onClick={() => fetchProducts(true)}
-              disabled={isRefreshing}
-              className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50 transition-colors"
-            >
-              <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline">새로고침</span>
+            {/* 새 상품 추가 버튼 */}
+            <button className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+              <Plus className="w-5 h-5" />
+              <span className="hidden sm:inline">새 상품 추가</span>
+              <span className="sm:hidden">추가</span>
             </button>
           </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-8">
-        {/* 조회 필드 섹션 */}
+        {/* 검색 및 필터 */}
         <div className="bg-white rounded-xl shadow-lg border p-6 mb-8">
-          <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-            <Search className="w-6 h-6 text-orange-600" />
-            상품 검색
-          </h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* 검색어 입력 */}
-            <SearchCell>
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  상품명 또는 상품 ID
-                </label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                    placeholder="상품명 또는 ID 입력..."
-                  />
-                </div>
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="상품명, 상품코드, 내부코드로 검색..."
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button className="flex items-center gap-2 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                <Filter className="w-4 h-4" />
+                필터
+              </button>
+              <div className="text-sm text-gray-500 flex items-center px-3">
+                총 {filteredProducts.length}개 상품
               </div>
-            </SearchCell>
-
-            {/* 정렬 옵션 */}
-            <SearchCell>
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  정렬 기준
-                </label>
-                <div className="relative">
-                  <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <select className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
-                    <option value="newest">최신 등록순</option>
-                    <option value="oldest">오래된 등록순</option>
-                    <option value="name">상품명순</option>
-                    <option value="price">가격순</option>
-                  </select>
-                </div>
-              </div>
-            </SearchCell>
-
-            {/* 검색 버튼 */}
-            <SearchCell>
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  검색 실행
-                </label>
-                <button
-                  onClick={() => fetchProducts(true)}
-                  disabled={isRefreshing}
-                  className="w-full px-4 py-3 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
-                >
-                  <Search className="w-5 h-5" />
-                  {isRefreshing ? '검색 중...' : '검색하기'}
-                </button>
-              </div>
-            </SearchCell>
+            </div>
           </div>
         </div>
 
-        {/* 상품 목록 섹션 */}
-        <div className="bg-white rounded-xl shadow-lg border p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-gray-900">
-              내 상품 목록 ({filteredProducts.length}개)
-            </h2>
-            
-            {filteredProducts.length > 0 && (
-              <div className="text-sm text-gray-500">
-                총 {products.length}개 상품 중 {filteredProducts.length}개 표시
+        {/* 상품 목록 */}
+        <div className="bg-white rounded-xl shadow-lg border overflow-hidden">
+          {/* 테이블 헤더 */}
+          <div className="bg-gray-50 px-6 py-4 border-b">
+            <div className="flex items-center gap-4">
+              <input
+                type="checkbox"
+                checked={selectedProducts.length === filteredProducts.length && filteredProducts.length > 0}
+                onChange={handleSelectAll}
+                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+              />
+              <h3 className="text-lg font-semibold text-gray-900">상품 목록</h3>
+              {selectedProducts.length > 0 && (
+                <span className="px-2 py-1 bg-blue-100 text-blue-800 text-sm rounded-full">
+                  {selectedProducts.length}개 선택됨
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* 테이블 내용 */}
+          <div className="overflow-x-auto">
+            {loading ? (
+              <div className="flex items-center justify-center h-40">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <span className="ml-2 text-gray-600">상품 목록을 불러오는 중...</span>
+              </div>
+            ) : filteredProducts.length === 0 ? (
+              <div className="text-center py-12">
+                <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  {searchTerm ? '검색된 상품이 없습니다' : '등록된 상품이 없습니다'}
+                </h3>
+                <p className="text-gray-500 mb-6">
+                  {searchTerm ? '다른 검색어로 시도해보세요' : '첫 번째 상품을 등록해보세요'}
+                </p>
+                {!searchTerm && (
+                  <button className="flex items-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors mx-auto">
+                    <Plus className="w-5 h-5" />
+                    새 상품 추가
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-200">
+                {filteredProducts.map((product) => (
+                  <div key={product.id} className="p-6 hover:bg-gray-50 transition-colors">
+                    <div className="flex items-start gap-4">
+                      {/* 체크박스 */}
+                      <input
+                        type="checkbox"
+                        checked={selectedProducts.includes(product.id)}
+                        onChange={() => handleSelectProduct(product.id)}
+                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 mt-1"
+                      />
+
+                      {/* 상품 아이콘 */}
+                      <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Package className="w-6 h-6 text-blue-600" />
+                      </div>
+
+                      {/* 상품 정보 */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-lg font-semibold text-gray-900 truncate">{product.name}</h3>
+                            <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
+                              <span>상품 ID: #{product.id}</span>
+                              {product.maincode && <span>상품코드: {product.maincode}</span>}
+                              {product.subcode && <span>내부코드: {product.subcode}</span>}
+                            </div>
+                          </div>
+                          
+                          {/* 액션 메뉴 */}
+                          <div className="flex items-center gap-2">
+                            <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                            <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                              <MoreVertical className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* 상세 정보 */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 text-sm">
+                          <div className="flex items-center gap-2">
+                            <Weight className="w-4 h-4 text-gray-400" />
+                            <span className="text-gray-600">무게:</span>
+                            <span className="font-medium">{product.weight ? `${product.weight}kg` : '-'}</span>
+                          </div>
+                          
+                          <div className="flex items-center gap-2">
+                            <Ruler className="w-4 h-4 text-gray-400" />
+                            <span className="text-gray-600">크기:</span>
+                            <span className="font-medium">{product.size || '-'}</span>
+                          </div>
+                          
+                          <div className="flex items-center gap-2">
+                            <DollarSign className="w-4 h-4 text-gray-400" />
+                            <span className="text-gray-600">단가1:</span>
+                            <span className="font-medium text-green-600">{formatPrice(product.cost1)}</span>
+                          </div>
+                          
+                          <div className="flex items-center gap-2">
+                            <DollarSign className="w-4 h-4 text-gray-400" />
+                            <span className="text-gray-600">단가2:</span>
+                            <span className="font-medium text-green-600">{formatPrice(product.cost2)}</span>
+                          </div>
+                        </div>
+
+                        {/* 메모 */}
+                        {product.memo && (
+                          <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                            <p className="text-sm text-gray-600">{product.memo}</p>
+                          </div>
+                        )}
+
+                        {/* 생성/수정 날짜 */}
+                        <div className="flex items-center gap-4 text-xs text-gray-400 mt-3">
+                          <span>생성일: {new Date(product.created_at).toLocaleDateString('ko-KR')}</span>
+                          <span>수정일: {new Date(product.updated_at).toLocaleDateString('ko-KR')}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
-
-          {/* 로딩 상태 */}
-          {loading && (
-            <div className="py-12 text-center">
-              <div className="inline-flex items-center gap-2 text-gray-500">
-                <RefreshCw className="w-5 h-5 animate-spin" />
-                상품 목록을 불러오는 중...
-              </div>
-            </div>
-          )}
-
-          {/* 상품이 없는 경우 */}
-          {!loading && filteredProducts.length === 0 && (
-            <div className="py-12 text-center text-gray-500">
-              <Package className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-              <p className="text-lg font-medium mb-2">
-                {searchTerm ? '검색 조건에 맞는 상품이 없습니다.' : '등록된 상품이 없습니다.'}
-              </p>
-              <p className="text-sm">
-                {!searchTerm && '상품등록 버튼을 눌러 첫 상품을 등록해보세요.'}
-              </p>
-            </div>
-          )}
-
-          {/* 상품 카드 목록 */}
-          {!loading && filteredProducts.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredProducts.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  onEdit={handleEditProduct}
-                  onDelete={handleDeleteProduct}
-                />
-              ))}
-            </div>
-          )}
         </div>
 
-        {/* 통계 정보 */}
-        {!loading && products.length > 0 && (
-          <div className="mt-8 bg-white rounded-xl shadow-lg border p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">상품 통계</h3>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="bg-blue-50 rounded-lg p-4 text-center">
-                <p className="text-2xl font-bold text-blue-600">{products.length}</p>
-                <p className="text-sm text-blue-800">총 상품 수</p>
-              </div>
-              <div className="bg-green-50 rounded-lg p-4 text-center">
-                <p className="text-2xl font-bold text-green-600">
-                  {products.filter(p => p.cost1 && p.cost1 > 0).length}
-                </p>
-                <p className="text-sm text-green-800">배송비 설정됨</p>
-              </div>
-              <div className="bg-yellow-50 rounded-lg p-4 text-center">
-                <p className="text-2xl font-bold text-yellow-600">
-                  {products.filter(p => p.weight && p.weight > 0).length}
-                </p>
-                <p className="text-sm text-yellow-800">무게 정보 있음</p>
-              </div>
-              <div className="bg-purple-50 rounded-lg p-4 text-center">
-                <p className="text-2xl font-bold text-purple-600">
-                  {products.filter(p => p.memo && p.memo.trim().length > 0).length}
-                </p>
-                <p className="text-sm text-purple-800">메모 작성됨</p>
+        {/* 선택된 상품 액션 */}
+        {selectedProducts.length > 0 && (
+          <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-white rounded-lg shadow-lg border p-4">
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-gray-600">{selectedProducts.length}개 상품 선택됨</span>
+              <div className="flex gap-2">
+                <button className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm">
+                  일괄 삭제
+                </button>
+                <button className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm">
+                  일괄 수정
+                </button>
+                <button 
+                  onClick={() => setSelectedProducts([])}
+                  className="px-4 py-2 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+                >
+                  선택 해제
+                </button>
               </div>
             </div>
           </div>
         )}
+
+        {/* 업체용 안내사항 */}
+        <div className="bg-blue-50 rounded-xl border border-blue-200 p-8 mt-8">
+          <h3 className="text-xl font-bold text-blue-900 mb-4">상품관리 안내</h3>
+          <ul className="text-blue-800 space-y-3">
+            <li className="flex items-start gap-2">
+              <span className="text-blue-500 mt-1">•</span>
+              <span>상품 정보는 배송 라벨 생성 시 자동으로 적용됩니다.</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-blue-500 mt-1">•</span>
+              <span>상품코드와 내부코드를 활용하여 효율적으로 재고를 관리하세요.</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-blue-500 mt-1">•</span>
+              <span>무게와 크기 정보는 배송비 계산에 중요한 요소입니다.</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-blue-500 mt-1">•</span>
+              <span>대량 상품 등록이 필요한 경우 CSV 파일 업로드를 이용하세요.</span>
+            </li>
+          </ul>
+        </div>
       </main>
+
+      {/* 푸터 */}
+      <footer className="bg-white border-t mt-16">
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          <div className="text-center text-sm text-gray-500">
+            <p>&copy; 2024 이지픽스 업체용 서비스. All rights reserved.</p>
+            <p className="mt-1">효율적인 상품 관리로 더 나은 배송 서비스를 제공하세요.</p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };
 
 export default PartnerProductList;
+
+<div className="mt-4 text-xs text-gray-400 text-center">PartnerProductList.tsx</div>

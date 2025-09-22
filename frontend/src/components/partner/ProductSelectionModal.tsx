@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Search, Package, X, Check, 
-  // Filter, Tag, // 사용하지 않음
-  Weight, Ruler, DollarSign
+  Search, Package, X, Check, Filter, 
+  Tag, Weight, Ruler, DollarSign
 } from 'lucide-react';
 import { productsAPI } from '../../services/api';
 
@@ -56,14 +55,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
           </div>
         </div>
         
-        {/* 선택하기 아이콘 */}
-        <button
-          className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-          onClick={(e) => {
-            e.stopPropagation();
-            onSelect(product);
-          }}
-        >
+        <button className="flex items-center gap-2 px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
           <Check className="w-4 h-4" />
           선택
         </button>
@@ -234,3 +226,5 @@ const ProductSelectionModal: React.FC<ProductSelectionModalProps> = ({
 };
 
 export default ProductSelectionModal;
+
+<div className="mt-4 text-xs text-gray-400 text-center">ProductSelectionModal.tsx</div>
