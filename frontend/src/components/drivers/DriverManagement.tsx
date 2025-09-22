@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Edit, Trash2, UserPlus, Phone, Mail, Truck, Hash, CheckCircle, XCircle, Eye, EyeOff } from 'lucide-react';
+import { Search, Trash2, UserPlus, Phone, Mail, Truck, Hash, CheckCircle, XCircle } from 'lucide-react';
 import { driversAPI } from '../../services/api';
+import DriverForm from './DriverForm';
 
 interface Driver {
   driver_id: number;
@@ -16,36 +17,11 @@ interface Driver {
   updated_at: string;
 }
 
-interface DriverFormData {
-  username: string;
-  password: string;
-  name: string;
-  phone: string;
-  email: string;
-  vehicle_type: string;
-  vehicle_number: string;
-  license_number: string;
-}
-
 const DriverManagement: React.FC = () => {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState<DriverFormData>({
-    username: '',
-    password: '',
-    name: '',
-    phone: '',
-    email: '',
-    vehicle_type: '1톤트럭',
-    vehicle_number: '',
-    license_number: ''
-  });
+  const [currentView, setCurrentView] = useState<'list' | 'add-form'>('list');
 
   // 기사 목록 조회
   const fetchDrivers = async () => {
@@ -83,113 +59,20 @@ const DriverManagement: React.FC = () => {
     }
   };
 
-  // 기사 등록 모달 열기
+  // 기사 등록 폼으로 이동
   const handleCreateDriver = () => {
-    setFormData({
-      username: '',
-      password: '',
-      name: '',
-      phone: '',
-      email: '',
-      vehicle_type: '1톤트럭',
-      vehicle_number: '',
-      license_number: ''
-    });
-    setShowCreateModal(true);
+    setCurrentView('add-form');
   };
 
-  // 기사 수정 모달 열기
-  const handleEditDriver = (driver: Driver) => {
-    setSelectedDriver(driver);
-    setFormData({
-      username: driver.username,
-      password: '',
-      name: driver.name,
-      phone: driver.phone || '',
-      email: driver.email || '',
-      vehicle_type: driver.vehicle_type || '',
-      vehicle_number: driver.vehicle_number || '',
-      license_number: driver.license_number || ''
-    });
-    setShowEditModal(true);
+  // 폼 성공 처리
+  const handleFormSuccess = () => {
+    setCurrentView('list');
+    fetchDrivers(); // 기사 목록 새로고침
   };
 
-  // 폼 데이터 변경 핸들러
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  // 기사 생성 제출
-  const handleCreateSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.username || !formData.password || !formData.name) {
-      alert('사용자명, 비밀번호, 이름은 필수입니다.');
-      return;
-    }
-
-    try {
-      setIsSubmitting(true);
-      await driversAPI.createDriver({
-        username: formData.username,
-        password: formData.password,
-        name: formData.name,
-        phone: formData.phone || undefined,
-        email: formData.email || undefined,
-        vehicle_type: formData.vehicle_type || undefined,
-        vehicle_number: formData.vehicle_number || undefined,
-        license_number: formData.license_number || undefined
-      });
-      setShowCreateModal(false);
-      fetchDrivers();
-      alert('기사가 성공적으로 등록되었습니다.');
-    } catch (error: any) {
-      console.error('기사 생성 실패:', error);
-      alert(error.response?.data?.message || '기사 등록에 실패했습니다.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // 기사 수정 제출
-  const handleEditSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedDriver || !formData.username || !formData.name) {
-      alert('사용자명과 이름은 필수입니다.');
-      return;
-    }
-
-    try {
-      setIsSubmitting(true);
-      const updateData: any = {
-        username: formData.username,
-        name: formData.name,
-        phone: formData.phone || undefined,
-        email: formData.email || undefined,
-        vehicle_type: formData.vehicle_type || undefined,
-        vehicle_number: formData.vehicle_number || undefined,
-        license_number: formData.license_number || undefined
-      };
-
-      // 비밀번호가 입력된 경우에만 포함
-      if (formData.password) {
-        updateData.password = formData.password;
-      }
-
-      await driversAPI.updateDriver(selectedDriver.driver_id, updateData);
-      setShowEditModal(false);
-      setSelectedDriver(null);
-      fetchDrivers();
-      alert('기사 정보가 성공적으로 수정되었습니다.');
-    } catch (error: any) {
-      console.error('기사 수정 실패:', error);
-      alert(error.response?.data?.message || '기사 수정에 실패했습니다.');
-    } finally {
-      setIsSubmitting(false);
-    }
+  // 목록으로 돌아가기
+  const handleBackToList = () => {
+    setCurrentView('list');
   };
 
   // 기사 삭제
@@ -216,6 +99,16 @@ const DriverManagement: React.FC = () => {
     driver.vehicle_number?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // 기사등록 폼 표시
+  if (currentView === 'add-form') {
+    return (
+      <DriverForm 
+        onNavigateBack={handleBackToList}
+        onSuccess={handleFormSuccess}
+      />
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* 헤더 */}
@@ -227,7 +120,7 @@ const DriverManagement: React.FC = () => {
         
         <button
           onClick={handleCreateDriver}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
         >
           <UserPlus className="w-5 h-5" />
           기사 등록
@@ -244,7 +137,7 @@ const DriverManagement: React.FC = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
           />
         </div>
         <button
@@ -258,21 +151,30 @@ const DriverManagement: React.FC = () => {
       {/* 기사 목록 */}
       <div className="bg-white rounded-lg shadow-sm border">
         <div className="p-4 border-b border-gray-200">
-          <div className="flex justify-between items-center">
-            <h2 className="text-lg font-semibold text-gray-900">
-              기사 목록 ({filteredDrivers.length}명)
-            </h2>
-          </div>
+          <h2 className="text-lg font-semibold text-gray-900">
+            등록된 기사 목록 ({filteredDrivers.length}명)
+          </h2>
         </div>
 
         {loading ? (
           <div className="p-8 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
-            <p className="mt-2 text-gray-600">로딩 중...</p>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto mb-2"></div>
+            <p className="text-gray-500">기사 목록을 불러오는 중...</p>
           </div>
         ) : filteredDrivers.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">
-            {searchTerm ? '검색 결과가 없습니다.' : '등록된 기사가 없습니다.'}
+          <div className="p-8 text-center">
+            <p className="text-gray-500 mb-4">
+              {searchTerm ? '검색 결과가 없습니다.' : '등록된 기사가 없습니다.'}
+            </p>
+            {!searchTerm && (
+              <button
+                onClick={handleCreateDriver}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                <UserPlus className="w-4 h-4" />
+                첫 번째 기사 등록하기
+              </button>
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -292,20 +194,21 @@ const DriverManagement: React.FC = () => {
                     상태
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    등록일
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    작업
+                    관리
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="bg-white divide-y divide-gray-200">
                 {filteredDrivers.map((driver) => (
                   <tr key={driver.driver_id} className="hover:bg-gray-50">
                     <td className="px-4 py-4">
                       <div>
-                        <div className="font-medium text-gray-900">{driver.name}</div>
-                        <div className="text-sm text-gray-500">@{driver.username}</div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {driver.name}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          @{driver.username}
+                        </div>
                       </div>
                     </td>
                     <td className="px-4 py-4">
@@ -364,26 +267,14 @@ const DriverManagement: React.FC = () => {
                         )}
                       </span>
                     </td>
-                    <td className="px-4 py-4 text-sm text-gray-600">
-                      {new Date(driver.created_at).toLocaleDateString('ko-KR')}
-                    </td>
                     <td className="px-4 py-4">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleEditDriver(driver)}
-                          className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded"
-                          title="수정"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteDriver(driver)}
-                          className="p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded"
-                          title="삭제"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
+                      <button
+                        onClick={() => handleDeleteDriver(driver)}
+                        className="text-red-600 hover:text-red-800 hover:bg-red-50 p-1 rounded transition-colors"
+                        title="기사 삭제"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -393,330 +284,30 @@ const DriverManagement: React.FC = () => {
         )}
       </div>
 
-      {/* 기사 등록 모달 */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <form onSubmit={handleCreateSubmit}>
-              <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">새 기사 등록</h3>
-                <div className="space-y-4">
-                  {/* 기본 정보 */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      ID(사용자명) <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      name="username"
-                      value={formData.username}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      비밀번호 <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        name="password"
-                        value={formData.password}
-                        onChange={handleInputChange}
-                        className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                      >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      이름 <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      연락처
-                    </label>
-                    <input
-                      type="tel"
-                      name="phone"
-                      value={formData.phone}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      이메일
-                    </label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-
-                  {/* 차량 정보 */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      차량 유형
-                    </label>
-                    <select
-                      name="vehicle_type"
-                      value={formData.vehicle_type}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    >
-                      <option value="">선택하세요</option>
-                      <option value="1톤트럭">1톤트럭</option>
-                      <option value="1.2톤트럭">1.2톤트럭</option>
-                      <option value="2.5톤트럭">2.5톤트럭</option>
-                      <option value="5톤트럭">5톤트럭</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      차량 번호
-                    </label>
-                    <input
-                      type="text"
-                      name="vehicle_number"
-                      value={formData.vehicle_number}
-                      onChange={handleInputChange}
-                      placeholder="예: 123가4567"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      면허 번호
-                    </label>
-                    <input
-                      type="text"
-                      name="license_number"
-                      value={formData.license_number}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-lg">
-                <div className="flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setShowCreateModal(false)}
-                    className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium"
-                    disabled={isSubmitting}
-                  >
-                    취소
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isSubmitting ? '등록 중...' : '등록'}
-                  </button>
-                </div>
-                <div className="mt-2 text-xs text-gray-400 text-center">
-                  DriverManagement.tsx
-                </div>
-              </div>
-            </form>
-          </div>
+      {/* 통계 정보 */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
+          <div className="text-2xl font-bold text-green-600">{drivers.length}</div>
+          <div className="text-sm text-gray-600">전체 기사</div>
         </div>
-      )}
-
-      {/* 기사 수정 모달 */}
-      {showEditModal && selectedDriver && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <form onSubmit={handleEditSubmit}>
-              <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  기사 정보 수정 - {selectedDriver.name}
-                </h3>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      ID(사용자명) <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      name="username"
-                      value={formData.username}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      새 비밀번호 (변경 시에만 입력)
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        name="password"
-                        value={formData.password}
-                        onChange={handleInputChange}
-                        className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="변경하지 않으려면 비워두세요"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                      >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      이름 <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      연락처
-                    </label>
-                    <input
-                      type="tel"
-                      name="phone"
-                      value={formData.phone}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      이메일
-                    </label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      차량 유형
-                    </label>
-                    <select
-                      name="vehicle_type"
-                      value={formData.vehicle_type}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    >
-                      <option value="">선택하세요</option>
-                      <option value="1톤트럭">1톤트럭</option>
-                      <option value="1.2톤트럭">1.2톤트럭</option>
-                      <option value="2.5톤트럭">2.5톤트럭</option>
-                      <option value="5톤트럭">5톤트럭</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      차량 번호
-                    </label>
-                    <input
-                      type="text"
-                      name="vehicle_number"
-                      value={formData.vehicle_number}
-                      onChange={handleInputChange}
-                      placeholder="예: 123가4567"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      면허 번호
-                    </label>
-                    <input
-                      type="text"
-                      name="license_number"
-                      value={formData.license_number}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-lg">
-                <div className="flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowEditModal(false);
-                      setSelectedDriver(null);
-                    }}
-                    className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium"
-                    disabled={isSubmitting}
-                  >
-                    취소
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isSubmitting ? '수정 중...' : '수정'}
-                  </button>
-                </div>
-                <div className="mt-2 text-xs text-gray-400 text-center">
-                  DriverManagement.tsx
-                </div>
-              </div>
-            </form>
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
+          <div className="text-2xl font-bold text-blue-600">
+            {drivers.filter(d => d.is_active).length}
           </div>
+          <div className="text-sm text-gray-600">활성 기사</div>
         </div>
-      )}
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
+          <div className="text-2xl font-bold text-orange-600">
+            {drivers.filter(d => !d.is_active).length}
+          </div>
+          <div className="text-sm text-gray-600">비활성 기사</div>
+        </div>
+      </div>
+
+      {/* 파일명 표시 */}
+      <div className="text-xs text-gray-400 text-center">
+        DriverManagement.tsx
+      </div>
     </div>
   );
 };
