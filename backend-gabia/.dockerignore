@@ -1,0 +1,57 @@
+# 의존성
+node_modules
+npm-debug.log
+
+# 환경 설정
+.env
+.env.local
+.env.*.local
+
+# Git
+.git
+.gitignore
+
+# 문서
+README*.md
+CHANGELOG.md
+LICENSE
+
+# 테스트
+test
+tests
+__tests__
+coverage
+
+# 개발 도구
+.vscode
+.idea
+*.swp
+*.swo
+
+# 로그
+logs
+*.log
+
+# 임시 파일
+.tmp
+.temp
+tmp
+
+# OS 관련
+.DS_Store
+Thumbs.db
+
+# Railway 관련 (Lightsail에서는 불필요)
+railway.json
+Dockerfile.bak
+
+# 빌드 아티팩트
+dist
+build
+
+# 백업 파일
+*.bak
+*.backup
+
+# 테스트 파일
+test-*.html

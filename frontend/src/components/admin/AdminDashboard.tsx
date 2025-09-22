@@ -229,7 +229,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
             </button>
           </div>
 
-          {/* 세 번째 줄: 기사관리, 테스트 */}
+          {/* 세 번째 줄: 기사관리, 테스트 (관리자만) */}
           <div className="flex justify-center gap-8">
             {/* 기사관리 버튼 */}
             <button
@@ -245,19 +245,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
               </div>
             </button>
 
-            {/* 테스트 버튼 */}
-            <button
-              onClick={() => handleButtonClick('테스트')}
-              className="w-48 h-48 bg-white rounded-3xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 flex flex-col items-center justify-center gap-4 group"
-            >
-              <div className="w-16 h-16 bg-gray-500 group-hover:bg-gray-600 rounded-2xl flex items-center justify-center transition-colors">
-                <TestTube className="w-8 h-8 text-white" />
-              </div>
-              <div className="text-center">
-                <h3 className="text-xl font-bold text-gray-900 mb-1">테스트</h3>
-                <p className="text-sm text-gray-500">시스템 테스트를 진행합니다</p>
-              </div>
-            </button>
+            {/* 테스트 버튼 - 관리자만 표시 */}
+            {user?.role === 'admin' && (
+              <button
+                onClick={() => handleButtonClick('테스트')}
+                className="w-48 h-48 bg-white rounded-3xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 flex flex-col items-center justify-center gap-4 group"
+              >
+                <div className="w-16 h-16 bg-gray-500 group-hover:bg-gray-600 rounded-2xl flex items-center justify-center transition-colors">
+                  <TestTube className="w-8 h-8 text-white" />
+                </div>
+                <div className="text-center">
+                  <h3 className="text-xl font-bold text-gray-900 mb-1">테스트</h3>
+                  <p className="text-sm text-gray-500">시스템 테스트를 진행합니다</p>
+                </div>
+              </button>
+            )}
           </div>
         </div>
 

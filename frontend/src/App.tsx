@@ -81,8 +81,8 @@ const AppContent: React.FC = () => {
   };
 
 
-  // 관리자는 AdminDashboard 사용 (테스트 버튼 포함)
-  if (user?.role === 'admin' && currentPage === 'dashboard') {
+  // 관리자와 매니저는 AdminDashboard 사용
+  if ((user?.role === 'admin' || user?.role === 'manager') && currentPage === 'dashboard') {
     return (
       <AdminDashboard 
         onLogout={handleLogout}

@@ -1,0 +1,29 @@
+{
+  "containers": {
+    "backend": {
+      "image": "miraepartner/easypicks-backend:latest",
+      "ports": {
+        "3000": "HTTP"
+      },
+      "environment": {
+        "NODE_ENV": "production",
+        "PORT": "3000",
+        "DB_HOST": "aws.connect.psdb.cloud",
+        "DB_PORT": "3306",
+        "DB_USER": "3gfsiwa4ujwf1wuwjzo7",
+        "DB_PASSWORD": "REPLACE_WITH_ACTUAL_PASSWORD",
+        "DB_NAME": "miraekorea",
+        "DB_SSL": "true",
+        "DB_CHARSET": "utf8mb4",
+        "DB_TIMEZONE": "+09:00",
+        "JWT_SECRET": "easypicks-jwt-secret-2024",
+        "SESSION_SECRET": "easypicks-session-secret-2024",
+        "FRONTEND_URL": "*"
+      }
+    }
+  },
+  "publicEndpoint": {
+    "containerName": "backend",
+    "containerPort": 3000
+  }
+}
