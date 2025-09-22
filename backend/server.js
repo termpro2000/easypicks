@@ -109,7 +109,8 @@ app.get('/', (req, res) => {
       deliveries: '/api/deliveries',
       users: '/api/users',
       drivers: '/api/drivers',
-      schema: '/api/schema'
+      schema: '/api/schema',
+      test: '/api/test'
     }
   });
 });
