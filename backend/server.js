@@ -12,6 +12,7 @@ const userRoutes = require('./routes/users');
 const schemaRoutes = require('./routes/schema');
 const testRoutes = require('./routes/test');
 const driversRoutes = require('./routes/drivers');
+const productsRoutes = require('./routes/products');
 
 const app = express();
 const server = http.createServer(app);
@@ -110,7 +111,8 @@ app.get('/', (req, res) => {
       users: '/api/users',
       drivers: '/api/drivers',
       schema: '/api/schema',
-      test: '/api/test'
+      test: '/api/test',
+      products: '/api/products'
     }
   });
 });
@@ -126,7 +128,7 @@ app.get('/debug', (req, res) => {
     timestamp: new Date().toISOString(),
     port: PORT,
     hasTestRoutes: !!require('./routes/test'),
-    availableRoutes: ['/api/auth', '/api/deliveries', '/api/users', '/api/drivers', '/api/schema', '/api/test']
+    availableRoutes: ['/api/auth', '/api/deliveries', '/api/users', '/api/drivers', '/api/schema', '/api/test', '/api/products']
   });
 });
 
@@ -136,6 +138,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/drivers', driversRoutes);
 app.use('/api/schema', schemaRoutes);
 app.use('/api/test', testRoutes);
+app.use('/api/products', productsRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
