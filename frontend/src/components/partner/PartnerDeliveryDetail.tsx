@@ -80,7 +80,7 @@ const PartnerDeliveryDetail: React.FC<PartnerDeliveryDetailProps> = ({ deliveryI
 
   // 상태 뱃지
   const getStatusBadge = (status: string) => {
-    const statusConfig = {
+    const statusConfig: Record<string, { color: string; text: string; icon: any }> = {
       'pending': { color: 'bg-yellow-100 text-yellow-800', text: '접수대기', icon: Clock },
       'confirmed': { color: 'bg-blue-100 text-blue-800', text: '접수완료', icon: Package },
       'in_progress': { color: 'bg-orange-100 text-orange-800', text: '배송중', icon: Truck },

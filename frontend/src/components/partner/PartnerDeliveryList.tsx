@@ -42,13 +42,8 @@ const PartnerDeliveryList: React.FC<PartnerDeliveryListProps> = ({ onNavigateBac
       if (refresh) setIsRefreshing(true);
       else setLoading(true);
 
-      const params = {
-        page: pageNum,
-        limit: 20,
-        ...(statusFilter !== 'all' && { status: statusFilter })
-      };
-
-      const response = await deliveriesAPI.getDeliveries(params);
+      // API 호출 (현재는 statusFilter 미지원으로 page, limit만 사용)
+      const response = await deliveriesAPI.getDeliveries(pageNum, 20);
       setDeliveries(response.deliveries || []);
       setTotalPages(response.pagination?.totalPages || 1);
       setPage(pageNum);
@@ -67,7 +62,7 @@ const PartnerDeliveryList: React.FC<PartnerDeliveryListProps> = ({ onNavigateBac
 
   // 상태 뱃지 컴포넌트
   const getStatusBadge = (status: string) => {
-    const statusConfig = {
+    const statusConfig: Record<string, { color: string; text: string; icon: any }> = {
       'pending': { color: 'bg-yellow-100 text-yellow-800', text: '접수대기', icon: Clock },
       'confirmed': { color: 'bg-blue-100 text-blue-800', text: '접수완료', icon: Package },
       'in_progress': { color: 'bg-orange-100 text-orange-800', text: '배송중', icon: Truck },

@@ -538,14 +538,14 @@ const PartnerProductForm: React.FC<PartnerProductFormProps> = ({ onNavigateBack 
                         onClick={handleUploadPhotos}
                         disabled={isUploadingPhotos}
                         className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                          !submitResult?.productId 
+                          !(submitResult && (submitResult as any).productId) 
                             ? 'bg-yellow-500 text-white hover:bg-yellow-600' 
                             : 'bg-green-500 text-white hover:bg-green-600'
                         } ${isUploadingPhotos ? 'opacity-50' : ''}`}
                       >
                         <Upload className="w-4 h-4" />
                         {isUploadingPhotos ? '업로드 중...' : 
-                         !submitResult?.productId ? `임시저장 (${selectedPhotos.length}장)` : 
+                         !(submitResult && (submitResult as any).productId) ? `임시저장 (${selectedPhotos.length}장)` : 
                          `사진올리기 (${selectedPhotos.length}장)`}
                       </button>
                     )}
@@ -616,7 +616,7 @@ const PartnerProductForm: React.FC<PartnerProductFormProps> = ({ onNavigateBack 
                     </div>
                   )}
 
-                  {!submitResult?.productId && selectedPhotos.length > 0 && (
+                  {!(submitResult && (submitResult as any).productId) && selectedPhotos.length > 0 && (
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                       <p className="text-sm text-blue-700">
                         💡 상품 등록 시 선택된 사진들이 자동으로 업로드됩니다.

@@ -147,10 +147,8 @@ const PartnerShippingForm: React.FC<PartnerShippingFormProps> = ({ onNavigateBac
 
     try {
       const response = await shippingAPI.calculateShippingCost({
-        senderZipCode: formData.senderZipCode,
-        recipientZipCode: formData.recipientZipCode,
-        weight: formData.productWeight,
-        deliveryType: formData.deliveryType
+        productWeight: formData.productWeight,
+        serviceType: formData.deliveryType
       });
       setEstimatedCost(response.estimatedCost);
     } catch (error) {
@@ -207,8 +205,8 @@ const PartnerShippingForm: React.FC<PartnerShippingFormProps> = ({ onNavigateBac
 
     try {
       setLoading(true);
-      const response = await shippingAPI.createShipment(formData);
-      setTrackingNumber(response.trackingNumber);
+      const response = await shippingAPI.createOrder(formData as any);
+      setTrackingNumber(response.tracking_number || response.trackingNumber);
       
       // 성공 처리 - 초기화 또는 리다이렉션
       alert(`배송 신청이 완료되었습니다. 운송장 번호: ${response.trackingNumber}`);
