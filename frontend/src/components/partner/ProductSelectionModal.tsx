@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Search, Package, X, Check, Filter, 
-  Tag, Weight, Ruler, DollarSign
+  Search, Package, X, Check,
+  Weight, Ruler, DollarSign
 } from 'lucide-react';
 import { productsAPI } from '../../services/api';
 

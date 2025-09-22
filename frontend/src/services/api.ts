@@ -185,6 +185,28 @@ export const shippingAPI = {
     return response.data;
   },
 
+  // 배송비 계산
+  calculateShippingCost: async (data: {
+    productWeight?: number;
+    productSize?: string;
+    shippingDistance?: number;
+    serviceType?: string;
+  }) => {
+    const response = await apiClient.post('/shipping/calculate-cost', data);
+    return response.data;
+  },
+
+  // 배송 생성
+  createShipment: async (data: {
+    orderId: number;
+    trackingNumber: string;
+    carrierId?: number;
+    estimatedDelivery?: string;
+  }) => {
+    const response = await apiClient.post('/shipping/shipments', data);
+    return response.data;
+  }
+
   // 관리자용 운송장 번호 할당
   assignTrackingNumber: async (id: number, trackingData: {
     tracking_number: string;
@@ -366,6 +388,12 @@ export const productsAPI = {
   // 상품 검색
   searchProducts: async (query: string) => {
     const response = await apiClient.get(`/products/search?q=${encodeURIComponent(query)}`);
+    return response.data;
+  },
+
+  // 상품 코드로 검색
+  searchByCode: async (code: string) => {
+    const response = await apiClient.get(`/products/search/code?code=${encodeURIComponent(code)}`);
     return response.data;
   }
 };

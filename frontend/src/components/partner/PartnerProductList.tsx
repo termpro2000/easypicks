@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Search, Package, Plus, Edit, Trash2, Filter, 
-  Tag, Weight, Ruler, DollarSign, ArrowLeft,
+  Weight, Ruler, DollarSign, ArrowLeft,
   MoreVertical
 } from 'lucide-react';
 import { productsAPI } from '../../services/api';

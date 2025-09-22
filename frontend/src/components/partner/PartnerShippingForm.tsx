@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Package, User, MapPin, Phone, Mail, QrCode, 
-  Search, Plus, ArrowLeft, Save, RefreshCw, 
-  AlertCircle, CheckCircle, Calendar, CreditCard
+  Package, User, MapPin, QrCode, 
+  Search, ArrowLeft, Save, RefreshCw, 
+  AlertCircle, CheckCircle
 } from 'lucide-react';
 import { shippingAPI, productsAPI } from '../../services/api';
 import ProductSelectionModal from './ProductSelectionModal';

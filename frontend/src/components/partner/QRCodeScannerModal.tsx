@@ -33,7 +33,7 @@ const QRCodeScannerModal: React.FC<QRCodeScannerModalProps> = ({
       // QR 스캐너 인스턴스 생성
       qrScannerRef.current = new QrScanner(
         videoRef.current,
-        (result) => {
+        (result: any) => {
           // QR 코드가 인식되었을 때
           console.log('QR Code detected:', result.data);
           setScannedCode(result.data);
