@@ -1,4 +1,4 @@
-const db = require('../config/database');
+const { pool } = require('../config/database');
 
 // drivers 테이블 확인 및 생성
 const ensureDriversTable = async () => {
@@ -24,7 +24,7 @@ const ensureDriversTable = async () => {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `;
     
-    await db.execute(createTableQuery);
+    await pool.execute(createTableQuery);
     console.log('drivers 테이블 확인/생성 완료');
   } catch (error) {
     console.error('drivers 테이블 생성 실패:', error);
@@ -53,7 +53,7 @@ exports.getAllDrivers = async (req, res) => {
       ORDER BY created_at DESC
     `;
     
-    const [drivers] = await db.execute(query);
+    const [drivers] = await pool.execute(query);
     
     res.json({
       success: true,
@@ -91,7 +91,7 @@ exports.getDriver = async (req, res) => {
       WHERE driver_id = ?
     `;
     
-    const [drivers] = await db.execute(query, [id]);
+    const [drivers] = await pool.execute(query, [id]);
     
     if (drivers.length === 0) {
       return res.status(404).json({
@@ -138,7 +138,7 @@ exports.createDriver = async (req, res) => {
 
     // 중복 사용자명 확인
     const checkQuery = 'SELECT driver_id FROM drivers WHERE username = ?';
-    const [existing] = await db.execute(checkQuery, [username]);
+    const [existing] = await pool.execute(checkQuery, [username]);
     
     if (existing.length > 0) {
       return res.status(409).json({
@@ -156,7 +156,7 @@ exports.createDriver = async (req, res) => {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, NOW(), NOW())
     `;
     
-    const [result] = await db.execute(insertQuery, [
+    const [result] = await pool.execute(insertQuery, [
       username,
       password, // 실제 환경에서는 암호화 필요
       name,
@@ -200,7 +200,7 @@ exports.updateDriver = async (req, res) => {
 
     // 기사 존재 확인
     const checkQuery = 'SELECT driver_id FROM drivers WHERE driver_id = ?';
-    const [existing] = await db.execute(checkQuery, [id]);
+    const [existing] = await pool.execute(checkQuery, [id]);
     
     if (existing.length === 0) {
       return res.status(404).json({
@@ -260,7 +260,7 @@ exports.updateDriver = async (req, res) => {
     
     updateValues.push(id);
     
-    await db.execute(updateQuery, updateValues);
+    await pool.execute(updateQuery, updateValues);
 
     res.json({
       success: true,
@@ -283,7 +283,7 @@ exports.deleteDriver = async (req, res) => {
 
     // 기사 존재 확인
     const checkQuery = 'SELECT driver_id FROM drivers WHERE driver_id = ?';
-    const [existing] = await db.execute(checkQuery, [id]);
+    const [existing] = await pool.execute(checkQuery, [id]);
     
     if (existing.length === 0) {
       return res.status(404).json({
@@ -295,7 +295,7 @@ exports.deleteDriver = async (req, res) => {
     // 기사 삭제 (또는 비활성화)
     // 실제로는 is_active = 0으로 설정하는 것이 좋을 수 있음
     const deleteQuery = 'DELETE FROM drivers WHERE driver_id = ?';
-    await db.execute(deleteQuery, [id]);
+    await pool.execute(deleteQuery, [id]);
 
     res.json({
       success: true,
@@ -342,7 +342,7 @@ exports.searchDrivers = async (req, res) => {
       ORDER BY created_at DESC
     `;
     
-    const [drivers] = await db.execute(query, [
+    const [drivers] = await pool.execute(query, [
       searchTerm, searchTerm, searchTerm, searchTerm
     ]);
     
