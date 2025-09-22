@@ -34,8 +34,6 @@ const ensureDriversTable = async () => {
 // 모든 기사 조회
 exports.getAllDrivers = async (req, res) => {
   try {
-    // 테이블 확인/생성
-    await ensureDriversTable();
     const query = `SELECT * FROM drivers LIMIT 1`;
     
     const [drivers] = await pool.execute(query);
