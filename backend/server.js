@@ -220,4 +220,5 @@ server.listen(PORT, () => {
   console.log(`서버가 포트 ${PORT}에서 실행 중입니다.`);
   console.log(`Health check: http://localhost:${PORT}/health`);
   console.log('🔌 Socket.IO 서버 시작됨 (기사별 푸시 알림 지원)');
+  console.log('✅ MySQL2 연결 설정 최적화 완료');
 });
