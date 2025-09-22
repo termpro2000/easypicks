@@ -3,6 +3,10 @@ const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
 const { executeWithRetry, pool } = require('../config/database');
 
+// PlanetScale DDL 제한으로 인해 기존 컬럼 활용
+// memo 필드에 JSON 형태로 추가 정보 저장
+console.log('[Products] 기존 스키마를 활용하여 API 제공');
+
 // 상품 목록 조회
 router.get('/', authenticateToken, async (req, res) => {
   try {
@@ -35,6 +39,7 @@ router.get('/', authenticateToken, async (req, res) => {
         SELECT 
           id,
           user_id,
+          maincode as code,
           maincode,
           subcode,
           name,
@@ -52,11 +57,32 @@ router.get('/', authenticateToken, async (req, res) => {
       `, [...queryParams, parseInt(limit), offset])
     );
 
+    // memo 필드에서 JSON 데이터 파싱하여 추가 필드 추출
+    const processedProducts = products.map(product => {
+      try {
+        const memoData = product.memo ? JSON.parse(product.memo) : {};
+        return {
+          ...product,
+          category: memoData.category || '',
+          description: memoData.description || '',
+          partner_id: memoData.partner_id || null
+        };
+      } catch (error) {
+        // JSON 파싱 실패 시 기본값 사용
+        return {
+          ...product,
+          category: '',
+          description: product.memo || '',
+          partner_id: null
+        };
+      }
+    });
+
     console.log(`[Products API] 상품 목록 조회 완료: ${products.length}개`);
 
     res.json({
       success: true,
-      products: products,
+      products: processedProducts,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
@@ -86,6 +112,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
         SELECT 
           id,
           user_id,
+          maincode as code,
           maincode,
           subcode,
           name,
@@ -108,12 +135,40 @@ router.get('/:id', authenticateToken, async (req, res) => {
       });
     }
 
-    console.log('[Products API] 상품 상세 조회 완료:', products[0].name);
+    // memo 필드에서 JSON 데이터 파싱
+    const product = products[0];
+    try {
+      const memoData = product.memo ? JSON.parse(product.memo) : {};
+      const processedProduct = {
+        ...product,
+        category: memoData.category || '',
+        description: memoData.description || '',
+        partner_id: memoData.partner_id || null
+      };
+      
+      console.log('[Products API] 상품 상세 조회 완료:', processedProduct.name);
 
-    res.json({
-      success: true,
-      product: products[0]
-    });
+      res.json({
+        success: true,
+        product: processedProduct
+      });
+      
+    } catch (error) {
+      // JSON 파싱 실패 시 기본값으로 처리
+      const processedProduct = {
+        ...product,
+        category: '',
+        description: product.memo || '',
+        partner_id: null
+      };
+      
+      console.log('[Products API] 상품 상세 조회 완료:', processedProduct.name);
+
+      res.json({
+        success: true,
+        product: processedProduct
+      });
+    }
 
   } catch (error) {
     console.error('[Products API] 상품 상세 조회 오류:', error);
@@ -130,13 +185,17 @@ router.post('/', authenticateToken, async (req, res) => {
   try {
     const {
       name,
+      code,
       maincode,
       subcode,
       weight,
       size,
+      category,
+      description,
       cost1,
       cost2,
-      memo
+      memo,
+      partner_id
     } = req.body;
 
     console.log('[Products API] 상품 생성 요청:', name);
@@ -149,12 +208,20 @@ router.post('/', authenticateToken, async (req, res) => {
       });
     }
 
+    // 추가 정보를 memo 필드에 JSON으로 저장
+    const memoData = {
+      category: category || '',
+      description: description || '',
+      partner_id: partner_id || null,
+      original_memo: memo || ''
+    };
+
     const [result] = await executeWithRetry(() =>
       pool.execute(`
         INSERT INTO products (
           user_id, name, maincode, subcode, weight, size, cost1, cost2, memo
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `, [req.user.id, name, maincode, subcode, weight, size, cost1, cost2, memo])
+      `, [req.user.id, name, code || maincode, subcode, weight, size, cost1, cost2, JSON.stringify(memoData)])
     );
 
     console.log('[Products API] 상품 생성 완료:', result.insertId);
@@ -181,13 +248,17 @@ router.put('/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
     const {
       name,
+      code,
       maincode,
       subcode,
       weight,
       size,
+      category,
+      description,
       cost1,
       cost2,
-      memo
+      memo,
+      partner_id
     } = req.body;
 
     console.log('[Products API] 상품 수정 요청:', id);
@@ -204,13 +275,21 @@ router.put('/:id', authenticateToken, async (req, res) => {
       });
     }
 
+    // 추가 정보를 memo 필드에 JSON으로 저장
+    const memoData = {
+      category: category || '',
+      description: description || '',
+      partner_id: partner_id || null,
+      original_memo: memo || ''
+    };
+
     await executeWithRetry(() =>
       pool.execute(`
         UPDATE products SET 
           name = ?, maincode = ?, subcode = ?, weight = ?, 
           size = ?, cost1 = ?, cost2 = ?, memo = ?
         WHERE id = ?
-      `, [name, maincode, subcode, weight, size, cost1, cost2, memo, id])
+      `, [name, code || maincode, subcode, weight, size, cost1, cost2, JSON.stringify(memoData), id])
     );
 
     console.log('[Products API] 상품 수정 완료:', id);

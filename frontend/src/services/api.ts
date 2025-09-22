@@ -351,14 +351,18 @@ export const productsAPI = {
 
   // 새 상품 생성
   createProduct: async (data: {
+    name: string;
+    code?: string;
     maincode?: string;
     subcode?: string;
-    name: string;
     weight?: number;
     size?: string;
+    category?: string;
+    description?: string;
     cost1?: number;
     cost2?: number;
     memo?: string;
+    partner_id?: number;
   }) => {
     const response = await apiClient.post('/products', data);
     return response.data;

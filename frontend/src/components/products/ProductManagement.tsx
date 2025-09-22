@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Package2, Plus, Search, Edit3, Trash2, Save, X, Building } from 'lucide-react';
+import { Package2, Plus, Search, Trash2, X, Building } from 'lucide-react';
 import { productsAPI } from '../../services/api';
+import ProductForm from './ProductForm';
 
 interface Product {
   id: number;
@@ -33,19 +34,9 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ onNavigateBack })
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null);
   const [showPartnerModal, setShowPartnerModal] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    code: '',
-    weight: '',
-    size: '',
-    category: '',
-    partner_company: '',
-    description: ''
-  });
+  const [currentView, setCurrentView] = useState<'list' | 'add-form'>('list');
 
   // 상품 목록 로드 (현재는 목업 데이터)
   useEffect(() => {
@@ -64,13 +55,6 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ onNavigateBack })
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
 
   // 파트너사 목록 (임시 데이터)
   const partners: Partner[] = [
@@ -101,73 +85,28 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ onNavigateBack })
   };
 
   const handleAddProduct = () => {
-    setShowAddForm(true);
-    setEditingProduct(null);
-    setFormData({
-      name: '',
-      code: '',
-      weight: '',
-      size: '',
-      category: '',
-      partner_company: '',
-      description: ''
-    });
+    setCurrentView('add-form');
   };
 
-  const handleEditProduct = (product: Product) => {
-    setEditingProduct(product);
-    setShowAddForm(true);
-    setFormData({
-      name: product.name,
-      code: product.code || '',
-      weight: product.weight?.toString() || '',
-      size: product.size || '',
-      category: product.category || '',
-      partner_company: product.partner_company || '',
-      description: product.description || ''
-    });
-  };
-
-  const handleSaveProduct = async () => {
-    try {
-      if (editingProduct) {
-        // 수정 로직
-        const updatedProduct = {
-          ...editingProduct,
-          ...formData,
-          weight: formData.weight ? parseFloat(formData.weight) : undefined,
-          updated_at: new Date().toISOString().split('T')[0]
-        };
-        setProducts(prev => 
-          prev.map(p => p.id === editingProduct.id ? updatedProduct : p)
-        );
-      } else {
-        // 추가 로직
-        const newProduct: Product = {
-          id: Date.now(),
-          ...formData,
-          weight: formData.weight ? parseFloat(formData.weight) : undefined,
-          created_at: new Date().toISOString().split('T')[0],
-          updated_at: new Date().toISOString().split('T')[0]
-        };
-        setProducts(prev => [...prev, newProduct]);
-      }
-      
-      setShowAddForm(false);
-      setEditingProduct(null);
-    } catch (error) {
-      console.error('상품 저장 실패:', error);
-    }
-  };
 
   const handleDeleteProduct = async (id: number) => {
     if (window.confirm('이 상품을 삭제하시겠습니까?')) {
       try {
+        await productsAPI.deleteProduct(id);
         setProducts(prev => prev.filter(p => p.id !== id));
       } catch (error) {
         console.error('상품 삭제 실패:', error);
       }
     }
+  };
+
+  const handleFormSuccess = () => {
+    setCurrentView('list');
+    loadProducts(); // 상품 목록 새로고침
+  };
+
+  const handleBackToList = () => {
+    setCurrentView('list');
   };
 
   const filteredProducts = products.filter(product => {
@@ -182,6 +121,17 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ onNavigateBack })
 
     return matchesSearch && matchesPartner;
   });
+
+  // 새상품추가 폼 표시
+  if (currentView === 'add-form') {
+    return (
+      <ProductForm 
+        onNavigateBack={handleBackToList}
+        onSuccess={handleFormSuccess}
+        selectedPartnerId={selectedPartner?.id}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -321,13 +271,6 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ onNavigateBack })
                       </div>
                       <div className="flex items-center justify-center gap-2">
                         <button
-                          onClick={() => handleEditProduct(product)}
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                          title="수정"
-                        >
-                          <Edit3 className="w-4 h-4" />
-                        </button>
-                        <button
                           onClick={() => handleDeleteProduct(product.id)}
                           className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                           title="삭제"
@@ -344,173 +287,6 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ onNavigateBack })
         )}
       </div>
 
-      {/* 상품 추가/수정 모달 */}
-      {showAddForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">
-                {editingProduct ? '상품 수정' : '새 상품 추가'}
-              </h3>
-              <button
-                onClick={() => setShowAddForm(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  상품명 <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  상품코드 <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="code"
-                  value={formData.code}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  카테고리 <span className="text-red-500">*</span>
-                </label>
-                <select
-                  name="category"
-                  value={formData.category}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  required
-                >
-                  <option value="">카테고리 선택</option>
-                  <option value="가전">가전</option>
-                  <option value="가구">가구</option>
-                  <option value="생활용품">생활용품</option>
-                  <option value="기타">기타</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  파트너사
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    name="partner_company"
-                    value={formData.partner_company}
-                    onChange={handleInputChange}
-                    placeholder="파트너사를 입력하거나 선택하세요"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                  <select
-                    value=""
-                    onChange={(e) => {
-                      if (e.target.value) {
-                        setFormData(prev => ({
-                          ...prev,
-                          partner_company: e.target.value
-                        }));
-                      }
-                    }}
-                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">선택</option>
-                    <option value="삼성전자">삼성전자</option>
-                    <option value="LG전자">LG전자</option>
-                    <option value="한샘">한샘</option>
-                    <option value="이케아">이케아</option>
-                    <option value="신세계">신세계</option>
-                    <option value="롯데">롯데</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    무게 (kg)
-                  </label>
-                  <input
-                    type="number"
-                    name="weight"
-                    value={formData.weight}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    step="0.1"
-                    min="0"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    크기 (WxDxH)
-                  </label>
-                  <input
-                    type="text"
-                    name="size"
-                    value={formData.size}
-                    onChange={handleInputChange}
-                    placeholder="600x650x850mm"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  설명
-                </label>
-                <textarea
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-            </form>
-
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => setShowAddForm(false)}
-                className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                취소
-              </button>
-              <button
-                onClick={handleSaveProduct}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
-              >
-                <Save className="w-4 h-4" />
-                {editingProduct ? '수정' : '추가'}
-              </button>
-            </div>
-            {/* 파일명 표시 */}
-            <div className="mt-4 text-xs text-gray-400 text-center">
-              ProductManagement.tsx
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* 통계 정보 */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
