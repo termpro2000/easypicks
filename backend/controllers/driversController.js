@@ -36,22 +36,7 @@ exports.getAllDrivers = async (req, res) => {
   try {
     // 테이블 확인/생성
     await ensureDriversTable();
-    const query = `
-      SELECT 
-        id as driver_id,
-        username,
-        name,
-        phone,
-        email,
-        vehicle_type,
-        vehicle_number,
-        license_number,
-        is_active,
-        created_at,
-        updated_at
-      FROM drivers
-      ORDER BY created_at DESC
-    `;
+    const query = `SELECT * FROM drivers LIMIT 1`;
     
     const [drivers] = await pool.execute(query);
     
