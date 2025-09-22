@@ -83,7 +83,6 @@ const UserManagement: React.FC<UserManagementProps> = ({ initialTab = 'users' })
   });
   const [showPassword, setShowPassword] = useState(false);
 
-
   // 파트너사 전용 폼 상태 (user 테이블의 필요한 필드만)
   const [partnerFormData, setPartnerFormData] = useState({
     username: '',
@@ -98,6 +97,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ initialTab = 'users' })
     default_sender_detail_address: '',
     default_sender_zipcode: ''
   });
+  const [showPartnerPassword, setShowPartnerPassword] = useState(false);
 
   useEffect(() => {
     if (activeTab === 'users') {
@@ -211,7 +211,6 @@ const UserManagement: React.FC<UserManagementProps> = ({ initialTab = 'users' })
     }
   };
 
-
   const resetPartnerForm = () => {
     setPartnerFormData({
       username: '',
@@ -226,8 +225,8 @@ const UserManagement: React.FC<UserManagementProps> = ({ initialTab = 'users' })
       default_sender_detail_address: '',
       default_sender_zipcode: ''
     });
+    setShowPartnerPassword(false);
   };
-
 
   const handleCreatePartner = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -888,10 +887,6 @@ const UserManagement: React.FC<UserManagementProps> = ({ initialTab = 'users' })
                     저장
                   </button>
                 </div>
-                {/* 파일명 표시 */}
-                <div className="mt-2 text-xs text-gray-400 text-center">
-                  UserManagement.tsx
-                </div>
               </form>
             </div>
           </div>
@@ -923,13 +918,26 @@ const UserManagement: React.FC<UserManagementProps> = ({ initialTab = 'users' })
                     
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">비밀번호 *</label>
-                      <input
-                        type="password"
-                        required
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        value={partnerFormData.password}
-                        onChange={(e) => setPartnerFormData({ ...partnerFormData, password: e.target.value })}
-                      />
+                      <div className="relative">
+                        <input
+                          type={showPartnerPassword ? 'text' : 'password'}
+                          required
+                          className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          value={partnerFormData.password}
+                          onChange={(e) => setPartnerFormData({ ...partnerFormData, password: e.target.value })}
+                        />
+                        <button
+                          type="button"
+                          className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                          onClick={() => setShowPartnerPassword(!showPartnerPassword)}
+                        >
+                          {showPartnerPassword ? (
+                            <EyeOff className="w-4 h-4 text-gray-400" />
+                          ) : (
+                            <Eye className="w-4 h-4 text-gray-400" />
+                          )}
+                        </button>
+                      </div>
                     </div>
                     
                     <div>
@@ -1062,15 +1070,16 @@ const UserManagement: React.FC<UserManagementProps> = ({ initialTab = 'users' })
                     확인
                   </button>
                 </div>
-                {/* 파일명 표시 */}
-                <div className="mt-2 text-xs text-gray-400 text-center">
-                  UserManagement.tsx
-                </div>
               </form>
             </div>
           </div>
         </div>
       )}
+
+      {/* 파일명 표시 */}
+      <div className="mt-4 text-xs text-gray-400 text-center">
+        UserManagement.tsx
+      </div>
     </div>
   );
 };
