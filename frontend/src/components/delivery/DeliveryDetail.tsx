@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Package, User, MapPin, Calendar, Truck, Phone, Mail, Clock, FileText, Edit, Save, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { ArrowLeft, Package, User, MapPin, Calendar, Truck, Phone, Clock, FileText, Edit, Save, X } from 'lucide-react';
 import { deliveriesAPI } from '../../services/api';
 
 interface Delivery {
