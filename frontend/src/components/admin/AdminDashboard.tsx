@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Package, Plus, LogOut, UserCheck, Users, Truck, TestTube } from 'lucide-react';
+import { Package, Plus, LogOut, UserCheck, Users, TestTube } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import AdminShippingForm from './AdminShippingForm';
 import UserManagement from './UserManagement';
@@ -240,10 +240,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onLogout })
             </button>
           </div>
 
-          {/* 세 번째 줄: 기사관리, 테스트 */}
-          <div className="flex justify-center gap-8">
-            {/* 기사관리 버튼 */}
-            <button
+          {/* 세 번째 줄: 테스트 */}
+          <div className="flex justify-center">
+            {/* 기사관리 버튼 - 임시 숨김 */}
+            {/* <button
               onClick={() => handleButtonClick('기사관리')}
               className="w-48 h-48 bg-white rounded-3xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 flex flex-col items-center justify-center gap-4 group"
             >
@@ -254,7 +254,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onLogout })
                 <h3 className="text-xl font-bold text-gray-900 mb-1">기사관리</h3>
                 <p className="text-sm text-gray-500">배송기사를 관리합니다</p>
               </div>
-            </button>
+            </button> */}
 
             {/* 테스트 버튼 */}
             <button
