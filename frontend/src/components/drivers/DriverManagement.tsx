@@ -42,7 +42,7 @@ const DriverManagement: React.FC = () => {
     name: '',
     phone: '',
     email: '',
-    vehicle_type: '',
+    vehicle_type: '1톤트럭',
     vehicle_number: '',
     license_number: ''
   });
@@ -91,7 +91,7 @@ const DriverManagement: React.FC = () => {
       name: '',
       phone: '',
       email: '',
-      vehicle_type: '',
+      vehicle_type: '1톤트럭',
       vehicle_number: '',
       license_number: ''
     });
@@ -404,7 +404,7 @@ const DriverManagement: React.FC = () => {
                   {/* 기본 정보 */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      사용자명 <span className="text-red-500">*</span>
+                      ID(사용자명) <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -491,12 +491,10 @@ const DriverManagement: React.FC = () => {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                       <option value="">선택하세요</option>
-                      <option value="1톤 트럭">1톤 트럭</option>
-                      <option value="2.5톤 트럭">2.5톤 트럭</option>
-                      <option value="5톤 트럭">5톤 트럭</option>
-                      <option value="오토바이">오토바이</option>
-                      <option value="승용차">승용차</option>
-                      <option value="기타">기타</option>
+                      <option value="1톤트럭">1톤트럭</option>
+                      <option value="1.2톤트럭">1.2톤트럭</option>
+                      <option value="2.5톤트럭">2.5톤트럭</option>
+                      <option value="5톤트럭">5톤트럭</option>
                     </select>
                   </div>
 
@@ -565,7 +563,7 @@ const DriverManagement: React.FC = () => {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      사용자명 <span className="text-red-500">*</span>
+                      ID(사용자명) <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -651,12 +649,10 @@ const DriverManagement: React.FC = () => {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                       <option value="">선택하세요</option>
-                      <option value="1톤 트럭">1톤 트럭</option>
-                      <option value="2.5톤 트럭">2.5톤 트럭</option>
-                      <option value="5톤 트럭">5톤 트럭</option>
-                      <option value="오토바이">오토바이</option>
-                      <option value="승용차">승용차</option>
-                      <option value="기타">기타</option>
+                      <option value="1톤트럭">1톤트럭</option>
+                      <option value="1.2톤트럭">1.2톤트럭</option>
+                      <option value="2.5톤트럭">2.5톤트럭</option>
+                      <option value="5톤트럭">5톤트럭</option>
                     </select>
                   </div>
 
