@@ -61,10 +61,13 @@ const DriverAssignment: React.FC<DriverAssignmentProps> = ({ onNavigateBack }) =
     const fetchDrivers = async () => {
       try {
         setDriversLoading(true);
+        console.log('Fetching drivers...');
         const response = await driversAPI.getAllDrivers();
+        console.log('Drivers API response:', response);
         
         // API 응답을 DriverData 형태로 변환
-        const driverUsers: DriverData[] = response.drivers.map((driver: any) => {
+        const driversArray = response.drivers || response.data || response || [];
+        const driverUsers: DriverData[] = driversArray.map((driver: any) => {
           // 해당 기사가 담당하고 있는 현재 배송 수 계산
           // driver_id, driver_name, assigned_driver 중 하나라도 매칭되면 해당 기사의 배송으로 간주
           const currentOrders = orders.filter(order => 

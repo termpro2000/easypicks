@@ -196,73 +196,6 @@ export const shippingAPI = {
   }
 };
 
-/**
- * 사용자 관리 API 함수들 (관리자/매니저 전용)
- * 사용자 CRUD, 활동 로그 조회 기능 제공
- */
-export const userAPI = {
-  // 모든 사용자 조회 (관리자/매니저만)
-  getAllUsers: async (page = 1, limit = 10, search = '', role = '') => {
-    const params = new URLSearchParams({
-      page: page.toString(),
-      limit: limit.toString(),
-      ...(search && { search }),
-      ...(role && { role })
-    });
-    const response = await apiClient.get(`/users?${params}`);
-    return response.data;
-  },
-
-  // 특정 사용자 조회
-  getUser: async (id: number) => {
-    const response = await apiClient.get(`/users/${id}`);
-    return response.data;
-  },
-
-  // 사용자 생성 (관리자만)
-  createUser: async (userData: {
-    username: string;
-    password: string;
-    name: string;
-    phone?: string;
-    company?: string;
-    role?: string;
-  }) => {
-    const response = await apiClient.post('/users', userData);
-    return response.data;
-  },
-
-  // 사용자 업데이트 (관리자만)
-  updateUser: async (id: number, userData: {
-    name?: string;
-    phone?: string;
-    company?: string;
-    role?: string;
-    is_active?: boolean;
-    password?: string;
-  }) => {
-    const response = await apiClient.put(`/users/${id}`, userData);
-    return response.data;
-  },
-
-  // 사용자 삭제 (관리자만)
-  deleteUser: async (id: number) => {
-    const response = await apiClient.delete(`/users/${id}`);
-    return response.data;
-  },
-
-  // 사용자 활동 로그 조회
-  getUserActivities: async (page = 1, limit = 20, userId?: number, action?: string) => {
-    const params = new URLSearchParams({
-      page: page.toString(),
-      limit: limit.toString(),
-      ...(userId && { user_id: userId.toString() }),
-      ...(action && { action })
-    });
-    const response = await apiClient.get(`/users/activities/logs?${params}`);
-    return response.data;
-  }
-};
 
 /**
  * 서버 상태 확인을 위한 헬스 체크 API
@@ -525,6 +458,71 @@ export const driversAPI = {
   // 기사 수정
   updateDriver: async (id: number, data: any) => {
     const response = await apiClient.put(`/drivers/${id}`, data);
+    return response.data;
+  }
+};
+
+/**
+ * 사용자 관리 API 함수들
+ * 사용자 CRUD 및 인증을 위한 API 함수들
+ */
+export const userAPI = {
+  // 모든 사용자 조회
+  getAllUsers: async (page: number = 1, limit: number = 50, searchTerm: string = '', roleFilter: string = '') => {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+      ...(searchTerm && { search: searchTerm }),
+      ...(roleFilter && { role: roleFilter })
+    });
+    const response = await apiClient.get(`/users?${params}`);
+    return response.data;
+  },
+
+  // 사용자 상세 조회
+  getUser: async (id: number) => {
+    const response = await apiClient.get(`/users/${id}`);
+    return response.data;
+  },
+
+  // 사용자 생성
+  createUser: async (data: {
+    username: string;
+    password: string;
+    name: string;
+    email?: string;
+    phone?: string;
+    company?: string;
+    role?: string;
+    default_sender_address?: string;
+    default_sender_detail_address?: string;
+    default_sender_zipcode?: string;
+  }) => {
+    const response = await apiClient.post('/users', data);
+    return response.data;
+  },
+
+  // 사용자 수정
+  updateUser: async (id: number, data: any) => {
+    const response = await apiClient.put(`/users/${id}`, data);
+    return response.data;
+  },
+
+  // 사용자 삭제
+  deleteUser: async (id: number) => {
+    const response = await apiClient.delete(`/users/${id}`);
+    return response.data;
+  },
+
+  // 사용자 로그인
+  login: async (username: string, password: string) => {
+    const response = await apiClient.post('/auth/login', { username, password });
+    return response.data;
+  },
+
+  // 사용자 등록
+  register: async (userData: any) => {
+    const response = await apiClient.post('/auth/register', userData);
     return response.data;
   }
 };
