@@ -18,6 +18,7 @@ import PartnersListModal from './PartnersListModal';
 import DriversListModal from './DriversListModal';
 import DeliveriesListModal from './DeliveriesListModal';
 import DeliveryCreateModal from './DeliveryCreateModal';
+import DeliveryDetailModal from './DeliveryDetailModal';
 
 interface TestPageProps {
   onNavigateBack: () => void;
@@ -30,7 +31,7 @@ const TestPage: React.FC<TestPageProps> = ({ onNavigateBack }) => {
   const [showPartnersModal, setShowPartnersModal] = useState(false);
   const [showDriversModal, setShowDriversModal] = useState(false);
   const [showDeliveriesModal, setShowDeliveriesModal] = useState(false);
-  const [deliveries] = useState<any[]>([]);
+  const [deliveries, setDeliveries] = useState<any[]>([]);
   const [isCreating, setIsCreating] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showDriverDeleteConfirm, setShowDriverDeleteConfirm] = useState(false);
@@ -38,6 +39,8 @@ const TestPage: React.FC<TestPageProps> = ({ onNavigateBack }) => {
   const [showDateInputModal, setShowDateInputModal] = useState(false);
   const [visitDate, setVisitDate] = useState('');
   const [showDeliveryCreateModal, setShowDeliveryCreateModal] = useState(false);
+  const [showDeliveryDetailModal, setShowDeliveryDetailModal] = useState(false);
+  const [selectedDelivery, setSelectedDelivery] = useState<any>(null);
 
   const handleDbSchema = () => {
     setCurrentView('db-schema');
@@ -176,6 +179,36 @@ const TestPage: React.FC<TestPageProps> = ({ onNavigateBack }) => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // 배송 목록 로드 함수
+  const handleLoadDeliveries = async () => {
+    setIsLoading(true);
+    setMessage(null);
+    try {
+      const response = await deliveriesAPI.getDeliveries(1, 100); // 첫 번째 페이지, 100개 로드
+      setDeliveries(response.deliveries || response.data || response);
+      setShowDeliveriesModal(true);
+      setMessage({
+        type: 'success',
+        text: `${response.deliveries?.length || response.data?.length || response.length || 0}개의 배송 데이터를 로드했습니다.`
+      });
+    } catch (error: any) {
+      console.error('배송 목록 로드 오류:', error);
+      setMessage({
+        type: 'error',
+        text: '배송 목록을 로드하는데 실패했습니다: ' + (error.message || '알 수 없는 오류')
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 배송 상세정보 보기 함수
+  const handleDeliveryClick = (delivery: any) => {
+    setSelectedDelivery(delivery);
+    setShowDeliveriesModal(false);
+    setShowDeliveryDetailModal(true);
   };
 
   // 새로운 배송 생성 함수
@@ -392,7 +425,7 @@ const TestPage: React.FC<TestPageProps> = ({ onNavigateBack }) => {
 
             {/* 배송 목록 */}
             <button
-              onClick={() => setShowDeliveriesModal(true)}
+              onClick={handleLoadDeliveries}
               disabled={isLoading}
               className="flex flex-col items-center gap-4 p-6 bg-teal-50 hover:bg-teal-100 rounded-xl border-2 border-teal-200 hover:border-teal-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
             >
@@ -486,6 +519,7 @@ const TestPage: React.FC<TestPageProps> = ({ onNavigateBack }) => {
           isOpen={showDeliveriesModal}
           onClose={() => setShowDeliveriesModal(false)}
           deliveries={deliveries}
+          onDeliveryClick={handleDeliveryClick}
         />
       )}
 
@@ -495,6 +529,14 @@ const TestPage: React.FC<TestPageProps> = ({ onNavigateBack }) => {
           onClose={() => setShowDeliveryCreateModal(false)}
           onSave={handleCreateDelivery}
           isLoading={isCreating}
+        />
+      )}
+
+      {showDeliveryDetailModal && (
+        <DeliveryDetailModal
+          isOpen={showDeliveryDetailModal}
+          onClose={() => setShowDeliveryDetailModal(false)}
+          delivery={selectedDelivery}
         />
       )}
 

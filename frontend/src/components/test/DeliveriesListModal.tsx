@@ -4,12 +4,14 @@ interface DeliveriesListModalProps {
   isOpen: boolean;
   onClose: () => void;
   deliveries: any[];
+  onDeliveryClick?: (delivery: any) => void;
 }
 
 const DeliveriesListModal: React.FC<DeliveriesListModalProps> = ({
   isOpen,
   onClose,
   deliveries,
+  onDeliveryClick,
 }) => {
   if (!isOpen) return null;
 
@@ -84,7 +86,11 @@ const DeliveriesListModal: React.FC<DeliveriesListModalProps> = ({
                 </thead>
                 <tbody>
                   {deliveries.map((delivery) => (
-                    <tr key={delivery.id} className="hover:bg-gray-50">
+                    <tr 
+                      key={delivery.id} 
+                      className="hover:bg-gray-50 cursor-pointer"
+                      onClick={() => onDeliveryClick?.(delivery)}
+                    >
                       <td className="border border-gray-300 px-2 py-1 text-xs">{delivery.id}</td>
                       <td className="border border-gray-300 px-2 py-1 text-xs">{delivery.tracking_number}</td>
                       <td className="border border-gray-300 px-2 py-1 text-xs">{delivery.sender_name}</td>
