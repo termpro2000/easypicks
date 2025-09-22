@@ -38,15 +38,11 @@ interface Driver {
   rating?: number;
 }
 
-interface UserManagementProps {
-  initialTab?: 'users' | 'drivers';
-}
-
-const UserManagement: React.FC<UserManagementProps> = ({ initialTab = 'users' }) => {
+const UserManagement: React.FC = () => {
   const { user: currentUser } = useAuth();
   
   // 탭 상태
-  const [activeTab, setActiveTab] = useState<'users' | 'drivers'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'users' | 'drivers'>('users');
   
   // 사용자 관련 상태
   const [users, setUsers] = useState<User[]>([]);
@@ -58,7 +54,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ initialTab = 'users' })
   const [showPartnerModal, setShowPartnerModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   
-  // 기사 관련 상태  
+  // 기사 관련 상태
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [driversLoading, setDriversLoading] = useState(true);
   const [driverSearchTerm, setDriverSearchTerm] = useState('');
@@ -406,7 +402,6 @@ const UserManagement: React.FC<UserManagementProps> = ({ initialTab = 'users' })
               </p>
             </div>
           </div>
-          
         </div>
 
         {/* 탭 네비게이션 */}
@@ -693,7 +688,6 @@ const UserManagement: React.FC<UserManagementProps> = ({ initialTab = 'users' })
           )}
         </div>
       </div>
-
 
       {/* 파트너사 편집 모달 */}
       {showEditModal && selectedUser && (
