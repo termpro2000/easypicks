@@ -378,6 +378,98 @@ export const testAPI = {
 };
 
 /**
+ * 상품 관리 API 함수들
+ * 상품 CRUD 작업을 위한 API 함수들
+ */
+export const productsAPI = {
+  // 모든 상품 조회
+  getAllProducts: async () => {
+    const response = await apiClient.get('/products');
+    return response.data;
+  },
+
+  // 특정 상품 조회
+  getProduct: async (id: number) => {
+    const response = await apiClient.get(`/products/${id}`);
+    return response.data;
+  },
+
+  // 새 상품 생성
+  createProduct: async (data: {
+    maincode?: string;
+    subcode?: string;
+    name: string;
+    weight?: number;
+    size?: string;
+    cost1?: number;
+    cost2?: number;
+    memo?: string;
+  }) => {
+    const response = await apiClient.post('/products', data);
+    return response.data;
+  },
+
+  // 상품 수정
+  updateProduct: async (id: number, data: {
+    maincode?: string;
+    subcode?: string;
+    name: string;
+    weight?: number;
+    size?: string;
+    cost1?: number;
+    cost2?: number;
+    memo?: string;
+  }) => {
+    const response = await apiClient.put(`/products/${id}`, data);
+    return response.data;
+  },
+
+  // 상품 삭제
+  deleteProduct: async (id: number) => {
+    const response = await apiClient.delete(`/products/${id}`);
+    return response.data;
+  },
+
+  // 상품 검색
+  searchProducts: async (query: string) => {
+    const response = await apiClient.get(`/products/search?q=${encodeURIComponent(query)}`);
+    return response.data;
+  }
+};
+
+/**
+ * 상품 사진 관리 API 함수들
+ * 상품 사진 업로드, 조회, 삭제를 위한 API 함수들
+ */
+export const productPhotosAPI = {
+  // 상품 사진 업로드
+  uploadPhoto: async (productId: number, file: File) => {
+    const formData = new FormData();
+    formData.append('photo', file);
+    formData.append('product_id', productId.toString());
+
+    const response = await apiClient.post('/product-photos/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    return response.data;
+  },
+
+  // 상품 사진 목록 조회
+  getProductPhotos: async (productId: number) => {
+    const response = await apiClient.get(`/product-photos/product/${productId}`);
+    return response.data;
+  },
+
+  // 상품 사진 삭제
+  deletePhoto: async (photoId: number) => {
+    const response = await apiClient.delete(`/product-photos/${photoId}`);
+    return response.data;
+  }
+};
+
+/**
  * JWT 토큰 관리 함수들
  */
 export const tokenAPI = {
