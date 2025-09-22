@@ -470,6 +470,66 @@ export const productPhotosAPI = {
 };
 
 /**
+ * 배송 관리 API 함수들
+ * 배송 조회, 수정, 기사 배정을 위한 API 함수들
+ */
+export const deliveriesAPI = {
+  // 배송 목록 조회
+  getDeliveries: async (page: number = 1, limit: number = 50) => {
+    const response = await apiClient.get(`/deliveries?page=${page}&limit=${limit}`);
+    return response.data;
+  },
+
+  // 배송 상세 조회
+  getDelivery: async (id: number) => {
+    const response = await apiClient.get(`/deliveries/${id}`);
+    return response.data;
+  },
+
+  // 배송 수정
+  updateDelivery: async (id: number, data: any) => {
+    const response = await apiClient.put(`/deliveries/${id}`, data);
+    return response.data;
+  },
+
+  // 배송 기사 배정
+  assignDriver: async (deliveryId: number, driverId: number) => {
+    const response = await apiClient.post(`/deliveries/${deliveryId}/assign`, { driver_id: driverId });
+    return response.data;
+  }
+};
+
+/**
+ * 기사 관리 API 함수들
+ * 기사 조회, 등록, 수정을 위한 API 함수들
+ */
+export const driversAPI = {
+  // 모든 기사 조회
+  getAllDrivers: async () => {
+    const response = await apiClient.get('/drivers');
+    return response.data;
+  },
+
+  // 기사 상세 조회
+  getDriver: async (id: number) => {
+    const response = await apiClient.get(`/drivers/${id}`);
+    return response.data;
+  },
+
+  // 기사 등록
+  createDriver: async (data: any) => {
+    const response = await apiClient.post('/drivers', data);
+    return response.data;
+  },
+
+  // 기사 수정
+  updateDriver: async (id: number, data: any) => {
+    const response = await apiClient.put(`/drivers/${id}`, data);
+    return response.data;
+  }
+};
+
+/**
  * JWT 토큰 관리 함수들
  */
 export const tokenAPI = {
