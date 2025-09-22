@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, Package, BarChart3, Plus, Users, Search } from 'lucide-react';
+import { LogOut, Package, BarChart3, Plus, Users, Search, MapPin } from 'lucide-react';
 import { AuthContext, useAuthProvider, useAuth } from './hooks/useAuth';
 import { useNotification } from './hooks/useNotification';
 import AuthPage from './components/auth/AuthPage';
@@ -11,6 +11,8 @@ import TrackingPage from './components/tracking/TrackingPage';
 import SystemTestPage from './components/admin/SystemTestPage';
 import ToastContainer from './components/notifications/ToastContainer';
 import NotificationPermission from './components/notifications/NotificationPermission';
+import DeliveryStatus from './components/delivery/DeliveryStatus';
+import DeliveryDetail from './components/delivery/DeliveryDetail';
 
 const AppContent: React.FC = () => {
   const { user, isLoading, isAuthenticated, logout } = useAuth();
@@ -22,8 +24,9 @@ const AppContent: React.FC = () => {
     notifyOrderStatusChange,
     notifyNewOrder
   } = useNotification();
-  type PageType = 'dashboard' | 'new-order' | 'users' | 'tracking' | 'system-test';
+  type PageType = 'dashboard' | 'new-order' | 'users' | 'tracking' | 'system-test' | 'delivery-status' | 'delivery-detail';
   const [currentPage, setCurrentPage] = useState<PageType>('dashboard');
+  const [selectedDelivery, setSelectedDelivery] = useState<any>(null);
   const [showPermissionRequest, setShowPermissionRequest] = useState(false);
 
   // URL에서 tracking 모드 확인
@@ -66,6 +69,29 @@ const AppContent: React.FC = () => {
   // 시스템 테스트 페이지는 인증없이 접근 가능
   if (currentPage === 'system-test') {
     return <SystemTestPage onBack={() => setCurrentPage('dashboard' as PageType)} />;
+  }
+
+  // 배송현황 페이지 (인증 필요)
+  if (currentPage === 'delivery-status' && isAuthenticated) {
+    return (
+      <DeliveryStatus
+        onNavigateBack={() => setCurrentPage('dashboard' as PageType)}
+        onViewDetail={(delivery) => {
+          setSelectedDelivery(delivery);
+          setCurrentPage('delivery-detail' as PageType);
+        }}
+      />
+    );
+  }
+
+  // 배송상세정보 페이지 (인증 필요)
+  if (currentPage === 'delivery-detail' && isAuthenticated && selectedDelivery) {
+    return (
+      <DeliveryDetail
+        delivery={selectedDelivery}
+        onNavigateBack={() => setCurrentPage('delivery-status' as PageType)}
+      />
+    );
   }
 
   if (!isAuthenticated) {
@@ -140,6 +166,18 @@ const AppContent: React.FC = () => {
               >
                 <Search className="w-5 h-5" />
                 <span className="hidden md:inline">배송 추적</span>
+              </button>
+
+              <button
+                onClick={() => setCurrentPage('delivery-status' as PageType)}
+                className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg transition-colors touch-manipulation ${
+                  (currentPage as string) === 'delivery-status'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                }`}
+              >
+                <MapPin className="w-5 h-5" />
+                <span className="hidden md:inline">배송현황</span>
               </button>
               
               {/* 테스트용 알림 버튼 (개발 중) */}

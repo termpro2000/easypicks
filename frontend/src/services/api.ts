@@ -461,6 +461,36 @@ export const deliveriesAPI = {
   assignDriver: async (deliveryId: number, driverId: number) => {
     const response = await apiClient.post(`/deliveries/${deliveryId}/assign`, { driver_id: driverId });
     return response.data;
+  },
+
+  // 배송 상태만 업데이트
+  updateDeliveryStatus: async (id: number, status: string) => {
+    const response = await apiClient.patch(`/deliveries/${id}/status`, { status });
+    return response.data;
+  },
+
+  // 공개 배송 추적 (트래킹번호로)
+  trackDelivery: async (trackingNumber: string) => {
+    const response = await apiClient.get(`/deliveries/track/${trackingNumber}`);
+    return response.data;
+  },
+
+  // 배송 완료 처리
+  completeDelivery: async (id: number) => {
+    const response = await apiClient.post(`/deliveries/complete/${id}`);
+    return response.data;
+  },
+
+  // 배송 연기 처리
+  postponeDelivery: async (id: number) => {
+    const response = await apiClient.post(`/deliveries/postpone/${id}`);
+    return response.data;
+  },
+
+  // 배송 취소 처리
+  cancelDelivery: async (id: number) => {
+    const response = await apiClient.post(`/deliveries/cancel/${id}`);
+    return response.data;
   }
 };
 
