@@ -251,6 +251,8 @@ const TestPage: React.FC<TestPageProps> = ({ onNavigateBack }) => {
     setIsCreating(true);
     setMessage(null);
     
+    console.log('🚀 배송 생성 시작 - 원본 데이터:', deliveryData);
+    
     try {
       // deliveriesAPI를 사용해 실제 배송 생성 (숫자 필드 파싱 포함)
       const createData = {
@@ -306,6 +308,9 @@ const TestPage: React.FC<TestPageProps> = ({ onNavigateBack }) => {
         is_frozen: cleanValue(deliveryData.is_frozen)
       };
 
+      console.log('📤 최종 전송 데이터:', JSON.stringify(createData, null, 2));
+      console.log('🔑 JWT 토큰:', localStorage.getItem('jwt_token') ? '있음' : '없음');
+
       const response = await deliveriesAPI.createDelivery ? 
         deliveriesAPI.createDelivery(createData) : 
         await fetch('/api/deliveries', {
@@ -317,16 +322,26 @@ const TestPage: React.FC<TestPageProps> = ({ onNavigateBack }) => {
           body: JSON.stringify(createData)
         }).then(res => res.json());
 
+      console.log('✅ 서버 응답:', response);
+
       setShowDeliveryCreateModal(false);
       setMessage({
         type: 'success',
         text: `새 배송이 성공적으로 생성되었습니다!\n운송장번호: ${response.trackingNumber || deliveryData.tracking_number}\n고객명: ${deliveryData.customer_name}\n상품명: ${deliveryData.product_name}`
       });
     } catch (error: any) {
-      console.error('배송 생성 오류:', error);
+      console.error('❌ 배송 생성 오류 상세:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        config: error.config,
+        fullError: error
+      });
+      
       setMessage({
         type: 'error',
-        text: '배송 생성에 실패했습니다: ' + (error.message || '알 수 없는 오류')
+        text: `배송 생성에 실패했습니다: ${error.response?.status || ''} ${error.message || '알 수 없는 오류'}\n서버 응답: ${JSON.stringify(error.response?.data || {})}`
       });
     } finally {
       setIsCreating(false);

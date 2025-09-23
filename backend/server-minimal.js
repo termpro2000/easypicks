@@ -86,6 +86,13 @@ app.get('/db-test', async (req, res) => {
 app.post('/api/deliveries', async (req, res) => {
   try {
     console.log('📦 새로운 배송 접수 생성 시작');
+    console.log('📝 요청 데이터 (전체):', JSON.stringify(req.body, null, 2));
+    console.log('📊 데이터 분석:', {
+      totalFields: Object.keys(req.body).length,
+      undefinedFields: Object.entries(req.body).filter(([k,v]) => v === undefined).length,
+      nullFields: Object.entries(req.body).filter(([k,v]) => v === null).length,
+      stringFields: Object.entries(req.body).filter(([k,v]) => typeof v === 'string').length
+    });
     
     const {
       sender_name, sender_company, sender_phone, sender_email,
@@ -242,11 +249,22 @@ app.post('/api/deliveries', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ 배송 접수 생성 오류:', error);
+    console.error('❌ 배송 접수 생성 오류 상세:', {
+      message: error.message,
+      stack: error.stack,
+      code: error.code,
+      sqlState: error.sqlState,
+      sqlMessage: error.sqlMessage,
+      errno: error.errno,
+      requestBody: JSON.stringify(req.body, null, 2)
+    });
+    
     res.status(500).json({
       error: 'Internal Server Error',
       message: '배송 접수 생성 중 오류가 발생했습니다.',
-      details: error.message
+      details: error.message,
+      code: error.code,
+      time: new Date().toISOString()
     });
   }
 });
