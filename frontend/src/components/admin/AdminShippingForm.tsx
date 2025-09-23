@@ -185,7 +185,6 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
   // 파트너사 검색 함수
   const handleSearchPartner = async () => {
     if (!searchQuery.trim()) {
-      alert('검색할 파트너사명을 입력하세요.');
       return;
     }
 
@@ -282,7 +281,7 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
   // 주소 검색 함수
   const openAddressSearch = (type: 'sender' | 'customer') => {
     if (!window.daum || !window.daum.Postcode) {
-      alert('주소 검색 서비스를 로드하는 중입니다. 잠시 후 다시 시도해주세요.');
+      console.log('주소 검색 서비스를 로드하는 중입니다.');
       return;
     }
 
