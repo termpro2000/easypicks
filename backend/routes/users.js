@@ -150,14 +150,14 @@ router.post('/', authenticateToken, requireRole(['admin']), async (req, res) => 
       username,
       password,
       name,
-      email,
-      phone,
-      company,
+      email = null,
+      phone = null,
+      company = null,
       role = 'user',
       is_active = true,
-      default_sender_address,
-      default_sender_detail_address,
-      default_sender_zipcode
+      default_sender_address = null,
+      default_sender_detail_address = null,
+      default_sender_zipcode = null
     } = req.body;
     
     console.log(`[Users API] 사용자 생성 요청: ${username}`);
@@ -192,8 +192,8 @@ router.post('/', authenticateToken, requireRole(['admin']), async (req, res) => 
     // 사용자 생성
     const insertValues = [
       username, hashedPassword, name, 
-      email || null, phone || null, company || null, role, is_active,
-      default_sender_address || null, default_sender_detail_address || null, default_sender_zipcode || null
+      email, phone, company, role, is_active,
+      default_sender_address, default_sender_detail_address, default_sender_zipcode
     ];
     
     console.log('INSERT 값들:', insertValues.map((v, i) => `${i}: ${v === undefined ? 'UNDEFINED' : v === null ? 'NULL' : typeof v === 'string' ? `"${v}"` : v}`));
