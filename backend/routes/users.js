@@ -181,10 +181,17 @@ router.post('/', authenticateToken, requireRole(['admin']), async (req, res) => 
     }
     
     // 사용자 생성 - 기본 필드만 사용
+    const params = [username, password, name, email, phone, company, role, is_active];
+    console.log('SQL 매개변수:', params.map((p, i) => `${i}: ${p === undefined ? 'UNDEFINED' : p === null ? 'NULL' : typeof p === 'string' ? `"${p}"` : p}`));
+    
+    // undefined 값을 모두 null로 변환
+    const safeParams = params.map(p => p === undefined ? null : p);
+    console.log('안전한 매개변수:', safeParams.map((p, i) => `${i}: ${p === null ? 'NULL' : typeof p === 'string' ? `"${p}"` : p}`));
+    
     const [result] = await pool.execute(`
       INSERT INTO users (username, password, name, email, phone, company, role, is_active, created_at, updated_at) 
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
-    `, [username, password, name, email, phone, company, role, is_active]);
+    `, safeParams);
     
     console.log(`[Users API] 사용자 생성 완료: ID ${result.insertId}`);
     
