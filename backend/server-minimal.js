@@ -743,15 +743,18 @@ app.post('/api/drivers', async (req, res) => {
     console.log('👤 새 기사 생성 요청');
     
     const {
-      username, password, name, email, phone,
+      username, user_id, password, name, email, phone,
       vehicle_type, vehicle_number, license_number
     } = req.body;
     
+    // username 또는 user_id 사용 (호환성)
+    const finalUserId = user_id || username;
+    
     // 필수 필드 검증
-    if (!username || !password || !name) {
+    if (!finalUserId || !password || !name) {
       return res.status(400).json({
         error: 'Bad Request',
-        message: 'username, password, name은 필수 필드입니다.'
+        message: 'user_id, password, name은 필수 필드입니다.'
       });
     }
     
@@ -766,17 +769,17 @@ app.post('/api/drivers', async (req, res) => {
     const columnNames = columns.map(col => col.COLUMN_NAME);
     console.log('📋 [Create Driver] drivers 테이블 컬럼:', columnNames);
     
-    // username 컬럼이 있는 경우만 중복 확인
-    if (columnNames.includes('username')) {
+    // user_id 컬럼이 있는 경우만 중복 확인
+    if (columnNames.includes('user_id')) {
       const [existingDrivers] = await pool.execute(
-        'SELECT id FROM drivers WHERE username = ?',
-        [username]
+        'SELECT id FROM drivers WHERE user_id = ?',
+        [finalUserId]
       );
       
       if (existingDrivers.length > 0) {
         return res.status(409).json({
           error: 'Conflict',
-          message: '이미 사용 중인 사용자명입니다.'
+          message: '이미 사용 중인 사용자 ID입니다.'
         });
       }
     }
@@ -785,9 +788,9 @@ app.post('/api/drivers', async (req, res) => {
     const insertColumns = [];
     const insertValues = [];
     
-    if (columnNames.includes('username')) {
-      insertColumns.push('username');
-      insertValues.push(username);
+    if (columnNames.includes('user_id')) {
+      insertColumns.push('user_id');
+      insertValues.push(finalUserId);
     }
     if (columnNames.includes('password')) {
       insertColumns.push('password');
@@ -838,14 +841,14 @@ app.post('/api/drivers', async (req, res) => {
       VALUES (${placeholders})
     `, insertValues);
     
-    console.log('✅ 기사 생성 성공:', { id: result.insertId, username });
+    console.log('✅ 기사 생성 성공:', { id: result.insertId, user_id: finalUserId });
     
     res.status(201).json({
       success: true,
       message: '기사가 성공적으로 생성되었습니다.',
       data: {
         id: result.insertId,
-        username,
+        user_id: finalUserId,
         name
       }
     });
