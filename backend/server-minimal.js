@@ -1442,6 +1442,174 @@ app.post('/api/debug/update-password', async (req, res) => {
 });
 
 // ============================
+// SHIPPING API 엔드포인트들
+// ============================
+
+// 주문 목록 조회
+app.get('/api/shipping/orders', async (req, res) => {
+  try {
+    console.log('📦 주문 목록 조회 요청');
+    
+    // deliveries 테이블에서 주문 정보 조회
+    const [orders] = await pool.execute(`
+      SELECT 
+        id,
+        tracking_number,
+        sender_name,
+        customer_name,
+        customer_phone,
+        customer_address,
+        product_name,
+        status,
+        created_at,
+        updated_at
+      FROM deliveries 
+      ORDER BY created_at DESC
+      LIMIT 100
+    `);
+    
+    console.log(`✅ 주문 목록 조회 완료: ${orders.length}개`);
+    
+    res.json({
+      success: true,
+      orders: orders,
+      total: orders.length
+    });
+    
+  } catch (error) {
+    console.error('❌ 주문 목록 조회 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '주문 목록을 조회할 수 없습니다.',
+      details: error.message
+    });
+  }
+});
+
+// 새 배송 주문 생성
+app.post('/api/shipping/orders', async (req, res) => {
+  try {
+    console.log('📦 새 배송 주문 생성 요청');
+    
+    const {
+      sender_name, sender_address, customer_name, customer_phone, 
+      customer_address, product_name, delivery_memo
+    } = req.body;
+    
+    // 필수 필드 검증
+    if (!sender_name || !customer_name || !customer_phone || !product_name) {
+      return res.status(400).json({
+        success: false,
+        error: '필수 필드가 누락되었습니다.'
+      });
+    }
+    
+    // 운송장 번호 생성
+    const tracking_number = generateTrackingNumber();
+    
+    // 배송 주문 생성
+    const [result] = await pool.execute(`
+      INSERT INTO deliveries (
+        tracking_number, sender_name, sender_address, customer_name, 
+        customer_phone, customer_address, product_name, status, 
+        main_memo, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, '접수완료', ?, NOW(), NOW())
+    `, [
+      tracking_number, sender_name, sender_address || '', customer_name,
+      customer_phone, customer_address || '', product_name, delivery_memo || ''
+    ]);
+    
+    console.log('✅ 배송 주문 생성 완료:', { id: result.insertId, tracking_number });
+    
+    res.status(201).json({
+      success: true,
+      message: '배송 주문이 성공적으로 생성되었습니다.',
+      order: {
+        id: result.insertId,
+        tracking_number,
+        sender_name,
+        customer_name,
+        product_name,
+        status: '접수완료'
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ 배송 주문 생성 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '배송 주문 생성 중 오류가 발생했습니다.',
+      details: error.message
+    });
+  }
+});
+
+// 특정 주문 조회
+app.get('/api/shipping/orders/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log('📦 개별 주문 조회:', id);
+    
+    const [orders] = await pool.execute(`
+      SELECT * FROM deliveries WHERE id = ?
+    `, [id]);
+    
+    if (orders.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: '주문을 찾을 수 없습니다.'
+      });
+    }
+    
+    res.json({
+      success: true,
+      order: orders[0]
+    });
+    
+  } catch (error) {
+    console.error('❌ 개별 주문 조회 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '주문 조회 중 오류가 발생했습니다.',
+      details: error.message
+    });
+  }
+});
+
+// 주문 상태 업데이트
+app.put('/api/shipping/orders/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    console.log('📦 주문 상태 업데이트:', { id, status });
+    
+    const [result] = await pool.execute(`
+      UPDATE deliveries SET status = ?, updated_at = NOW() WHERE id = ?
+    `, [status, id]);
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        error: '주문을 찾을 수 없습니다.'
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: '주문 상태가 업데이트되었습니다.'
+    });
+    
+  } catch (error) {
+    console.error('❌ 주문 상태 업데이트 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '주문 상태 업데이트 중 오류가 발생했습니다.',
+      details: error.message
+    });
+  }
+});
+
+// ============================
 // Products API 엔드포인트들
 // ============================
 
