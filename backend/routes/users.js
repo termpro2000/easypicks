@@ -161,6 +161,10 @@ router.post('/', authenticateToken, requireRole(['admin']), async (req, res) => 
     } = req.body;
     
     console.log(`[Users API] 사용자 생성 요청: ${username}`);
+    console.log('받은 데이터:', {
+      username, password: password ? '***' : undefined, name, email, phone, company, role, is_active,
+      default_sender_address, default_sender_detail_address, default_sender_zipcode
+    });
     
     // 필수 필드 검증
     if (!username || !password || !name) {
@@ -186,6 +190,14 @@ router.post('/', authenticateToken, requireRole(['admin']), async (req, res) => 
     const hashedPassword = password; // 임시로 평문 저장
     
     // 사용자 생성
+    const insertValues = [
+      username, hashedPassword, name, 
+      email || null, phone || null, company || null, role, is_active,
+      default_sender_address || null, default_sender_detail_address || null, default_sender_zipcode || null
+    ];
+    
+    console.log('INSERT 값들:', insertValues.map((v, i) => `${i}: ${v === undefined ? 'UNDEFINED' : v === null ? 'NULL' : typeof v === 'string' ? `"${v}"` : v}`));
+    
     const [result] = await executeWithRetry(() =>
       pool.execute(`
         INSERT INTO users (
@@ -193,11 +205,7 @@ router.post('/', authenticateToken, requireRole(['admin']), async (req, res) => 
           default_sender_address, default_sender_detail_address, default_sender_zipcode,
           created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
-      `, [
-        username, hashedPassword, name, 
-        email || null, phone || null, company || null, role, is_active,
-        default_sender_address || null, default_sender_detail_address || null, default_sender_zipcode || null
-      ])
+      `, insertValues)
     );
     
     console.log(`[Users API] 사용자 생성 완료: ID ${result.insertId}`);
