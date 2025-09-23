@@ -262,10 +262,8 @@ const DriverAssignment: React.FC<DriverAssignmentProps> = ({ onNavigateBack }) =
       // 각 주문에 대해 배정 처리
       for (const orderId of selectedOrders) {
         await deliveriesAPI.updateDelivery(orderId, {
-          driver_id: selectedDriver.toString(),
-          driver_name: selectedDriverInfo.name,
-          assigned_driver: selectedDriverInfo.name,
-          status: 'in_transit'
+          driver_id: parseInt(selectedDriver),
+          status: '배차완료'
         });
       }
 
@@ -275,9 +273,7 @@ const DriverAssignment: React.FC<DriverAssignmentProps> = ({ onNavigateBack }) =
           ? { 
               ...order, 
               driver_id: selectedDriver.toString(),
-              driver_name: selectedDriverInfo.name,
-              assigned_driver: selectedDriverInfo.name,
-              status: 'in_transit' as const
+              status: '배차완료' as const
             }
           : order
       ));
