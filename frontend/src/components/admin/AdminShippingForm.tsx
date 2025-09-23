@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { 
   User, Phone, Building, MapPin, Package, Truck, 
   Calendar, Clock, AlertTriangle, FileText, Shield, 
-  Home, Wrench, Weight, Box, Settings, ArrowLeft, Check, Search, X
+  Home, Wrench, Weight, Box, Settings, ArrowLeft, Check, Search
 } from 'lucide-react';
 import { shippingAPI, userAPI } from '../../services/api';
 // import { useAuth } from '../../hooks/useAuth'; // 향후 사용 예정
@@ -332,9 +332,10 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
       setValue('sender_detail_address', partner.default_sender_detail_address);
     }
 
-    if (partner.default_sender_zipcode) {
-      setValue('sender_zipcode', partner.default_sender_zipcode);
-    }
+    // sender_zipcode는 폼 타입에 정의되어 있지 않으므로 주석 처리
+    // if (partner.default_sender_zipcode) {
+    //   setValue('sender_zipcode', partner.default_sender_zipcode);
+    // }
 
     if (partner.default_sender_company || partner.company) {
       setValue('furniture_company', partner.default_sender_company || partner.company);
@@ -344,9 +345,10 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
       setValue('emergency_contact', partner.default_sender_phone || partner.phone);
     }
 
-    if (partner.email) {
-      setValue('sender_email', partner.email);
-    }
+    // sender_email은 폼 타입에 정의되어 있지 않으므로 주석 처리
+    // if (partner.email) {
+    //   setValue('sender_email', partner.email);
+    // }
 
     setIsPartnerModalOpen(false);
   };

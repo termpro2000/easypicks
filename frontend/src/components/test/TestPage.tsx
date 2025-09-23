@@ -334,10 +334,10 @@ const TestPage: React.FC<TestPageProps> = ({ onNavigateBack }) => {
       console.log('🔑 JWT 토큰:', localStorage.getItem('jwt_token') ? '있음' : '없음');
       console.log('📊 전송 데이터 통계:', {
         totalFields: Object.keys(createData).length,
-        nullFields: Object.entries(createData).filter(([k,v]) => v === null).length,
-        undefinedFields: Object.entries(createData).filter(([k,v]) => v === undefined).length,
-        stringFields: Object.entries(createData).filter(([k,v]) => typeof v === 'string').length,
-        numberFields: Object.entries(createData).filter(([k,v]) => typeof v === 'number').length
+        nullFields: Object.entries(createData).filter(([,v]) => v === null).length,
+        undefinedFields: Object.entries(createData).filter(([,v]) => v === undefined).length,
+        stringFields: Object.entries(createData).filter(([,v]) => typeof v === 'string').length,
+        numberFields: Object.entries(createData).filter(([,v]) => typeof v === 'number').length
       });
 
       console.log('🚀 API 호출 시작...');

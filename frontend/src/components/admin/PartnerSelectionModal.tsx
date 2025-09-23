@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Building, User, Phone, MapPin, X } from 'lucide-react';
+import { Search, Building, Phone, MapPin, X } from 'lucide-react';
 import { testAPI } from '../../services/api';
 
 interface Partner {
