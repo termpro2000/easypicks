@@ -1359,6 +1359,301 @@ app.post('/api/debug/update-password', async (req, res) => {
   }
 });
 
+// ============================
+// Products API 엔드포인트들
+// ============================
+
+// 모든 상품 조회
+app.get('/api/products', async (req, res) => {
+  try {
+    console.log('📦 상품 목록 조회 요청');
+    
+    // products 테이블이 있는지 확인
+    const [tables] = await pool.execute(`
+      SELECT TABLE_NAME 
+      FROM information_schema.TABLES 
+      WHERE TABLE_SCHEMA = DATABASE() 
+      AND TABLE_NAME = 'products'
+    `);
+
+    if (tables.length === 0) {
+      console.log('⚠️ products 테이블이 존재하지 않음 - 빈 배열 반환');
+      return res.json({
+        success: true,
+        products: [],
+        total: 0
+      });
+    }
+
+    const [products] = await pool.execute(`
+      SELECT * FROM products 
+      ORDER BY created_at DESC
+    `);
+
+    console.log(`✅ 상품 목록 조회 완료: ${products.length}개`);
+
+    res.json({
+      success: true,
+      products: products,
+      total: products.length
+    });
+
+  } catch (error) {
+    console.error('❌ 상품 목록 조회 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '상품 목록을 조회할 수 없습니다.',
+      details: error.message
+    });
+  }
+});
+
+// 특정 상품 조회
+app.get('/api/products/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log('📦 개별 상품 조회:', id);
+    
+    const [products] = await pool.execute(`
+      SELECT * FROM products WHERE id = ?
+    `, [id]);
+    
+    if (products.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: '상품을 찾을 수 없습니다.'
+      });
+    }
+    
+    res.json({
+      success: true,
+      product: products[0]
+    });
+    
+  } catch (error) {
+    console.error('❌ 개별 상품 조회 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '상품 조회 중 오류가 발생했습니다.',
+      details: error.message
+    });
+  }
+});
+
+// 새 상품 생성
+app.post('/api/products', async (req, res) => {
+  try {
+    console.log('📦 새 상품 생성 요청');
+    
+    const {
+      name, code, maincode, subcode, weight, size,
+      cost1, cost2, memo, partner_id
+    } = req.body;
+    
+    // 필수 필드 검증
+    if (!name) {
+      return res.status(400).json({
+        success: false,
+        error: '상품명은 필수 항목입니다.'
+      });
+    }
+    
+    const [result] = await pool.execute(`
+      INSERT INTO products (
+        name, code, maincode, subcode, weight, size,
+        cost1, cost2, memo, partner_id, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+    `, [
+      name, code, maincode, subcode, weight, size,
+      cost1 || 0, cost2 || 0, memo, partner_id
+    ]);
+    
+    console.log('✅ 상품 생성 성공:', { id: result.insertId, name });
+    
+    res.status(201).json({
+      success: true,
+      message: '상품이 성공적으로 생성되었습니다.',
+      product: {
+        id: result.insertId,
+        name,
+        code,
+        maincode,
+        subcode
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ 상품 생성 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '상품 생성 중 오류가 발생했습니다.',
+      details: error.message
+    });
+  }
+});
+
+// 상품 수정
+app.put('/api/products/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log('📦 상품 수정 요청:', id);
+    
+    const {
+      name, maincode, subcode, weight, size,
+      cost1, cost2, memo
+    } = req.body;
+    
+    // 필수 필드 검증
+    if (!name) {
+      return res.status(400).json({
+        success: false,
+        error: '상품명은 필수 항목입니다.'
+      });
+    }
+    
+    const [result] = await pool.execute(`
+      UPDATE products SET
+        name = ?, maincode = ?, subcode = ?, weight = ?, size = ?,
+        cost1 = ?, cost2 = ?, memo = ?, updated_at = NOW()
+      WHERE id = ?
+    `, [
+      name, maincode, subcode, weight, size,
+      cost1 || 0, cost2 || 0, memo, id
+    ]);
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        error: '상품을 찾을 수 없습니다.'
+      });
+    }
+    
+    console.log('✅ 상품 수정 성공:', { id, name });
+    
+    res.json({
+      success: true,
+      message: '상품이 성공적으로 수정되었습니다.'
+    });
+    
+  } catch (error) {
+    console.error('❌ 상품 수정 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '상품 수정 중 오류가 발생했습니다.',
+      details: error.message
+    });
+  }
+});
+
+// 상품 삭제
+app.delete('/api/products/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log('📦 상품 삭제 요청:', id);
+    
+    const [result] = await pool.execute(`
+      DELETE FROM products WHERE id = ?
+    `, [id]);
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        error: '상품을 찾을 수 없습니다.'
+      });
+    }
+    
+    console.log('✅ 상품 삭제 성공:', { id });
+    
+    res.json({
+      success: true,
+      message: '상품이 성공적으로 삭제되었습니다.'
+    });
+    
+  } catch (error) {
+    console.error('❌ 상품 삭제 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '상품 삭제 중 오류가 발생했습니다.',
+      details: error.message
+    });
+  }
+});
+
+// 상품 검색
+app.get('/api/products/search', async (req, res) => {
+  try {
+    const { q } = req.query;
+    console.log('📦 상품 검색 요청:', q);
+    
+    if (!q) {
+      return res.status(400).json({
+        success: false,
+        error: '검색어가 필요합니다.'
+      });
+    }
+    
+    const [products] = await pool.execute(`
+      SELECT * FROM products 
+      WHERE name LIKE ? OR code LIKE ? OR maincode LIKE ? OR subcode LIKE ?
+      ORDER BY name
+      LIMIT 50
+    `, [`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`]);
+    
+    console.log(`✅ 상품 검색 완료: ${products.length}개`);
+    
+    res.json({
+      success: true,
+      products: products,
+      total: products.length
+    });
+    
+  } catch (error) {
+    console.error('❌ 상품 검색 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '상품 검색 중 오류가 발생했습니다.',
+      details: error.message
+    });
+  }
+});
+
+// 상품 코드로 검색
+app.get('/api/products/search/code', async (req, res) => {
+  try {
+    const { code } = req.query;
+    console.log('📦 상품 코드 검색 요청:', code);
+    
+    if (!code) {
+      return res.status(400).json({
+        success: false,
+        error: '상품 코드가 필요합니다.'
+      });
+    }
+    
+    const [products] = await pool.execute(`
+      SELECT * FROM products 
+      WHERE code = ? OR maincode = ? OR subcode = ?
+      ORDER BY name
+    `, [code, code, code]);
+    
+    console.log(`✅ 상품 코드 검색 완료: ${products.length}개`);
+    
+    res.json({
+      success: true,
+      products: products,
+      total: products.length
+    });
+    
+  } catch (error) {
+    console.error('❌ 상품 코드 검색 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '상품 코드 검색 중 오류가 발생했습니다.',
+      details: error.message
+    });
+  }
+});
+
 // 서버 시작
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
