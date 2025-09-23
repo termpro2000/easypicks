@@ -136,12 +136,21 @@ async function createDelivery(req, res) {
       req.body.request_type || '배송접수'
     ];
 
+    // 숫자에서 단위 제거하는 헬퍼 함수
+    const parseNumber = (value) => {
+      if (!value) return null;
+      if (typeof value === 'number') return value;
+      // "50kg", "45.5kg", "30cm" 등에서 숫자만 추출
+      const numericValue = parseFloat(value.toString().replace(/[^0-9.]/g, ''));
+      return isNaN(numericValue) ? null : numericValue;
+    };
+
     // 52개 전체 컬럼 매핑 (기본 필드 제외한 모든 추가 필드)
     const additionalFields = [
       // id, tracking_number, status, request_type는 기본 필드에서 처리
       
-      // 2. 무게 및 물리적 정보
-      { column: 'weight', value: req.body.weight || req.body.product_weight },
+      // 2. 무게 및 물리적 정보 (숫자 필드)
+      { column: 'weight', value: parseNumber(req.body.weight || req.body.product_weight) },
       
       // 3. 배송 기본 정보  
       { column: 'driver_id', value: req.body.driver_id || null },
@@ -170,9 +179,9 @@ async function createDelivery(req, res) {
       
       // 7. 상품 상세 정보
       { column: 'furniture_product_code', value: product_sku || req.body.furniture_product_code },
-      { column: 'product_weight', value: req.body.product_weight },
-      { column: 'product_size', value: req.body.product_size },
-      { column: 'box_size', value: req.body.box_size },
+      { column: 'product_weight', value: req.body.product_weight }, // 문자열 필드로 유지
+      { column: 'product_size', value: req.body.product_size }, // 문자열 필드로 유지
+      { column: 'box_size', value: req.body.box_size }, // 문자열 필드로 유지
       { column: 'furniture_requests', value: req.body.furniture_requests },
       { column: 'fragile', value: is_fragile ? 1 : (req.body.fragile ? 1 : 0) },
       
@@ -180,17 +189,17 @@ async function createDelivery(req, res) {
       { column: 'installation_photos', value: req.body.installation_photos ? JSON.stringify(req.body.installation_photos) : null },
       { column: 'customer_signature', value: req.body.customer_signature },
       
-      // 9. 비용 정보
-      { column: 'delivery_fee', value: req.body.delivery_fee || 0 },
-      { column: 'insurance_value', value: insurance_amount || req.body.insurance_value || 0 },
-      { column: 'cod_amount', value: req.body.cod_amount || 0 },
+      // 9. 비용 정보 (숫자 필드)
+      { column: 'delivery_fee', value: parseNumber(req.body.delivery_fee) || 0 },
+      { column: 'insurance_value', value: parseNumber(insurance_amount || req.body.insurance_value) || 0 },
+      { column: 'cod_amount', value: parseNumber(req.body.cod_amount) || 0 },
       
       // 10. 배송 날짜 및 상태
       { column: 'estimated_delivery', value: preferred_delivery_date || req.body.estimated_delivery },
       { column: 'actual_delivery', value: req.body.actual_delivery },
-      { column: 'delivery_attempts', value: req.body.delivery_attempts || 0 },
+      { column: 'delivery_attempts', value: parseInt(req.body.delivery_attempts) || 0 },
       { column: 'last_location', value: req.body.last_location },
-      { column: 'distance', value: req.body.distance || 0 },
+      { column: 'distance', value: parseNumber(req.body.distance) || 0 },
       
       // 11. 취소 관련
       { column: 'cancel_status', value: req.body.cancel_status || 0 },
