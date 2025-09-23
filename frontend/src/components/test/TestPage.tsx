@@ -134,7 +134,10 @@ const TestPage: React.FC<TestPageProps> = ({ onNavigateBack }) => {
   };
 
   const handleDeleteAllDeliveries = () => {
+    console.log('🗑️ 배송 삭제 버튼 클릭됨');
+    alert('배송 삭제 버튼이 클릭되었습니다!'); // 임시 테스트용
     setShowDeliveriesDeleteConfirm(true);
+    console.log('🗑️ 삭제 확인 모달 상태 설정:', true);
   };
 
   const confirmDeleteAllDeliveries = async () => {
@@ -478,7 +481,11 @@ const TestPage: React.FC<TestPageProps> = ({ onNavigateBack }) => {
 
             {/* 배송 삭제 */}
             <button
-              onClick={handleDeleteAllDeliveries}
+              onClick={(e) => {
+                e.preventDefault();
+                console.log('🗑️ 배송 삭제 버튼 직접 클릭됨');
+                handleDeleteAllDeliveries();
+              }}
               disabled={isLoading}
               className="flex flex-col items-center gap-4 p-6 bg-red-50 hover:bg-red-100 rounded-xl border-2 border-red-200 hover:border-red-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
             >
@@ -491,6 +498,11 @@ const TestPage: React.FC<TestPageProps> = ({ onNavigateBack }) => {
               </div>
             </button>
 
+          </div>
+
+          {/* 디버깅 정보 */}
+          <div className="mt-4 p-2 bg-blue-50 border border-blue-200 rounded text-xs">
+            <p>디버깅: showDeliveriesDeleteConfirm = {showDeliveriesDeleteConfirm.toString()}</p>
           </div>
 
           {/* 경고 메시지 */}
@@ -596,10 +608,13 @@ const TestPage: React.FC<TestPageProps> = ({ onNavigateBack }) => {
       )}
 
       {showDeliveriesDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">배송 삭제 확인</h3>
-            <p className="text-gray-600 mb-6">정말로 모든 배송을 삭제하시겠습니까?</p>
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]"
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }}
+        >
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-2xl border-4 border-red-500">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">⚠️ 배송 삭제 확인</h3>
+            <p className="text-gray-600 mb-6">정말로 모든 배송을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.</p>
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setShowDeliveriesDeleteConfirm(false)}
