@@ -547,7 +547,12 @@ const DriverAssignment: React.FC<DriverAssignmentProps> = ({ onNavigateBack }) =
                               </div>
                             </div>
                             <div className="ml-3">
-                              <div className="text-sm font-medium text-gray-900">{driver.name}</div>
+                              <div className="text-sm font-medium text-gray-900">
+                                {driver.name}
+                                {driver.username && (
+                                  <span className="text-gray-500 font-normal ml-1">({driver.username})</span>
+                                )}
+                              </div>
                               <div className="text-sm text-gray-500">{driver.phone || '연락처 없음'}</div>
                             </div>
                           </div>
