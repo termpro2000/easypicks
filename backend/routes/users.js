@@ -146,24 +146,20 @@ router.get('/:id', authenticateToken, requireRole(['admin']), async (req, res) =
 // 사용자 생성
 router.post('/', authenticateToken, requireRole(['admin']), async (req, res) => {
   try {
-    const {
-      username,
-      password,
-      name,
-      email = null,
-      phone = null,
-      company = null,
-      role = 'user',
-      is_active = true,
-      default_sender_address = null,
-      default_sender_detail_address = null,
-      default_sender_zipcode = null
-    } = req.body;
+    console.log('[Users API] 사용자 생성 요청 시작');
+    console.log('요청 본문:', JSON.stringify(req.body, null, 2));
     
-    console.log(`[Users API] 사용자 생성 요청: ${username}`);
-    console.log('받은 데이터:', {
-      username, password: password ? '***' : undefined, name, email, phone, company, role, is_active,
-      default_sender_address, default_sender_detail_address, default_sender_zipcode
+    const username = req.body.username;
+    const password = req.body.password;
+    const name = req.body.name;
+    const email = req.body.email || null;
+    const phone = req.body.phone || null;
+    const company = req.body.company || null;
+    const role = req.body.role || 'user';
+    const is_active = req.body.is_active !== undefined ? req.body.is_active : true;
+    
+    console.log('처리된 데이터:', {
+      username, password: password ? '***' : 'NO_PASSWORD', name, email, phone, company, role, is_active
     });
     
     // 필수 필드 검증
@@ -175,9 +171,7 @@ router.post('/', authenticateToken, requireRole(['admin']), async (req, res) => 
     }
     
     // 사용자명 중복 확인
-    const [existingUsers] = await executeWithRetry(() =>
-      pool.execute('SELECT id FROM users WHERE username = ?', [username])
-    );
+    const [existingUsers] = await pool.execute('SELECT id FROM users WHERE username = ?', [username]);
     
     if (existingUsers.length > 0) {
       return res.status(409).json({
@@ -186,33 +180,11 @@ router.post('/', authenticateToken, requireRole(['admin']), async (req, res) => 
       });
     }
     
-    // 비밀번호 해싱 (실제 환경에서는 bcrypt 사용 권장)
-    const hashedPassword = password; // 임시로 평문 저장
-    
-    // 사용자 생성 - undefined 체크 및 변환
-    const insertValues = [
-      username, 
-      hashedPassword, 
-      name, 
-      email === undefined ? null : email,
-      phone === undefined ? null : phone,
-      company === undefined ? null : company,
-      role === undefined ? 'user' : role,
-      is_active === undefined ? true : is_active,
-      default_sender_address === undefined ? null : default_sender_address,
-      default_sender_detail_address === undefined ? null : default_sender_detail_address,
-      default_sender_zipcode === undefined ? null : default_sender_zipcode
-    ];
-    
-    console.log('INSERT 값들:', insertValues.map((v, i) => `${i}: ${v === undefined ? 'UNDEFINED' : v === null ? 'NULL' : typeof v === 'string' ? `"${v}"` : v}`));
-    
+    // 사용자 생성 - 기본 필드만 사용
     const [result] = await pool.execute(`
-      INSERT INTO users (
-        username, password, name, email, phone, company, role, is_active,
-        default_sender_address, default_sender_detail_address, default_sender_zipcode,
-        created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
-    `, insertValues);
+      INSERT INTO users (username, password, name, email, phone, company, role, is_active, created_at, updated_at) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+    `, [username, password, name, email, phone, company, role, is_active]);
     
     console.log(`[Users API] 사용자 생성 완료: ID ${result.insertId}`);
     
