@@ -445,6 +445,12 @@ export const deliveriesAPI = {
     return response.data;
   },
 
+  // 모든 배송 데이터 삭제 (테스트용)
+  deleteAllDeliveries: async () => {
+    const response = await apiClient.delete('/deliveries/all');
+    return response.data;
+  },
+
   // 배송 목록 조회
   getDeliveries: async (page: number = 1, limit: number = 50) => {
     const response = await apiClient.get(`/deliveries?page=${page}&limit=${limit}`);

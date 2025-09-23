@@ -15,7 +15,8 @@ const {
   createTestData,
   runMigration,
   forceCreateColumns,
-  checkColumns
+  checkColumns,
+  deleteAllDeliveries
 } = require('../controllers/deliveriesController');
 
 // 새 배송 생성 (JWT 인증 필요)
@@ -59,5 +60,8 @@ router.post('/force-create-columns', authenticateToken, forceCreateColumns);
 
 // 컬럼 상태 확인 (개발용)
 router.get('/debug/columns', authenticateToken, checkColumns);
+
+// 모든 배송 데이터 삭제 (테스트용 - 관리자 권한 필요)
+router.delete('/all', authenticateToken, deleteAllDeliveries);
 
 module.exports = router;

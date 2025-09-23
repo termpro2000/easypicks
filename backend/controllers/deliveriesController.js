@@ -1700,6 +1700,52 @@ async function runMigration(req, res) {
   }
 }
 
+/**
+ * 모든 배송 데이터 삭제 (테스트용)
+ * @param {Object} req - Express 요청 객체
+ * @param {Object} res - Express 응답 객체
+ */
+async function deleteAllDeliveries(req, res) {
+  console.log('🗑️ 모든 배송 데이터 삭제 요청 - 사용자:', req.user?.username);
+  
+  try {
+    // 관리자 권한 확인
+    if (req.user?.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: '관리자 권한이 필요합니다.'
+      });
+    }
+
+    // 삭제 전 현재 데이터 개수 확인
+    const [countResult] = await pool.execute('SELECT COUNT(*) as count FROM deliveries');
+    const totalCount = countResult[0].count;
+    
+    console.log(`📊 삭제 대상 배송 데이터: ${totalCount}개`);
+
+    // 모든 배송 데이터 삭제
+    const [deleteResult] = await pool.execute('DELETE FROM deliveries');
+    
+    console.log('✅ 모든 배송 데이터가 성공적으로 삭제되었습니다.');
+    console.log(`📋 삭제된 레코드 수: ${deleteResult.affectedRows}`);
+
+    res.json({
+      success: true,
+      message: `총 ${totalCount}개의 배송 데이터가 성공적으로 삭제되었습니다.`,
+      deletedCount: deleteResult.affectedRows,
+      totalCount: totalCount
+    });
+
+  } catch (error) {
+    console.error('❌ 배송 데이터 삭제 오류:', error);
+    res.status(500).json({
+      success: false,
+      message: '배송 데이터 삭제 중 오류가 발생했습니다.',
+      error: error.message
+    });
+  }
+}
+
 module.exports = {
   createDelivery,
   getDeliveries,
@@ -1714,5 +1760,6 @@ module.exports = {
   createTestData,
   runMigration,
   forceCreateColumns,
-  checkColumns
+  checkColumns,
+  deleteAllDeliveries
 };
