@@ -28,7 +28,7 @@ const io = socketIo(server, {
 });
 const PORT = process.env.PORT || 3000;
 
-// Rate limiting
+// Rate limiting (Railway 환경에 최적화)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15분
   max: 10000, // 개발용으로 거의 무제한
@@ -37,8 +37,19 @@ const limiter = rateLimit({
     message: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.',
     retryAfter: '15분 후 재시도 가능'
   },
+  // Railway 프록시 환경에서 안전한 키 생성
+  keyGenerator: (req) => {
+    // X-Forwarded-For의 첫 번째 IP 사용 (실제 클라이언트 IP)
+    const forwardedFor = req.headers['x-forwarded-for'];
+    if (forwardedFor) {
+      const firstIP = forwardedFor.split(',')[0].trim();
+      return firstIP;
+    }
+    return req.ip || req.connection.remoteAddress || 'unknown';
+  },
   skip: (req) => {
-    return req.ip === '127.0.0.1' || req.ip === '::1' || req.ip?.includes('192.168') || req.ip?.includes('172.');
+    const ip = req.ip || req.connection.remoteAddress;
+    return ip === '127.0.0.1' || ip === '::1' || ip?.includes('192.168') || ip?.includes('172.');
   }
 });
 
