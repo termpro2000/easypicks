@@ -548,22 +548,33 @@ app.get('/api/test/drivers', async (req, res) => {
       });
     }
     
-    // drivers 테이블이 있는 경우
+    // drivers 테이블이 있는 경우 - 동적 컬럼 확인
+    const [columns] = await pool.execute(`
+      SELECT COLUMN_NAME 
+      FROM information_schema.COLUMNS 
+      WHERE TABLE_SCHEMA = DATABASE() 
+      AND TABLE_NAME = 'drivers'
+    `);
+    
+    const columnNames = columns.map(col => col.COLUMN_NAME);
+    console.log('📋 [Test API] drivers 테이블 컬럼:', columnNames);
+    
+    // 존재하는 컬럼만 선택
+    const selectColumns = ['id'];
+    if (columnNames.includes('name')) selectColumns.push('name');
+    if (columnNames.includes('email')) selectColumns.push('email');
+    if (columnNames.includes('phone')) selectColumns.push('phone');
+    if (columnNames.includes('vehicle_type')) selectColumns.push('vehicle_type');
+    if (columnNames.includes('vehicle_number')) selectColumns.push('vehicle_number');
+    if (columnNames.includes('license_number')) selectColumns.push('license_number');
+    if (columnNames.includes('is_active')) selectColumns.push('is_active');
+    if (columnNames.includes('created_at')) selectColumns.push('created_at');
+    if (columnNames.includes('updated_at')) selectColumns.push('updated_at');
+    
     const [drivers] = await pool.execute(`
-      SELECT 
-        id,
-        username,
-        name,
-        email,
-        phone,
-        vehicle_type,
-        vehicle_number,
-        license_number,
-        is_active,
-        created_at,
-        updated_at
+      SELECT ${selectColumns.join(', ')}
       FROM drivers 
-      ORDER BY created_at DESC
+      ORDER BY ${columnNames.includes('created_at') ? 'created_at' : 'id'} DESC
     `);
     
     console.log(`✅ [Test API] 기사 목록 조회 완료: ${drivers.length}개`);
@@ -635,7 +646,6 @@ app.get('/api/drivers', async (req, res) => {
     console.log('🚛 기사 목록 조회 요청');
     
     const { page = 1, limit = 50, search = '' } = req.query;
-    const offset = (page - 1) * limit;
     
     // drivers 테이블이 있는지 확인
     const [tables] = await pool.execute(`
@@ -646,62 +656,57 @@ app.get('/api/drivers', async (req, res) => {
     `);
     
     if (tables.length === 0) {
-      // drivers 테이블이 없으면 생성
-      await pool.execute(`
-        CREATE TABLE IF NOT EXISTS drivers (
-          id INT AUTO_INCREMENT PRIMARY KEY,
-          username VARCHAR(100) UNIQUE NOT NULL,
-          password VARCHAR(255) NOT NULL,
-          name VARCHAR(100) NOT NULL,
-          email VARCHAR(255),
-          phone VARCHAR(20),
-          vehicle_type VARCHAR(50),
-          vehicle_number VARCHAR(20),
-          license_number VARCHAR(50),
-          is_active TINYINT(1) DEFAULT 1,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-        )
-      `);
-      console.log('✅ drivers 테이블 생성 완료');
+      console.log('⚠️ drivers 테이블이 존재하지 않음 - 빈 배열 반환');
+      return res.json({
+        success: true,
+        data: [],
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total: 0,
+          totalPages: 0,
+          hasNext: false,
+          hasPrev: false
+        }
+      });
     }
     
-    // 검색 조건 구성
-    let whereClause = 'WHERE 1=1';
-    const params = [];
+    // drivers 테이블 컬럼 확인
+    const [columns] = await pool.execute(`
+      SELECT COLUMN_NAME 
+      FROM information_schema.COLUMNS 
+      WHERE TABLE_SCHEMA = DATABASE() 
+      AND TABLE_NAME = 'drivers'
+    `);
     
-    if (search) {
-      whereClause += ' AND (name LIKE ? OR username LIKE ? OR phone LIKE ? OR vehicle_number LIKE ?)';
-      const searchTerm = `%${search}%`;
-      params.push(searchTerm, searchTerm, searchTerm, searchTerm);
-    }
+    const columnNames = columns.map(col => col.COLUMN_NAME);
+    console.log('📋 drivers 테이블 컬럼:', columnNames);
     
-    params.push(parseInt(limit), parseInt(offset));
+    // 기본적으로 존재할 것으로 예상되는 컬럼들만 조회
+    const selectColumns = ['id'];
+    if (columnNames.includes('name')) selectColumns.push('name');
+    if (columnNames.includes('email')) selectColumns.push('email');
+    if (columnNames.includes('phone')) selectColumns.push('phone');
+    if (columnNames.includes('vehicle_type')) selectColumns.push('vehicle_type');
+    if (columnNames.includes('vehicle_number')) selectColumns.push('vehicle_number');
+    if (columnNames.includes('license_number')) selectColumns.push('license_number');
+    if (columnNames.includes('is_active')) selectColumns.push('is_active');
+    if (columnNames.includes('created_at')) selectColumns.push('created_at');
+    if (columnNames.includes('updated_at')) selectColumns.push('updated_at');
+    
+    const offset = (page - 1) * limit;
     
     const [drivers] = await pool.execute(`
-      SELECT 
-        id,
-        username,
-        name,
-        email,
-        phone,
-        vehicle_type,
-        vehicle_number,
-        license_number,
-        is_active,
-        created_at,
-        updated_at
+      SELECT ${selectColumns.join(', ')}
       FROM drivers 
-      ${whereClause}
-      ORDER BY created_at DESC
+      ORDER BY ${columnNames.includes('created_at') ? 'created_at' : 'id'} DESC
       LIMIT ? OFFSET ?
-    `, params);
+    `, [parseInt(limit), parseInt(offset)]);
     
     // 총 개수 조회
-    const countParams = params.slice(0, -2);
     const [countResult] = await pool.execute(`
-      SELECT COUNT(*) as total FROM drivers ${whereClause}
-    `, countParams);
+      SELECT COUNT(*) as total FROM drivers
+    `);
     
     const total = countResult[0].total;
     const totalPages = Math.ceil(total / limit);
@@ -749,30 +754,88 @@ app.post('/api/drivers', async (req, res) => {
       });
     }
     
-    // 사용자명 중복 확인
-    const [existingDrivers] = await pool.execute(
-      'SELECT id FROM drivers WHERE username = ?',
-      [username]
-    );
+    // drivers 테이블 컬럼 확인 (동적)
+    const [columns] = await pool.execute(`
+      SELECT COLUMN_NAME 
+      FROM information_schema.COLUMNS 
+      WHERE TABLE_SCHEMA = DATABASE() 
+      AND TABLE_NAME = 'drivers'
+    `);
     
-    if (existingDrivers.length > 0) {
-      return res.status(409).json({
-        error: 'Conflict',
-        message: '이미 사용 중인 사용자명입니다.'
-      });
+    const columnNames = columns.map(col => col.COLUMN_NAME);
+    console.log('📋 [Create Driver] drivers 테이블 컬럼:', columnNames);
+    
+    // username 컬럼이 있는 경우만 중복 확인
+    if (columnNames.includes('username')) {
+      const [existingDrivers] = await pool.execute(
+        'SELECT id FROM drivers WHERE username = ?',
+        [username]
+      );
+      
+      if (existingDrivers.length > 0) {
+        return res.status(409).json({
+          error: 'Conflict',
+          message: '이미 사용 중인 사용자명입니다.'
+        });
+      }
     }
+    
+    // 존재하는 컬럼만으로 INSERT 쿼리 구성
+    const insertColumns = [];
+    const insertValues = [];
+    
+    if (columnNames.includes('username')) {
+      insertColumns.push('username');
+      insertValues.push(username);
+    }
+    if (columnNames.includes('password')) {
+      insertColumns.push('password');
+      insertValues.push(password);
+    }
+    if (columnNames.includes('name')) {
+      insertColumns.push('name');
+      insertValues.push(name);
+    }
+    if (columnNames.includes('email')) {
+      insertColumns.push('email');
+      insertValues.push(email);
+    }
+    if (columnNames.includes('phone')) {
+      insertColumns.push('phone');
+      insertValues.push(phone);
+    }
+    if (columnNames.includes('vehicle_type')) {
+      insertColumns.push('vehicle_type');
+      insertValues.push(vehicle_type);
+    }
+    if (columnNames.includes('vehicle_number')) {
+      insertColumns.push('vehicle_number');
+      insertValues.push(vehicle_number);
+    }
+    if (columnNames.includes('license_number')) {
+      insertColumns.push('license_number');
+      insertValues.push(license_number);
+    }
+    if (columnNames.includes('is_active')) {
+      insertColumns.push('is_active');
+      insertValues.push(1);
+    }
+    if (columnNames.includes('created_at')) {
+      insertColumns.push('created_at');
+      insertValues.push(new Date());
+    }
+    if (columnNames.includes('updated_at')) {
+      insertColumns.push('updated_at');
+      insertValues.push(new Date());
+    }
+    
+    const placeholders = insertColumns.map(() => '?').join(', ');
     
     // 기사 생성
     const [result] = await pool.execute(`
-      INSERT INTO drivers (
-        username, password, name, email, phone,
-        vehicle_type, vehicle_number, license_number,
-        is_active, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, NOW(), NOW())
-    `, [
-      username, password, name, email, phone,
-      vehicle_type, vehicle_number, license_number
-    ]);
+      INSERT INTO drivers (${insertColumns.join(', ')}) 
+      VALUES (${placeholders})
+    `, insertValues);
     
     console.log('✅ 기사 생성 성공:', { id: result.insertId, username });
     
