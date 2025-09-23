@@ -1371,14 +1371,15 @@ app.delete('/api/deliveries/all', async (req, res) => {
 // Auth 라우트들
 app.post('/api/auth/login', async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { username, user_id, password } = req.body;
+    const loginId = username || user_id; // username 또는 user_id 둘 다 지원
     
-    console.log('🔐 로그인 시도:', { username, passwordLength: password?.length });
+    console.log('🔐 로그인 시도:', { username, user_id, loginId, passwordLength: password?.length });
     
-    if (!username || !password) {
+    if (!loginId || !password) {
       return res.status(400).json({
         error: 'Bad Request',
-        message: '사용자명과 비밀번호가 필요합니다.'
+        message: '사용자명(또는 user_id)과 비밀번호가 필요합니다.'
       });
     }
 
@@ -1389,7 +1390,7 @@ app.post('/api/auth/login', async (req, res) => {
     // 먼저 users 테이블에서 검색
     const [users] = await pool.execute(
       'SELECT *, "user" as user_type FROM users WHERE username = ?',
-      [username]
+      [loginId]
     );
 
     if (users.length > 0) {
@@ -1399,7 +1400,7 @@ app.post('/api/auth/login', async (req, res) => {
       // users 테이블에 없으면 drivers 테이블에서 user_id로 검색
       const [drivers] = await pool.execute(
         'SELECT *, "driver" as user_type, user_id as username FROM drivers WHERE user_id = ?',
-        [username]
+        [loginId]
       );
       
       if (drivers.length > 0) {
@@ -1408,13 +1409,13 @@ app.post('/api/auth/login', async (req, res) => {
       }
     }
 
-    console.log('👤 사용자 검색 결과:', { username, found: !!user, userType });
+    console.log('👤 사용자 검색 결과:', { loginId, found: !!user, userType });
 
     if (!user) {
       return res.status(401).json({
         error: 'Unauthorized',
         message: '잘못된 사용자명 또는 비밀번호입니다.',
-        debug: `사용자 '${username}'를 찾을 수 없습니다.`
+        debug: `사용자 '${loginId}'를 찾을 수 없습니다.`
       });
     }
     
