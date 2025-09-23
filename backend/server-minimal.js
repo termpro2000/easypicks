@@ -1217,6 +1217,87 @@ app.get('/api/deliveries', async (req, res) => {
   }
 });
 
+// 배송 정보 수정 (기사 배정용)
+app.put('/api/deliveries/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log(`🔄 배송 정보 수정 요청: ID ${id}`);
+    console.log('수정 데이터:', JSON.stringify(req.body, null, 2));
+    
+    // 배송 데이터 존재 확인
+    const [existing] = await pool.execute('SELECT id FROM deliveries WHERE id = ?', [id]);
+    
+    if (existing.length === 0) {
+      return res.status(404).json({
+        error: 'Not Found',
+        message: '해당 배송 정보를 찾을 수 없습니다.'
+      });
+    }
+    
+    // 동적 필드 업데이트 구성
+    const updateFields = [];
+    const updateValues = [];
+    
+    // 기사 배정 관련 필드들
+    if (req.body.driver_id !== undefined) {
+      updateFields.push('driver_id = ?');
+      updateValues.push(req.body.driver_id);
+    }
+    if (req.body.driver_name !== undefined) {
+      updateFields.push('driver_name = ?');
+      updateValues.push(req.body.driver_name);
+    }
+    if (req.body.assigned_driver !== undefined) {
+      updateFields.push('assigned_driver = ?');
+      updateValues.push(req.body.assigned_driver);
+    }
+    if (req.body.status !== undefined) {
+      updateFields.push('status = ?');
+      updateValues.push(req.body.status);
+    }
+    
+    // 기타 필드들
+    Object.keys(req.body).forEach(key => {
+      if (!['driver_id', 'driver_name', 'assigned_driver', 'status'].includes(key)) {
+        updateFields.push(`${key} = ?`);
+        updateValues.push(req.body[key]);
+      }
+    });
+    
+    if (updateFields.length === 0) {
+      return res.status(400).json({
+        error: 'Bad Request',
+        message: '업데이트할 필드가 없습니다.'
+      });
+    }
+    
+    // updated_at 추가
+    updateFields.push('updated_at = NOW()');
+    updateValues.push(id);
+    
+    // 업데이트 실행
+    const [result] = await pool.execute(`
+      UPDATE deliveries SET ${updateFields.join(', ')} WHERE id = ?
+    `, updateValues);
+    
+    console.log(`✅ 배송 정보 수정 완료: ID ${id}, 영향받은 행: ${result.affectedRows}`);
+    
+    res.json({
+      success: true,
+      message: '배송 정보가 성공적으로 수정되었습니다.',
+      affectedRows: result.affectedRows
+    });
+    
+  } catch (error) {
+    console.error('❌ 배송 정보 수정 오류:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: '배송 정보 수정 중 오류가 발생했습니다.',
+      details: error.message
+    });
+  }
+});
+
 // 모든 배송 데이터 삭제 (테스트용)
 app.delete('/api/deliveries/all', async (req, res) => {
   try {
