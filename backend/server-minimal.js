@@ -1,11 +1,49 @@
 const express = require('express');
+const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 기본 미들웨어만
+// CORS 설정
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://localhost:5173',
+  'https://ep.easypickup.kr',
+  'https://efficient-abundance-production-d603.up.railway.app'
+];
+
+if (process.env.CORS_ORIGIN) {
+  allowedOrigins.push(process.env.CORS_ORIGIN);
+}
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    
+    if (origin.includes('termpro2000s-projects.vercel.app')) {
+      return callback(null, true);
+    }
+    
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    
+    if (process.env.NODE_ENV !== 'production' && origin.includes('localhost')) {
+      return callback(null, true);
+    }
+    
+    console.log('CORS 차단된 origin:', origin);
+    return callback(new Error('CORS 정책에 의해 차단됨'));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// 기본 미들웨어
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // 데이터베이스 설정 (단순화)
 const { pool, generateTrackingNumber } = require('./config/database');
@@ -229,6 +267,82 @@ app.get('/api/deliveries', async (req, res) => {
       message: '배송 목록 조회 중 오류가 발생했습니다.'
     });
   }
+});
+
+// Auth 라우트들
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    
+    if (!username || !password) {
+      return res.status(400).json({
+        error: 'Bad Request',
+        message: '사용자명과 비밀번호가 필요합니다.'
+      });
+    }
+
+    // 간단한 사용자 검증 (실제 구현에서는 bcrypt 사용)
+    const [users] = await pool.execute(
+      'SELECT * FROM users WHERE username = ?',
+      [username]
+    );
+
+    if (users.length === 0) {
+      return res.status(401).json({
+        error: 'Unauthorized',
+        message: '잘못된 사용자명 또는 비밀번호입니다.'
+      });
+    }
+
+    const user = users[0];
+    
+    // 간단한 비밀번호 검증 (테스트용)
+    if (user.password !== password) {
+      return res.status(401).json({
+        error: 'Unauthorized',
+        message: '잘못된 사용자명 또는 비밀번호입니다.'
+      });
+    }
+
+    // 성공적인 로그인
+    res.json({
+      success: true,
+      message: '로그인 성공',
+      user: {
+        id: user.id,
+        username: user.username,
+        role: user.role || 'user',
+        name: user.name
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ 로그인 오류:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: '로그인 처리 중 오류가 발생했습니다.'
+    });
+  }
+});
+
+app.post('/api/auth/logout', (req, res) => {
+  res.json({
+    success: true,
+    message: '로그아웃 성공'
+  });
+});
+
+app.get('/api/auth/me', (req, res) => {
+  // 간단한 인증 체크 (실제로는 JWT 토큰 검증)
+  res.json({
+    success: true,
+    user: {
+      id: 1,
+      username: 'testuser',
+      role: 'admin',
+      name: '테스트 사용자'
+    }
+  });
 });
 
 // 서버 시작
