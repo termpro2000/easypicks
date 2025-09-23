@@ -7,6 +7,7 @@ import DriverEditForm from './DriverEditForm';
 interface Driver {
   id: number;
   driver_id?: number;
+  user_id?: string;
   username?: string;
   name: string;
   phone?: string;
@@ -107,6 +108,7 @@ const DriverManagement: React.FC = () => {
   // 필터링된 기사 목록
   const filteredDrivers = drivers.filter(driver =>
     driver.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    driver.user_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     driver.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     driver.phone?.includes(searchTerm) ||
     driver.vehicle_number?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -250,7 +252,7 @@ const DriverManagement: React.FC = () => {
                   <tr key={driver.driver_id || driver.id} className="hover:bg-gray-50">
                     <td className="px-4 py-4">
                       <div className="text-sm text-gray-900">
-                        {driver.username ? `@${driver.username}` : '-'}
+                        {driver.user_id ? `@${driver.user_id}` : (driver.username ? `@${driver.username}` : '-')}
                       </div>
                     </td>
                     <td className="px-4 py-4">
