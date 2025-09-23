@@ -81,7 +81,7 @@ const AuthPage: React.FC = () => {
           <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
             <User className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">🚀 가구배송 easypicks 2024 🚀</h1>
+          <h1 className="text-2xl font-bold text-gray-800 mb-2">가구배송 easypicks</h1>
           <p className="text-gray-600">
             {isLogin ? '로그인하여 서비스를 이용하세요' : '회원가입하여 시작하세요'}
           </p>
