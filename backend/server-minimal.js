@@ -274,6 +274,8 @@ app.post('/api/auth/login', async (req, res) => {
   try {
     const { username, password } = req.body;
     
+    console.log('🔐 로그인 시도:', { username, passwordLength: password?.length });
+    
     if (!username || !password) {
       return res.status(400).json({
         error: 'Bad Request',
@@ -287,24 +289,36 @@ app.post('/api/auth/login', async (req, res) => {
       [username]
     );
 
+    console.log('👤 사용자 검색 결과:', { username, found: users.length > 0 });
+
     if (users.length === 0) {
       return res.status(401).json({
         error: 'Unauthorized',
-        message: '잘못된 사용자명 또는 비밀번호입니다.'
+        message: '잘못된 사용자명 또는 비밀번호입니다.',
+        debug: `사용자 '${username}'를 찾을 수 없습니다.`
       });
     }
 
     const user = users[0];
     
+    console.log('🔍 비밀번호 검증:', { 
+      provided: password, 
+      stored: user.password, 
+      match: user.password === password 
+    });
+    
     // 간단한 비밀번호 검증 (테스트용)
     if (user.password !== password) {
       return res.status(401).json({
         error: 'Unauthorized',
-        message: '잘못된 사용자명 또는 비밀번호입니다.'
+        message: '잘못된 사용자명 또는 비밀번호입니다.',
+        debug: '비밀번호가 일치하지 않습니다.'
       });
     }
 
     // 성공적인 로그인
+    console.log('✅ 로그인 성공:', { username: user.username, role: user.role });
+    
     res.json({
       success: true,
       message: '로그인 성공',
@@ -320,7 +334,8 @@ app.post('/api/auth/login', async (req, res) => {
     console.error('❌ 로그인 오류:', error);
     res.status(500).json({
       error: 'Internal Server Error',
-      message: '로그인 처리 중 오류가 발생했습니다.'
+      message: '로그인 처리 중 오류가 발생했습니다.',
+      debug: error.message
     });
   }
 });
@@ -343,6 +358,84 @@ app.get('/api/auth/me', (req, res) => {
       name: '테스트 사용자'
     }
   });
+});
+
+// 데이터베이스 테이블 확인
+app.get('/api/debug/tables', async (req, res) => {
+  try {
+    // users 테이블 확인
+    const [usersTable] = await pool.execute(`
+      SELECT COUNT(*) as count FROM users
+    `);
+    
+    const [users] = await pool.execute(`
+      SELECT id, username, role, name FROM users LIMIT 5
+    `);
+
+    // deliveries 테이블 확인
+    const [deliveriesTable] = await pool.execute(`
+      SELECT COUNT(*) as count FROM deliveries
+    `);
+
+    res.json({
+      success: true,
+      tables: {
+        users: {
+          count: usersTable[0].count,
+          sample: users
+        },
+        deliveries: {
+          count: deliveriesTable[0].count
+        }
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: error.message,
+      message: '테이블 확인 중 오류 발생'
+    });
+  }
+});
+
+// 테스트 사용자 생성
+app.post('/api/debug/create-test-user', async (req, res) => {
+  try {
+    // 테스트 사용자 생성
+    const testUsers = [
+      { username: 'admin', password: 'admin123', role: 'admin', name: '관리자' },
+      { username: 'manager', password: 'manager123', role: 'manager', name: '매니저' },
+      { username: 'driver', password: 'driver123', role: 'driver', name: '기사' }
+    ];
+
+    const results = [];
+    
+    for (const user of testUsers) {
+      try {
+        const [result] = await pool.execute(
+          'INSERT INTO users (username, password, role, name) VALUES (?, ?, ?, ?)',
+          [user.username, user.password, user.role, user.name]
+        );
+        results.push({ username: user.username, created: true, id: result.insertId });
+      } catch (error) {
+        if (error.code === 'ER_DUP_ENTRY') {
+          results.push({ username: user.username, created: false, message: '이미 존재' });
+        } else {
+          results.push({ username: user.username, created: false, error: error.message });
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      message: '테스트 사용자 생성 완료',
+      results: results
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: error.message,
+      message: '테스트 사용자 생성 중 오류 발생'
+    });
+  }
 });
 
 // 서버 시작
