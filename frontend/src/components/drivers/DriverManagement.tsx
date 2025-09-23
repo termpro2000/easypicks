@@ -4,15 +4,14 @@ import { driversAPI } from '../../services/api';
 import DriverForm from './DriverForm';
 
 interface Driver {
-  driver_id: number;
-  username: string;
+  id: number;
   name: string;
   phone?: string;
   email?: string;
   vehicle_type?: string;
   vehicle_number?: string;
   license_number?: string;
-  is_active: boolean;
+  is_active?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -28,7 +27,8 @@ const DriverManagement: React.FC = () => {
     try {
       setLoading(true);
       const response = await driversAPI.getAllDrivers();
-      setDrivers(response.drivers || []);
+      console.log('기사 목록 응답:', response); // 디버깅용
+      setDrivers(response.data || []);
     } catch (error) {
       console.error('기사 목록 조회 실패:', error);
     } finally {
@@ -51,7 +51,8 @@ const DriverManagement: React.FC = () => {
     try {
       setLoading(true);
       const response = await driversAPI.searchDrivers(searchTerm);
-      setDrivers(response.drivers || []);
+      console.log('기사 검색 응답:', response); // 디버깅용
+      setDrivers(response.data || []);
     } catch (error) {
       console.error('기사 검색 실패:', error);
     } finally {
@@ -82,7 +83,7 @@ const DriverManagement: React.FC = () => {
     }
 
     try {
-      await driversAPI.deleteDriver(driver.driver_id);
+      await driversAPI.deleteDriver(driver.id);
       fetchDrivers();
       alert('기사가 성공적으로 삭제되었습니다.');
     } catch (error: any) {
@@ -250,11 +251,11 @@ const DriverManagement: React.FC = () => {
                     </td>
                     <td className="px-4 py-4">
                       <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
-                        driver.is_active
+                        driver.is_active !== false
                           ? 'bg-green-100 text-green-800'
                           : 'bg-red-100 text-red-800'
                       }`}>
-                        {driver.is_active ? (
+                        {driver.is_active !== false ? (
                           <>
                             <CheckCircle className="w-3 h-3" />
                             활성
@@ -292,13 +293,13 @@ const DriverManagement: React.FC = () => {
         </div>
         <div className="bg-white p-4 rounded-lg shadow-sm border">
           <div className="text-2xl font-bold text-blue-600">
-            {drivers.filter(d => d.is_active).length}
+            {drivers.filter(d => d.is_active !== false).length}
           </div>
           <div className="text-sm text-gray-600">활성 기사</div>
         </div>
         <div className="bg-white p-4 rounded-lg shadow-sm border">
           <div className="text-2xl font-bold text-orange-600">
-            {drivers.filter(d => !d.is_active).length}
+            {drivers.filter(d => d.is_active === false).length}
           </div>
           <div className="text-sm text-gray-600">비활성 기사</div>
         </div>
