@@ -226,6 +226,9 @@ const DriverManagement: React.FC = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    사용자명
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     기사 정보
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -246,15 +249,15 @@ const DriverManagement: React.FC = () => {
                 {filteredDrivers.map((driver) => (
                   <tr key={driver.driver_id || driver.id} className="hover:bg-gray-50">
                     <td className="px-4 py-4">
+                      <div className="text-sm text-gray-900">
+                        {driver.username ? `@${driver.username}` : '-'}
+                      </div>
+                    </td>
+                    <td className="px-4 py-4">
                       <div>
                         <div className="text-sm font-medium text-gray-900">
                           {driver.name}
                         </div>
-                        {driver.username && (
-                          <div className="text-sm text-gray-500">
-                            @{driver.username}
-                          </div>
-                        )}
                       </div>
                     </td>
                     <td className="px-4 py-4">
