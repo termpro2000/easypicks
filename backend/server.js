@@ -132,25 +132,13 @@ app.get('/', (req, res) => {
   });
 });
 
-app.get('/health', async (req, res) => {
-  try {
-    // 데이터베이스 연결 상태 확인
-    const [dbResult] = await pool.execute('SELECT 1 as test');
-    res.json({ 
-      status: 'OK', 
-      timestamp: new Date().toISOString(),
-      database: 'connected',
-      dbTest: dbResult[0]
-    });
-  } catch (error) {
-    console.error('❌ Health check DB 오류:', error.message);
-    res.status(503).json({ 
-      status: 'ERROR', 
-      timestamp: new Date().toISOString(),
-      database: 'disconnected',
-      error: error.message
-    });
-  }
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    service: 'easypickup-api',
+    version: '1.0.0'
+  });
 });
 
 // 디버그용 엔드포인트 (배포 확인용)
@@ -277,40 +265,13 @@ console.log('🔄 서버 시작 준비 중...');
 console.log('📦 Environment:', process.env.NODE_ENV || 'development');
 console.log('🔌 포트:', PORT);
 
-// 데이터베이스 연결 테스트
-const { pool } = require('./config/database');
-
-async function testDatabaseConnection() {
-  try {
-    console.log('🔌 데이터베이스 연결 테스트 중...');
-    const [result] = await pool.execute('SELECT 1 as test');
-    console.log('✅ 데이터베이스 연결 성공:', result);
-    return true;
-  } catch (error) {
-    console.error('❌ 데이터베이스 연결 실패:', error.message);
-    return false;
-  }
-}
-
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 서버가 포트 ${PORT}에서 실행 중입니다.`);
   console.log(`🏥 Health check: http://localhost:${PORT}/health`);
   console.log(`🔍 Debug info: http://localhost:${PORT}/debug`);
   console.log('🔌 Socket.IO 서버 시작됨 (기사별 푸시 알림 지원)');
-  
-  // 데이터베이스 연결 테스트 (비동기적으로 실행)
-  testDatabaseConnection().then(dbConnected => {
-    if (dbConnected) {
-      console.log('✅ MySQL2 연결 설정 최적화 완료');
-    } else {
-      console.error('❌ 데이터베이스 연결 문제 발생!');
-    }
-  }).catch(error => {
-    console.error('❌ 데이터베이스 연결 테스트 오류:', error.message);
-  });
-  
-  console.log('🔄 Railway 재배포 완료 - ' + new Date().toISOString());
   console.log('✅ 서버 준비 완료!');
+  console.log('🔄 Railway 재배포 완료 - ' + new Date().toISOString());
 });
 
 // Graceful shutdown 처리 (Railway SIGTERM 대응)
