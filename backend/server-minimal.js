@@ -130,12 +130,12 @@ app.post('/api/deliveries', async (req, res) => {
     const baseColumns = ['tracking_number', 'sender_name', 'sender_address', 'customer_name', 'customer_phone', 'customer_address', 'product_name', 'status', 'request_type'];
     const baseValues = [
       tracking_number,
-      sender_name,
-      sender_address + (sender_detail_address ? ' ' + sender_detail_address : ''),
-      finalReceiverName,
-      finalReceiverPhone,
-      finalReceiverAddress + (receiver_detail_address ? ' ' + receiver_detail_address : ''),
-      product_name,
+      sender_name || null,
+      (sender_address || '') + (sender_detail_address ? ' ' + sender_detail_address : ''),
+      finalReceiverName || null,
+      finalReceiverPhone || null,
+      (finalReceiverAddress || '') + (receiver_detail_address ? ' ' + receiver_detail_address : ''),
+      product_name || null,
       '접수완료',
       req.body.request_type || '배송접수'
     ];
@@ -209,9 +209,9 @@ app.post('/api/deliveries', async (req, res) => {
       existingColumns.includes(field.column)
     );
 
-    // 최종 컬럼과 값 배열
+    // 최종 컬럼과 값 배열 (undefined를 null로 변환)
     const finalColumns = [...baseColumns, ...validAdditionalFields.map(f => f.column)];
-    const finalValues = [...baseValues, ...validAdditionalFields.map(f => f.value)];
+    const finalValues = [...baseValues, ...validAdditionalFields.map(f => f.value === undefined ? null : f.value)];
 
     // INSERT 쿼리 생성
     const placeholders = finalColumns.map(() => '?').join(', ');
