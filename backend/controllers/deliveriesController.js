@@ -1709,9 +1709,13 @@ async function checkColumns(req, res) {
       ['id', 'tracking_number', 'status'].includes(col.COLUMN_NAME)
     );
     
+    // 모든 컬럼 이름 목록도 반환
+    const allColumnNames = columns.map(col => col.COLUMN_NAME);
+    
     res.json({
       success: true,
       allColumns: columns.length,
+      allColumnNames: allColumnNames,
       relevantColumns: actionColumns,
       hasActionDate: columns.some(col => col.COLUMN_NAME === 'action_date'),
       hasActionTime: columns.some(col => col.COLUMN_NAME === 'action_time')
