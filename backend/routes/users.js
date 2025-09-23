@@ -194,8 +194,9 @@ router.post('/', authenticateToken, requireRole(['admin']), async (req, res) => 
           created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
       `, [
-        username, hashedPassword, name, email, phone, company, role, is_active,
-        default_sender_address, default_sender_detail_address, default_sender_zipcode
+        username, hashedPassword, name, 
+        email || null, phone || null, company || null, role, is_active,
+        default_sender_address || null, default_sender_detail_address || null, default_sender_zipcode || null
       ])
     );
     
