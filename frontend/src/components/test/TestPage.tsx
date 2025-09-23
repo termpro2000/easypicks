@@ -241,6 +241,11 @@ const TestPage: React.FC<TestPageProps> = ({ onNavigateBack }) => {
     return isNaN(numericValue) ? null : numericValue;
   };
 
+  // undefined 값을 null로 변환하는 헬퍼 함수
+  const cleanValue = (value: any) => {
+    return value === undefined ? null : value;
+  };
+
   // 새로운 배송 생성 함수
   const handleCreateDelivery = async (deliveryData: any) => {
     setIsCreating(true);
@@ -249,18 +254,18 @@ const TestPage: React.FC<TestPageProps> = ({ onNavigateBack }) => {
     try {
       // deliveriesAPI를 사용해 실제 배송 생성 (숫자 필드 파싱 포함)
       const createData = {
-        sender_name: deliveryData.sender_name,
-        sender_company: deliveryData.sender_company,
-        sender_address: deliveryData.sender_address,
-        customer_name: deliveryData.customer_name,
-        customer_phone: deliveryData.customer_phone,
-        customer_address: deliveryData.customer_address,
-        product_name: deliveryData.product_name,
-        request_type: deliveryData.request_type,
-        status: deliveryData.status,
-        visit_date: deliveryData.visit_date,
-        visit_time: deliveryData.visit_time,
-        preferred_delivery_date: deliveryData.preferred_delivery_date,
+        sender_name: cleanValue(deliveryData.sender_name),
+        sender_company: cleanValue(deliveryData.sender_company),
+        sender_address: cleanValue(deliveryData.sender_address),
+        customer_name: cleanValue(deliveryData.customer_name),
+        customer_phone: cleanValue(deliveryData.customer_phone),
+        customer_address: cleanValue(deliveryData.customer_address),
+        product_name: cleanValue(deliveryData.product_name),
+        request_type: cleanValue(deliveryData.request_type),
+        status: cleanValue(deliveryData.status),
+        visit_date: cleanValue(deliveryData.visit_date),
+        visit_time: cleanValue(deliveryData.visit_time),
+        preferred_delivery_date: cleanValue(deliveryData.preferred_delivery_date),
         
         // 숫자 필드들 파싱
         weight: parseNumber(deliveryData.weight),
@@ -271,34 +276,34 @@ const TestPage: React.FC<TestPageProps> = ({ onNavigateBack }) => {
         delivery_attempts: parseInt(deliveryData.delivery_attempts) || 0,
         
         // 문자열 필드들
-        product_weight: deliveryData.product_weight,
-        product_size: deliveryData.product_size,
-        box_size: deliveryData.box_size,
-        construction_type: deliveryData.construction_type,
-        building_type: deliveryData.building_type,
-        floor_count: deliveryData.floor_count,
-        furniture_company: deliveryData.furniture_company,
-        furniture_requests: deliveryData.furniture_requests,
-        emergency_contact: deliveryData.emergency_contact,
-        disposal: deliveryData.disposal,
-        room_movement: deliveryData.room_movement,
-        wall_construction: deliveryData.wall_construction,
-        last_location: deliveryData.last_location,
-        estimated_delivery: deliveryData.estimated_delivery,
+        product_weight: cleanValue(deliveryData.product_weight),
+        product_size: cleanValue(deliveryData.product_size),
+        box_size: cleanValue(deliveryData.box_size),
+        construction_type: cleanValue(deliveryData.construction_type),
+        building_type: cleanValue(deliveryData.building_type),
+        floor_count: cleanValue(deliveryData.floor_count),
+        furniture_company: cleanValue(deliveryData.furniture_company),
+        furniture_requests: cleanValue(deliveryData.furniture_requests),
+        emergency_contact: cleanValue(deliveryData.emergency_contact),
+        disposal: cleanValue(deliveryData.disposal),
+        room_movement: cleanValue(deliveryData.room_movement),
+        wall_construction: cleanValue(deliveryData.wall_construction),
+        last_location: cleanValue(deliveryData.last_location),
+        estimated_delivery: cleanValue(deliveryData.estimated_delivery),
         
         // 메모 필드들
-        special_instructions: deliveryData.special_instructions,
-        main_memo: deliveryData.main_memo,
+        special_instructions: cleanValue(deliveryData.special_instructions),
+        main_memo: cleanValue(deliveryData.main_memo),
         delivery_memo: `테스트 생성 - ${new Date().toLocaleString()}`,
-        driver_notes: deliveryData.driver_notes,
-        detail_notes: deliveryData.detail_notes,
+        driver_notes: cleanValue(deliveryData.driver_notes),
+        detail_notes: cleanValue(deliveryData.detail_notes),
         
         // 불린 필드들
-        is_fragile: deliveryData.fragile || deliveryData.is_fragile,
-        has_elevator: deliveryData.has_elevator,
-        can_use_ladder_truck: deliveryData.can_use_ladder_truck,
-        requires_signature: deliveryData.requires_signature,
-        is_frozen: deliveryData.is_frozen
+        is_fragile: cleanValue(deliveryData.fragile || deliveryData.is_fragile),
+        has_elevator: cleanValue(deliveryData.has_elevator),
+        can_use_ladder_truck: cleanValue(deliveryData.can_use_ladder_truck),
+        requires_signature: cleanValue(deliveryData.requires_signature),
+        is_frozen: cleanValue(deliveryData.is_frozen)
       };
 
       const response = await deliveriesAPI.createDelivery ? 
