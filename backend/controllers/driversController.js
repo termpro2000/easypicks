@@ -36,15 +36,16 @@ exports.getAllDrivers = async (req, res) => {
   try {
     const query = `
       SELECT 
+        id,
         id as driver_id,
-        user_id as username,
+        username,
         name,
         phone,
         email,
         vehicle_type,
         vehicle_number,
-        cargo_capacity as license_number,
-        1 as is_active,
+        license_number,
+        is_active,
         created_at,
         updated_at
       FROM drivers
@@ -55,6 +56,7 @@ exports.getAllDrivers = async (req, res) => {
     
     res.json({
       success: true,
+      data: drivers || [],
       drivers: drivers || []
     });
   } catch (error) {
