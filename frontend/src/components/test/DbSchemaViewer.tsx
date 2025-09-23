@@ -13,39 +13,44 @@ import {
 } from 'lucide-react';
 
 interface Column {
-  COLUMN_NAME: string;
-  DATA_TYPE: string;
-  IS_NULLABLE: string;
-  COLUMN_DEFAULT: string | null;
-  COLUMN_COMMENT: string;
-  COLUMN_KEY: string;
-  EXTRA: string;
-  CHARACTER_MAXIMUM_LENGTH: number | null;
-  NUMERIC_PRECISION: number | null;
-  NUMERIC_SCALE: number | null;
-}
-
-interface ForeignKey {
-  COLUMN_NAME: string;
-  REFERENCED_TABLE_NAME: string;
-  REFERENCED_COLUMN_NAME: string;
+  name: string;
+  type: string;
+  column_type: string;
+  nullable: boolean;
+  default: string | null;
+  comment: string;
+  key: string;
+  extra: string;
 }
 
 interface TableInfo {
-  table_name: string;
-  table_comment: string;
-  table_rows: number;
-  auto_increment: number | null;
-  create_time: string;
-  update_time: string;
+  name: string;
+  rows: number;
+  comment: string;
+}
+
+interface SchemaTable {
+  table_info: TableInfo;
   columns: Column[];
-  foreign_keys: ForeignKey[];
-  indexes: any[];
+}
+
+interface SchemaResponse {
+  success: boolean;
+  database: string;
+  tables: number;
+  schema: {
+    [tableName: string]: SchemaTable;
+  };
 }
 
 interface SchemaInfo {
   database_name: string;
-  tables: TableInfo[];
+  tables: {
+    table_name: string;
+    table_comment: string;
+    table_rows: number;
+    columns: Column[];
+  }[];
 }
 
 interface DbSchemaViewerProps {
@@ -78,8 +83,20 @@ const DbSchemaViewer: React.FC<DbSchemaViewerProps> = ({ onBack }) => {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const data = await response.json();
-      setSchemaInfo(data);
+      const data: SchemaResponse = await response.json();
+      
+      // API 응답을 컴포넌트가 기대하는 형식으로 변환
+      const transformedSchema: SchemaInfo = {
+        database_name: data.database,
+        tables: Object.entries(data.schema).map(([tableName, tableData]) => ({
+          table_name: tableName,
+          table_comment: tableData.table_info.comment || '',
+          table_rows: tableData.table_info.rows || 0,
+          columns: tableData.columns
+        }))
+      };
+      
+      setSchemaInfo(transformedSchema);
     } catch (err: any) {
       console.error('스키마 정보 로드 실패:', err);
       setError('스키마 정보를 불러올 수 없습니다: ' + err.message);
@@ -105,23 +122,13 @@ const DbSchemaViewer: React.FC<DbSchemaViewerProps> = ({ onBack }) => {
   ) || [];
 
   const getColumnIcon = (column: Column) => {
-    if (column.COLUMN_KEY === 'PRI') return <Key className="w-4 h-4 text-yellow-500" />;
-    if (column.COLUMN_KEY === 'MUL') return <Link className="w-4 h-4 text-blue-500" />;
+    if (column.key === 'PRI') return <Key className="w-4 h-4 text-yellow-500" />;
+    if (column.key === 'MUL') return <Link className="w-4 h-4 text-blue-500" />;
     return <Hash className="w-4 h-4 text-gray-400" />;
   };
 
   const getDataTypeDisplay = (column: Column) => {
-    let type = column.DATA_TYPE.toUpperCase();
-    
-    if (column.CHARACTER_MAXIMUM_LENGTH) {
-      type += `(${column.CHARACTER_MAXIMUM_LENGTH})`;
-    } else if (column.NUMERIC_PRECISION && column.NUMERIC_SCALE !== null) {
-      type += `(${column.NUMERIC_PRECISION},${column.NUMERIC_SCALE})`;
-    } else if (column.NUMERIC_PRECISION) {
-      type += `(${column.NUMERIC_PRECISION})`;
-    }
-    
-    return type;
+    return column.column_type.toUpperCase();
   };
 
   if (loading) {
@@ -210,9 +217,11 @@ const DbSchemaViewer: React.FC<DbSchemaViewerProps> = ({ onBack }) => {
             </div>
             <div className="bg-purple-50 rounded-lg p-4">
               <div className="text-2xl font-bold text-purple-600">
-                {schemaInfo?.tables?.reduce((sum, table) => sum + table.foreign_keys.length, 0) || 0}
+                {schemaInfo?.tables?.filter(table => 
+                  table.columns.some(col => col.key === 'PRI')
+                ).length || 0}
               </div>
-              <div className="text-sm text-gray-600">총 외래키 수</div>
+              <div className="text-sm text-gray-600">기본키 보유 테이블</div>
             </div>
           </div>
         </div>
@@ -247,9 +256,6 @@ const DbSchemaViewer: React.FC<DbSchemaViewerProps> = ({ onBack }) => {
                     <div className="flex gap-4 text-xs text-gray-500 mt-1">
                       <span>컬럼: {table.columns.length}개</span>
                       <span>행: {table.table_rows.toLocaleString()}개</span>
-                      {table.foreign_keys.length > 0 && (
-                        <span>외래키: {table.foreign_keys.length}개</span>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -284,11 +290,11 @@ const DbSchemaViewer: React.FC<DbSchemaViewerProps> = ({ onBack }) => {
                         </thead>
                         <tbody>
                           {table.columns.map((column) => (
-                            <tr key={column.COLUMN_NAME} className="border-b border-gray-100 hover:bg-gray-50">
+                            <tr key={column.name} className="border-b border-gray-100 hover:bg-gray-50">
                               <td className="py-2 flex items-center gap-2">
                                 {getColumnIcon(column)}
-                                <span className={column.COLUMN_KEY === 'PRI' ? 'font-semibold text-yellow-700' : ''}>
-                                  {column.COLUMN_NAME}
+                                <span className={column.key === 'PRI' ? 'font-semibold text-yellow-700' : ''}>
+                                  {column.name}
                                 </span>
                               </td>
                               <td className="py-2 font-mono text-xs">
@@ -296,23 +302,23 @@ const DbSchemaViewer: React.FC<DbSchemaViewerProps> = ({ onBack }) => {
                               </td>
                               <td className="py-2">
                                 <span className={`px-2 py-1 rounded text-xs ${
-                                  column.IS_NULLABLE === 'YES' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                  column.nullable ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                                 }`}>
-                                  {column.IS_NULLABLE === 'YES' ? 'YES' : 'NO'}
+                                  {column.nullable ? 'YES' : 'NO'}
                                 </span>
                               </td>
                               <td className="py-2 font-mono text-xs">
-                                {column.COLUMN_DEFAULT || '-'}
+                                {column.default || '-'}
                               </td>
                               <td className="py-2 text-xs">
-                                {column.EXTRA && (
+                                {column.extra && (
                                   <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                                    {column.EXTRA}
+                                    {column.extra}
                                   </span>
                                 )}
                               </td>
                               <td className="py-2 text-xs text-gray-600">
-                                {column.COLUMN_COMMENT || '-'}
+                                {column.comment || '-'}
                               </td>
                             </tr>
                           ))}
@@ -321,26 +327,6 @@ const DbSchemaViewer: React.FC<DbSchemaViewerProps> = ({ onBack }) => {
                     </div>
                   </div>
 
-                  {/* 외래키 정보 */}
-                  {table.foreign_keys.length > 0 && (
-                    <div className="border-t border-gray-200 p-6">
-                      <h4 className="text-md font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                        <Link className="w-4 h-4" />
-                        외래키 관계
-                      </h4>
-                      <div className="space-y-2">
-                        {table.foreign_keys.map((fk, index) => (
-                          <div key={index} className="flex items-center gap-2 text-sm bg-blue-50 p-3 rounded">
-                            <span className="font-semibold">{fk.COLUMN_NAME}</span>
-                            <span className="text-gray-500">→</span>
-                            <span className="font-semibold text-blue-600">
-                              {fk.REFERENCED_TABLE_NAME}.{fk.REFERENCED_COLUMN_NAME}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
             </div>
