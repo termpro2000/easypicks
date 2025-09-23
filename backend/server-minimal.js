@@ -1528,21 +1528,23 @@ app.get('/api/auth/check-username/:username', async (req, res) => {
 // 회원가입
 app.post('/api/auth/register', async (req, res) => {
   try {
-    const { username, password, name, phone, company } = req.body;
-    console.log('👤 회원가입 요청:', { username, name, company });
+    const { username, user_id, password, name, phone, company } = req.body;
+    const registerId = username || user_id; // username 또는 user_id 둘 다 지원
+    
+    console.log('👤 회원가입 요청:', { username, user_id, registerId, name, company });
 
     // 필수 필드 검증
-    if (!username || !password || !name) {
+    if (!registerId || !password || !name) {
       return res.status(400).json({
         error: 'Bad Request',
-        message: '필수 필드가 누락되었습니다.'
+        message: '필수 필드가 누락되었습니다. (사용자명 또는 user_id, 비밀번호, 이름 필요)'
       });
     }
 
     // 사용자명 중복 확인
     const [existingUsers] = await pool.execute(
       'SELECT id FROM users WHERE username = ?',
-      [username]
+      [registerId]
     );
 
     if (existingUsers.length > 0) {
@@ -1556,9 +1558,9 @@ app.post('/api/auth/register', async (req, res) => {
     const [result] = await pool.execute(`
       INSERT INTO users (username, password, name, phone, company, role, is_active, created_at, updated_at) 
       VALUES (?, ?, ?, ?, ?, 'user', 1, NOW(), NOW())
-    `, [username, password, name, phone || null, company || null]);
+    `, [registerId, password, name, phone || null, company || null]);
 
-    console.log('✅ 회원가입 성공:', { id: result.insertId, username });
+    console.log('✅ 회원가입 성공:', { id: result.insertId, registerId });
 
     res.status(201).json({
       success: true,
