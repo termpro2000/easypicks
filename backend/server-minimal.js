@@ -1275,6 +1275,57 @@ app.get('/api/auth/check-username/:username', async (req, res) => {
   }
 });
 
+// 회원가입
+app.post('/api/auth/register', async (req, res) => {
+  try {
+    const { username, password, name, phone, company } = req.body;
+    console.log('👤 회원가입 요청:', { username, name, company });
+
+    // 필수 필드 검증
+    if (!username || !password || !name) {
+      return res.status(400).json({
+        error: 'Bad Request',
+        message: '필수 필드가 누락되었습니다.'
+      });
+    }
+
+    // 사용자명 중복 확인
+    const [existingUsers] = await pool.execute(
+      'SELECT id FROM users WHERE username = ?',
+      [username]
+    );
+
+    if (existingUsers.length > 0) {
+      return res.status(409).json({
+        error: 'Conflict',
+        message: '이미 사용 중인 아이디입니다.'
+      });
+    }
+
+    // 사용자 생성 (비밀번호는 평문 저장 - 개발용)
+    const [result] = await pool.execute(`
+      INSERT INTO users (username, password, name, phone, company, role, is_active, created_at, updated_at) 
+      VALUES (?, ?, ?, ?, ?, 'user', 1, NOW(), NOW())
+    `, [username, password, name, phone || null, company || null]);
+
+    console.log('✅ 회원가입 성공:', { id: result.insertId, username });
+
+    res.status(201).json({
+      success: true,
+      message: '회원가입이 완료되었습니다.',
+      userId: result.insertId
+    });
+
+  } catch (error) {
+    console.error('❌ 회원가입 오류:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: '회원가입 처리 중 오류가 발생했습니다.',
+      details: error.message
+    });
+  }
+});
+
 // 데이터베이스 테이블 확인
 app.get('/api/debug/tables', async (req, res) => {
   try {
