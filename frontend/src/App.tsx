@@ -107,13 +107,27 @@ const AppContent: React.FC = () => {
   };
 
 
-  // 관리자와 매니저는 AdminDashboard 사용
-  if ((user?.role === 'admin' || user?.role === 'manager') && currentPage === 'dashboard') {
-    return (
-      <AdminDashboard 
-        onLogout={handleLogout}
-      />
-    );
+  // 관리자와 매니저는 AdminDashboard 사용, 일반 사용자는 UserDashboard 사용
+  if (currentPage === 'dashboard') {
+    if (user?.role === 'admin' || user?.role === 'manager') {
+      return (
+        <AdminDashboard 
+          onLogout={handleLogout}
+        />
+      );
+    } else {
+      // user 역할은 수정된 Dashboard(UserDashboard) 사용
+      return (
+        <div className="min-h-screen bg-gray-100">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <Dashboard 
+              key={Date.now()} 
+              onOrderStatusChange={notifyOrderStatusChange}
+            />
+          </div>
+        </div>
+      );
+    }
   }
 
   return (
@@ -266,12 +280,7 @@ const AppContent: React.FC = () => {
       {/* 메인 콘텐츠 */}
       <main className="py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {currentPage === 'dashboard' ? (
-            <Dashboard 
-              key={Date.now()} 
-              onOrderStatusChange={notifyOrderStatusChange}
-            />
-          ) : currentPage === 'users' ? (
+          {currentPage === 'users' ? (
             <UserManagement onNavigateBack={() => setCurrentPage('dashboard' as PageType)} />
           ) : (currentPage as string) === 'tracking' ? (
             <TrackingPage onNavigateBack={() => setCurrentPage('dashboard' as PageType)} />
