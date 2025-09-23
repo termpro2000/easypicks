@@ -5,6 +5,8 @@ import DriverForm from './DriverForm';
 
 interface Driver {
   id: number;
+  driver_id?: number;
+  username?: string;
   name: string;
   phone?: string;
   email?: string;
@@ -28,7 +30,7 @@ const DriverManagement: React.FC = () => {
       setLoading(true);
       const response = await driversAPI.getAllDrivers();
       console.log('기사 목록 응답:', response); // 디버깅용
-      setDrivers(response.data || []);
+      setDrivers(response.drivers || response.data || []);
     } catch (error) {
       console.error('기사 목록 조회 실패:', error);
     } finally {
@@ -52,7 +54,7 @@ const DriverManagement: React.FC = () => {
       setLoading(true);
       const response = await driversAPI.searchDrivers(searchTerm);
       console.log('기사 검색 응답:', response); // 디버깅용
-      setDrivers(response.data || []);
+      setDrivers(response.drivers || response.data || []);
     } catch (error) {
       console.error('기사 검색 실패:', error);
     } finally {
@@ -95,7 +97,7 @@ const DriverManagement: React.FC = () => {
   // 필터링된 기사 목록
   const filteredDrivers = drivers.filter(driver =>
     driver.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    driver.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    driver.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     driver.phone?.includes(searchTerm) ||
     driver.vehicle_number?.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -201,15 +203,17 @@ const DriverManagement: React.FC = () => {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredDrivers.map((driver) => (
-                  <tr key={driver.driver_id} className="hover:bg-gray-50">
+                  <tr key={driver.driver_id || driver.id} className="hover:bg-gray-50">
                     <td className="px-4 py-4">
                       <div>
                         <div className="text-sm font-medium text-gray-900">
                           {driver.name}
                         </div>
-                        <div className="text-sm text-gray-500">
-                          @{driver.username}
-                        </div>
+                        {driver.username && (
+                          <div className="text-sm text-gray-500">
+                            @{driver.username}
+                          </div>
+                        )}
                       </div>
                     </td>
                     <td className="px-4 py-4">
