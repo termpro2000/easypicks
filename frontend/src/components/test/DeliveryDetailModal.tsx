@@ -226,6 +226,168 @@ const DeliveryDetailModal: React.FC<DeliveryDetailModalProps> = ({
             </div>
           </div>
 
+          {/* 추가 상세 정보 - 52개 필드 모두 표시 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            {/* 추가 배송 정보 */}
+            <div className="bg-indigo-50 p-4 rounded-lg">
+              <h3 className="text-lg font-semibold mb-3 text-gray-800">추가 배송 정보</h3>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">무게:</span>
+                  <span className="font-medium">{delivery.weight || '-'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">시공유형:</span>
+                  <span className="font-medium">{delivery.construction_type || '-'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">가구회사:</span>
+                  <span className="font-medium">{delivery.furniture_company || '-'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">비상연락처:</span>
+                  <span className="font-medium">{delivery.emergency_contact || '-'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">거리:</span>
+                  <span className="font-medium">{delivery.distance ? `${delivery.distance}km` : '-'}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 추가 상품 정보 */}
+            <div className="bg-teal-50 p-4 rounded-lg">
+              <h3 className="text-lg font-semibold mb-3 text-gray-800">상세 상품 정보</h3>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">상품무게:</span>
+                  <span className="font-medium">{delivery.product_weight || '-'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">박스크기:</span>
+                  <span className="font-medium">{delivery.box_size || '-'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">가구요청사항:</span>
+                  <span className="font-medium">{delivery.furniture_requests || '-'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">폐기:</span>
+                  <span className="font-medium">{delivery.disposal || '-'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">방이동:</span>
+                  <span className="font-medium">{delivery.room_movement || '-'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">벽시공:</span>
+                  <span className="font-medium">{delivery.wall_construction || '-'}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 배송 진행 상황 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div className="bg-pink-50 p-4 rounded-lg">
+              <h3 className="text-lg font-semibold mb-3 text-gray-800">배송 진행</h3>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">예상배송일:</span>
+                  <span className="font-medium">{formatDate(delivery.estimated_delivery)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">실제배송일:</span>
+                  <span className="font-medium">{formatDate(delivery.actual_delivery)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">마지막위치:</span>
+                  <span className="font-medium">{delivery.last_location || '-'}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-amber-50 p-4 rounded-lg">
+              <h3 className="text-lg font-semibold mb-3 text-gray-800">완료 정보</h3>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">고객완료요청:</span>
+                  <span className={`px-2 py-1 rounded text-sm font-medium ${
+                    delivery.customer_requested_completion ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                  }`}>
+                    {delivery.customer_requested_completion ? '요청' : '미요청'}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">가구업체완료요청:</span>
+                  <span className={`px-2 py-1 rounded text-sm font-medium ${
+                    delivery.furniture_company_requested_completion ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                  }`}>
+                    {delivery.furniture_company_requested_completion ? '요청' : '미요청'}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">완료오디오:</span>
+                  <span className="font-medium">{delivery.completion_audio_file ? '있음' : '-'}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 취소 정보 (있는 경우만) */}
+          {(delivery.cancel_status || delivery.cancel_reason || delivery.canceled_at) && (
+            <div className="bg-red-50 p-4 rounded-lg mb-6">
+              <h3 className="text-lg font-semibold mb-3 text-gray-800">취소 정보</h3>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">취소상태:</span>
+                  <span className="font-medium">{delivery.cancel_status ? '취소됨' : '정상'}</span>
+                </div>
+                {delivery.cancel_reason && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">취소사유:</span>
+                    <span className="font-medium">{delivery.cancel_reason}</span>
+                  </div>
+                )}
+                {delivery.canceled_at && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">취소일시:</span>
+                    <span className="font-medium">{formatDate(delivery.canceled_at)}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* 설치 사진 (있는 경우만) */}
+          {delivery.installation_photos && delivery.installation_photos.length > 0 && (
+            <div className="bg-gray-50 p-4 rounded-lg mb-6">
+              <h3 className="text-lg font-semibold mb-3 text-gray-800">설치 사진</h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {delivery.installation_photos.map((photo: string, index: number) => (
+                  <img 
+                    key={index} 
+                    src={photo} 
+                    alt={`설치 사진 ${index + 1}`}
+                    className="w-full h-24 object-cover rounded border"
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 고객 서명 (있는 경우만) */}
+          {delivery.customer_signature && (
+            <div className="bg-gray-50 p-4 rounded-lg mb-6">
+              <h3 className="text-lg font-semibold mb-3 text-gray-800">고객 서명</h3>
+              <img 
+                src={delivery.customer_signature} 
+                alt="고객 서명"
+                className="max-w-xs border rounded"
+              />
+            </div>
+          )}
+
           {/* 메모 */}
           <div className="space-y-4">
             {delivery.main_memo && (
@@ -255,7 +417,26 @@ const DeliveryDetailModal: React.FC<DeliveryDetailModalProps> = ({
                 <p className="text-gray-700">{delivery.detail_notes}</p>
               </div>
             )}
+
+            {delivery.emergency_contact && (
+              <div className="bg-orange-50 p-4 rounded-lg">
+                <h4 className="font-semibold text-gray-800 mb-2">비상연락처</h4>
+                <p className="text-gray-700">{delivery.emergency_contact}</p>
+              </div>
+            )}
           </div>
+
+          {/* 기술적 정보 (개발자용 - 모든 52개 필드 확인) */}
+          <details className="mt-6">
+            <summary className="cursor-pointer text-sm text-gray-500 hover:text-gray-700">
+              개발자 정보 (52개 전체 필드)
+            </summary>
+            <div className="mt-2 p-4 bg-gray-100 rounded text-xs">
+              <pre className="whitespace-pre-wrap overflow-auto max-h-60">
+                {JSON.stringify(delivery, null, 2)}
+              </pre>
+            </div>
+          </details>
         </div>
       </div>
     </div>

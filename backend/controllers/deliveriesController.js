@@ -136,44 +136,71 @@ async function createDelivery(req, res) {
       req.body.request_type || '배송접수'
     ];
 
-    // 추가 컬럼들 (실제 데이터베이스 컬럼명과 매핑)
+    // 52개 전체 컬럼 매핑 (기본 필드 제외한 모든 추가 필드)
     const additionalFields = [
-      // 발송인 관련 (sender_phone, sender_email, sender_company 컬럼은 DB에 없음)
-      { column: 'weight', value: req.body.weight },
+      // id, tracking_number, status, request_type는 기본 필드에서 처리
+      
+      // 2. 무게 및 물리적 정보
+      { column: 'weight', value: req.body.weight || req.body.product_weight },
+      
+      // 3. 배송 기본 정보  
+      { column: 'driver_id', value: req.body.driver_id || null },
       { column: 'construction_type', value: req.body.construction_type },
-      { column: 'visit_date', value: preferred_delivery_date },
+      { column: 'visit_date', value: preferred_delivery_date || req.body.visit_date },
       { column: 'visit_time', value: req.body.visit_time },
-      { column: 'furniture_company', value: sender_company },
-      { column: 'main_memo', value: req.body.main_memo },
+      
+      // 4. 회사 및 연락처 정보
+      { column: 'furniture_company', value: sender_company || req.body.furniture_company },
       { column: 'emergency_contact', value: req.body.emergency_contact },
       
-      // 건물/시공 정보
+      // 5. 메모 및 지시사항
+      { column: 'main_memo', value: req.body.main_memo || delivery_memo },
+      { column: 'special_instructions', value: special_instructions },
+      { column: 'detail_notes', value: req.body.detail_notes },
+      { column: 'driver_notes', value: req.body.driver_notes },
+      
+      // 6. 건물/시공 정보
       { column: 'building_type', value: req.body.building_type },
       { column: 'floor_count', value: req.body.floor_count },
-      { column: 'elevator_available', value: has_elevator ? '있음' : '없음' },
-      { column: 'ladder_truck', value: can_use_ladder_truck ? '필요' : '불필요' },
+      { column: 'elevator_available', value: has_elevator ? '있음' : (req.body.elevator_available || '없음') },
+      { column: 'ladder_truck', value: can_use_ladder_truck ? '필요' : (req.body.ladder_truck || '불필요') },
       { column: 'disposal', value: req.body.disposal },
       { column: 'room_movement', value: req.body.room_movement },
       { column: 'wall_construction', value: req.body.wall_construction },
       
-      // 상품 정보
-      { column: 'furniture_product_code', value: product_sku },
+      // 7. 상품 상세 정보
+      { column: 'furniture_product_code', value: product_sku || req.body.furniture_product_code },
       { column: 'product_weight', value: req.body.product_weight },
       { column: 'product_size', value: req.body.product_size },
       { column: 'box_size', value: req.body.box_size },
       { column: 'furniture_requests', value: req.body.furniture_requests },
-      { column: 'fragile', value: is_fragile ? 1 : 0 },
+      { column: 'fragile', value: is_fragile ? 1 : (req.body.fragile ? 1 : 0) },
       
-      // 배송 정보
-      { column: 'driver_notes', value: req.body.driver_notes },
-      { column: 'special_instructions', value: special_instructions },
-      { column: 'detail_notes', value: req.body.detail_notes },
+      // 8. 파일 및 서명
+      { column: 'installation_photos', value: req.body.installation_photos ? JSON.stringify(req.body.installation_photos) : null },
+      { column: 'customer_signature', value: req.body.customer_signature },
+      
+      // 9. 비용 정보
       { column: 'delivery_fee', value: req.body.delivery_fee || 0 },
-      { column: 'insurance_value', value: insurance_amount || 0 },
+      { column: 'insurance_value', value: insurance_amount || req.body.insurance_value || 0 },
       { column: 'cod_amount', value: req.body.cod_amount || 0 },
-      { column: 'estimated_delivery', value: preferred_delivery_date },
-      { column: 'delivery_attempts', value: 0 },
-      { column: 'last_location', value: req.body.last_location }
+      
+      // 10. 배송 날짜 및 상태
+      { column: 'estimated_delivery', value: preferred_delivery_date || req.body.estimated_delivery },
+      { column: 'actual_delivery', value: req.body.actual_delivery },
+      { column: 'delivery_attempts', value: req.body.delivery_attempts || 0 },
+      { column: 'last_location', value: req.body.last_location },
+      { column: 'distance', value: req.body.distance || 0 },
+      
+      // 11. 취소 관련
+      { column: 'cancel_status', value: req.body.cancel_status || 0 },
+      { column: 'cancel_reason', value: req.body.cancel_reason },
+      { column: 'canceled_at', value: req.body.canceled_at },
+      
+      // 12. 완료 관련
+      { column: 'customer_requested_completion', value: req.body.customer_requested_completion ? 1 : 0 },
+      { column: 'furniture_company_requested_completion', value: req.body.furniture_company_requested_completion ? 1 : 0 },
+      { column: 'completion_audio_file', value: req.body.completion_audio_file }
     ];
 
     // 존재하는 컬럼만 필터링
@@ -273,71 +300,24 @@ async function getDeliveries(req, res) {
     );
     const total = countResult[0].total;
 
-    // 배송 목록 조회 (action_date/time 컬럼이 없을 경우 대비)
+    // 배송 목록 조회 (52개 전체 필드 조회)
     let listQuery = `
-      SELECT 
-        id, tracking_number, status,
-        sender_name, sender_address, customer_name, customer_phone, customer_address,
-        product_name, visit_date, visit_time, driver_id,
-        created_at, updated_at
+      SELECT * 
       FROM deliveries 
       ${whereCondition}
       ORDER BY created_at DESC
       LIMIT ? OFFSET ?
     `;
     
-    // action_date, action_time 컬럼이 존재하는지 확인 후 쿼리 수정
-    try {
-      const [columns] = await pool.execute(`
-        SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
-        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'deliveries' 
-        AND COLUMN_NAME IN ('action_date', 'action_time')
-      `);
-      
-      const hasActionDate = columns.some(col => col.COLUMN_NAME === 'action_date');
-      const hasActionTime = columns.some(col => col.COLUMN_NAME === 'action_time');
-      
-      if (hasActionDate || hasActionTime) {
-        console.log('📋 action 컬럼 감지:', { hasActionDate, hasActionTime });
-        listQuery = `
-          SELECT 
-            id, tracking_number, status,
-            sender_name, sender_address, customer_name, customer_phone, customer_address,
-            product_name, visit_date, visit_time, driver_id,
-            ${hasActionDate ? 'action_date' : 'NULL as action_date'},
-            ${hasActionTime ? 'action_time' : 'NULL as action_time'},
-            created_at, updated_at
-          FROM deliveries 
-          ${whereCondition}
-          ORDER BY created_at DESC
-          LIMIT ? OFFSET ?
-        `;
-      }
-    } catch (columnCheckError) {
-      console.warn('⚠️ 컬럼 확인 실패, 기본 쿼리 사용:', columnCheckError.message);
-    }
+    // 52개 전체 필드를 조회하므로 별도 컬럼 체크 불필요
     const listParams = [...params, limit, offset];
     
     const [deliveries] = await executeWithRetry(() => 
       pool.execute(listQuery, listParams)
     );
 
-    // action_date/time 필드가 없는 경우 명시적으로 null 추가
-    const processedDeliveries = (deliveries || []).map(delivery => {
-      const processed = { ...delivery };
-      
-      // action_date 필드가 없으면 null로 추가
-      if (!('action_date' in processed)) {
-        processed.action_date = null;
-      }
-      
-      // action_time 필드가 없으면 null로 추가
-      if (!('action_time' in processed)) {
-        processed.action_time = null;
-      }
-      
-      return processed;
-    });
+    // 모든 필드가 이미 조회되므로 별도 처리 불필요
+    const processedDeliveries = deliveries || [];
 
     // 결과가 없는 경우에도 빈 배열로 응답
     res.json({
