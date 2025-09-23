@@ -189,24 +189,30 @@ router.post('/', authenticateToken, requireRole(['admin']), async (req, res) => 
     // 비밀번호 해싱 (실제 환경에서는 bcrypt 사용 권장)
     const hashedPassword = password; // 임시로 평문 저장
     
-    // 사용자 생성
+    // 사용자 생성 - undefined 체크 및 변환
     const insertValues = [
-      username, hashedPassword, name, 
-      email, phone, company, role, is_active,
-      default_sender_address, default_sender_detail_address, default_sender_zipcode
+      username, 
+      hashedPassword, 
+      name, 
+      email === undefined ? null : email,
+      phone === undefined ? null : phone,
+      company === undefined ? null : company,
+      role === undefined ? 'user' : role,
+      is_active === undefined ? true : is_active,
+      default_sender_address === undefined ? null : default_sender_address,
+      default_sender_detail_address === undefined ? null : default_sender_detail_address,
+      default_sender_zipcode === undefined ? null : default_sender_zipcode
     ];
     
     console.log('INSERT 값들:', insertValues.map((v, i) => `${i}: ${v === undefined ? 'UNDEFINED' : v === null ? 'NULL' : typeof v === 'string' ? `"${v}"` : v}`));
     
-    const [result] = await executeWithRetry(() =>
-      pool.execute(`
-        INSERT INTO users (
-          username, password, name, email, phone, company, role, is_active,
-          default_sender_address, default_sender_detail_address, default_sender_zipcode,
-          created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
-      `, insertValues)
-    );
+    const [result] = await pool.execute(`
+      INSERT INTO users (
+        username, password, name, email, phone, company, role, is_active,
+        default_sender_address, default_sender_detail_address, default_sender_zipcode,
+        created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+    `, insertValues);
     
     console.log(`[Users API] 사용자 생성 완료: ID ${result.insertId}`);
     
