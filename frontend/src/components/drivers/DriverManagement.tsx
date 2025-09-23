@@ -136,15 +136,15 @@ const DriverManagement: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* 헤더 */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
+      <div className="flex justify-center items-center relative">
+        <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900">기사 관리</h1>
           <p className="text-gray-600">배송 기사의 정보를 관리합니다.</p>
         </div>
         
         <button
           onClick={handleCreateDriver}
-          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          className="absolute right-0 flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
         >
           <UserPlus className="w-5 h-5" />
           기사 등록

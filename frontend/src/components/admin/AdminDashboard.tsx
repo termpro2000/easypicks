@@ -97,7 +97,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
   if (currentPage === 'drivers') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="p-6">
+        <div className="p-6 flex">
           <button
             onClick={() => setCurrentPage('main')}
             className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors mb-4"
