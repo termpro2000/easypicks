@@ -438,6 +438,43 @@ app.post('/api/debug/create-test-user', async (req, res) => {
   }
 });
 
+// 사용자 비밀번호 업데이트 (디버그용)
+app.post('/api/debug/update-password', async (req, res) => {
+  try {
+    const { username, newPassword } = req.body;
+    
+    if (!username || !newPassword) {
+      return res.status(400).json({
+        error: 'Bad Request',
+        message: 'username과 newPassword가 필요합니다.'
+      });
+    }
+
+    const [result] = await pool.execute(
+      'UPDATE users SET password = ? WHERE username = ?',
+      [newPassword, username]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        error: 'Not Found',
+        message: '사용자를 찾을 수 없습니다.'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: `사용자 '${username}'의 비밀번호가 업데이트되었습니다.`,
+      username: username
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: error.message,
+      message: '비밀번호 업데이트 중 오류 발생'
+    });
+  }
+});
+
 // 서버 시작
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
