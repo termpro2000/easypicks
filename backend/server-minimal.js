@@ -106,6 +106,324 @@ app.get('/db-test', async (req, res) => {
   }
 });
 
+// 사용자 목록 조회 API
+app.get('/api/users', async (req, res) => {
+  try {
+    console.log('👥 사용자 목록 조회 요청');
+    
+    const { page = 1, limit = 50, search = '', role = '' } = req.query;
+    const offset = (page - 1) * limit;
+    
+    // 검색 조건 구성
+    let whereClause = 'WHERE 1=1';
+    const params = [];
+    
+    if (search) {
+      whereClause += ' AND (username LIKE ? OR name LIKE ? OR email LIKE ? OR company LIKE ?)';
+      const searchTerm = `%${search}%`;
+      params.push(searchTerm, searchTerm, searchTerm, searchTerm);
+    }
+    
+    if (role) {
+      whereClause += ' AND role = ?';
+      params.push(role);
+    }
+    
+    // 파라미터에 LIMIT과 OFFSET 추가
+    params.push(parseInt(limit), parseInt(offset));
+    
+    // 사용자 목록 조회
+    const [users] = await pool.execute(`
+      SELECT 
+        id,
+        username,
+        name,
+        email,
+        phone,
+        company,
+        role,
+        is_active,
+        last_login,
+        created_at,
+        updated_at,
+        default_sender_address,
+        default_sender_detail_address,
+        default_sender_zipcode
+      FROM users 
+      ${whereClause}
+      ORDER BY created_at DESC
+      LIMIT ? OFFSET ?
+    `, params);
+    
+    // 총 개수 조회
+    const countParams = params.slice(0, -2); // LIMIT, OFFSET 제외
+    const [countResult] = await pool.execute(`
+      SELECT COUNT(*) as total FROM users ${whereClause}
+    `, countParams);
+    
+    const total = countResult[0].total;
+    const totalPages = Math.ceil(total / limit);
+    
+    console.log('✅ 사용자 목록 조회 성공:', { 
+      users: users.length, 
+      total, 
+      page, 
+      totalPages 
+    });
+    
+    res.json({
+      success: true,
+      data: users,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        totalPages,
+        hasNext: page < totalPages,
+        hasPrev: page > 1
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ 사용자 목록 조회 오류:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: '사용자 목록 조회 중 오류가 발생했습니다.',
+      details: error.message
+    });
+  }
+});
+
+// 개별 사용자 조회
+app.get('/api/users/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log('👤 개별 사용자 조회:', id);
+    
+    const [users] = await pool.execute(`
+      SELECT 
+        id, username, name, email, phone, company, role, is_active,
+        last_login, created_at, updated_at,
+        default_sender_address, default_sender_detail_address, default_sender_zipcode
+      FROM users WHERE id = ?
+    `, [id]);
+    
+    if (users.length === 0) {
+      return res.status(404).json({
+        error: 'Not Found',
+        message: '사용자를 찾을 수 없습니다.'
+      });
+    }
+    
+    // 불린 타입 변환
+    const user = {
+      ...users[0],
+      is_active: Boolean(users[0].is_active)
+    };
+    
+    res.json({
+      success: true,
+      data: user
+    });
+    
+  } catch (error) {
+    console.error('❌ 개별 사용자 조회 오류:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: '사용자 조회 중 오류가 발생했습니다.',
+      details: error.message
+    });
+  }
+});
+
+// 새 사용자 생성
+app.post('/api/users', async (req, res) => {
+  try {
+    console.log('👤 새 사용자 생성 요청');
+    
+    const {
+      username, password, name, email, phone, company, role = 'user',
+      default_sender_address, default_sender_detail_address, default_sender_zipcode
+    } = req.body;
+    
+    // 필수 필드 검증
+    if (!username || !password || !name) {
+      return res.status(400).json({
+        error: 'Bad Request',
+        message: 'username, password, name은 필수 필드입니다.'
+      });
+    }
+    
+    // 사용자명 중복 확인
+    const [existingUsers] = await pool.execute(
+      'SELECT id FROM users WHERE username = ?',
+      [username]
+    );
+    
+    if (existingUsers.length > 0) {
+      return res.status(409).json({
+        error: 'Conflict',
+        message: '이미 사용 중인 사용자명입니다.'
+      });
+    }
+    
+    // 사용자 생성
+    const [result] = await pool.execute(`
+      INSERT INTO users (
+        username, password, name, email, phone, company, role,
+        default_sender_address, default_sender_detail_address, default_sender_zipcode,
+        is_active, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW(), NOW())
+    `, [
+      username, password, name, email, phone, company, role,
+      default_sender_address, default_sender_detail_address, default_sender_zipcode
+    ]);
+    
+    console.log('✅ 사용자 생성 성공:', { id: result.insertId, username });
+    
+    res.status(201).json({
+      success: true,
+      message: '사용자가 성공적으로 생성되었습니다.',
+      data: {
+        id: result.insertId,
+        username,
+        name,
+        role
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ 사용자 생성 오류:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: '사용자 생성 중 오류가 발생했습니다.',
+      details: error.message
+    });
+  }
+});
+
+// 사용자 정보 수정
+app.put('/api/users/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log('✏️ 사용자 정보 수정:', id);
+    
+    // 사용자 존재 확인
+    const [existingUsers] = await pool.execute('SELECT id FROM users WHERE id = ?', [id]);
+    if (existingUsers.length === 0) {
+      return res.status(404).json({
+        error: 'Not Found',
+        message: '사용자를 찾을 수 없습니다.'
+      });
+    }
+    
+    const {
+      username, name, email, phone, company, role,
+      default_sender_address, default_sender_detail_address, default_sender_zipcode,
+      is_active
+    } = req.body;
+    
+    // 사용자명 중복 확인 (자신 제외)
+    if (username) {
+      const [duplicateUsers] = await pool.execute(
+        'SELECT id FROM users WHERE username = ? AND id != ?',
+        [username, id]
+      );
+      
+      if (duplicateUsers.length > 0) {
+        return res.status(409).json({
+          error: 'Conflict',
+          message: '이미 사용 중인 사용자명입니다.'
+        });
+      }
+    }
+    
+    // 동적으로 업데이트할 필드들
+    const updates = [];
+    const values = [];
+    
+    if (username !== undefined) { updates.push('username = ?'); values.push(username); }
+    if (name !== undefined) { updates.push('name = ?'); values.push(name); }
+    if (email !== undefined) { updates.push('email = ?'); values.push(email); }
+    if (phone !== undefined) { updates.push('phone = ?'); values.push(phone); }
+    if (company !== undefined) { updates.push('company = ?'); values.push(company); }
+    if (role !== undefined) { updates.push('role = ?'); values.push(role); }
+    if (default_sender_address !== undefined) { updates.push('default_sender_address = ?'); values.push(default_sender_address); }
+    if (default_sender_detail_address !== undefined) { updates.push('default_sender_detail_address = ?'); values.push(default_sender_detail_address); }
+    if (default_sender_zipcode !== undefined) { updates.push('default_sender_zipcode = ?'); values.push(default_sender_zipcode); }
+    if (is_active !== undefined) { updates.push('is_active = ?'); values.push(is_active ? 1 : 0); }
+    
+    if (updates.length === 0) {
+      return res.status(400).json({
+        error: 'Bad Request',
+        message: '업데이트할 필드가 없습니다.'
+      });
+    }
+    
+    updates.push('updated_at = NOW()');
+    values.push(id);
+    
+    const [result] = await pool.execute(`
+      UPDATE users SET ${updates.join(', ')} WHERE id = ?
+    `, values);
+    
+    console.log('✅ 사용자 정보 수정 성공:', { id, affectedRows: result.affectedRows });
+    
+    res.json({
+      success: true,
+      message: '사용자 정보가 성공적으로 수정되었습니다.',
+      affectedRows: result.affectedRows
+    });
+    
+  } catch (error) {
+    console.error('❌ 사용자 정보 수정 오류:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: '사용자 정보 수정 중 오류가 발생했습니다.',
+      details: error.message
+    });
+  }
+});
+
+// 사용자 삭제
+app.delete('/api/users/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log('🗑️ 사용자 삭제:', id);
+    
+    // 사용자 존재 확인
+    const [existingUsers] = await pool.execute('SELECT username FROM users WHERE id = ?', [id]);
+    if (existingUsers.length === 0) {
+      return res.status(404).json({
+        error: 'Not Found',
+        message: '사용자를 찾을 수 없습니다.'
+      });
+    }
+    
+    const [result] = await pool.execute('DELETE FROM users WHERE id = ?', [id]);
+    
+    console.log('✅ 사용자 삭제 성공:', { 
+      id, 
+      username: existingUsers[0].username,
+      affectedRows: result.affectedRows 
+    });
+    
+    res.json({
+      success: true,
+      message: '사용자가 성공적으로 삭제되었습니다.',
+      affectedRows: result.affectedRows
+    });
+    
+  } catch (error) {
+    console.error('❌ 사용자 삭제 오류:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: '사용자 삭제 중 오류가 발생했습니다.',
+      details: error.message
+    });
+  }
+});
+
 // 배송 생성 (52개 필드 지원)
 app.post('/api/deliveries', async (req, res) => {
   try {
