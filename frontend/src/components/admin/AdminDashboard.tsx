@@ -151,7 +151,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                 <Package className="w-7 h-7 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">이지픽스 v2.0</h1>
+                <h1 className="text-2xl font-bold text-gray-900">이지픽스 v2.1</h1>
                 <p className="text-sm text-red-600 font-medium">관리자화면</p>
               </div>
             </div>
