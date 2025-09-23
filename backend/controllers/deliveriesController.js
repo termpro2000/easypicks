@@ -107,23 +107,50 @@ async function createDelivery(req, res) {
     // 운송장 번호 생성
     const tracking_number = generateTrackingNumber();
 
-    // deliveries 테이블에 저장 (shippingController와 동일한 간단한 INSERT)
+    // deliveries 테이블에 저장 (모든 입력 필드 포함하여 저장)
     const [result] = await pool.execute(`
       INSERT INTO deliveries (
-        tracking_number, sender_name, sender_address, 
+        tracking_number, sender_name, sender_phone, sender_email, sender_company, sender_address, 
         customer_name, customer_phone, customer_address,
-        product_name, status, request_type
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        product_name, product_sku, product_quantity, seller_info,
+        request_type, status, visit_date, visit_time,
+        has_elevator, can_use_ladder_truck, preferred_delivery_date,
+        is_fragile, is_frozen, requires_signature, insurance_value,
+        delivery_memo, special_instructions, main_memo, 
+        delivery_fee, cod_amount, driver_notes, detail_notes
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       tracking_number,
       sender_name,
+      sender_phone || null,
+      sender_email || null,
+      sender_company || null,
       sender_address + (sender_detail_address ? ' ' + sender_detail_address : ''),
       finalReceiverName,
       finalReceiverPhone,
       finalReceiverAddress + (receiver_detail_address ? ' ' + receiver_detail_address : ''),
       product_name,
+      product_sku || null,
+      product_quantity || 1,
+      seller_info || null,
+      req.body.request_type || '배송접수',
       '접수완료',
-      '배송접수'
+      preferred_delivery_date || null,
+      req.body.visit_time || null,
+      has_elevator ? 1 : 0,
+      can_use_ladder_truck ? 1 : 0,
+      preferred_delivery_date || null,
+      is_fragile ? 1 : 0,
+      is_frozen ? 1 : 0,
+      requires_signature ? 1 : 0,
+      insurance_amount || 0,
+      delivery_memo || null,
+      special_instructions || null,
+      req.body.main_memo || null,
+      req.body.delivery_fee || 0,
+      req.body.cod_amount || 0,
+      req.body.driver_notes || null,
+      req.body.detail_notes || null
     ]);
 
     res.status(201).json({
