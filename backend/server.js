@@ -15,6 +15,10 @@ const driversRoutes = require('./routes/drivers');
 const productsRoutes = require('./routes/products');
 
 const app = express();
+
+// Railway와 같은 프록시 환경에서 필수 설정
+app.set('trust proxy', true);
+
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
