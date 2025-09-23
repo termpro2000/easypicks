@@ -227,7 +227,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
             </button>
           </div>
 
-          {/* 두 번째 줄: 기사배정, 상품관리 */}
+          {/* 두 번째 줄: 기사배정, 기사관리 */}
           <div className="flex justify-center gap-8 mb-8">
             {/* 기사배정 버튼 */}
             <button
@@ -243,22 +243,22 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
               </div>
             </button>
 
-            {/* 상품관리 버튼 */}
+            {/* 기사관리 버튼 */}
             <button
-              onClick={() => handleButtonClick('상품관리')}
+              onClick={() => handleButtonClick('기사관리')}
               className="w-48 h-48 bg-white rounded-3xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 flex flex-col items-center justify-center gap-4 group"
             >
-              <div className="w-16 h-16 bg-purple-500 group-hover:bg-purple-600 rounded-2xl flex items-center justify-center transition-colors">
-                <Package className="w-8 h-8 text-white" />
+              <div className="w-16 h-16 bg-orange-500 group-hover:bg-orange-600 rounded-2xl flex items-center justify-center transition-colors">
+                <Truck className="w-8 h-8 text-white" />
               </div>
               <div className="text-center">
-                <h3 className="text-xl font-bold text-gray-900 mb-1">상품관리</h3>
-                <p className="text-sm text-gray-500">상품 정보를 관리합니다</p>
+                <h3 className="text-xl font-bold text-gray-900 mb-1">기사관리</h3>
+                <p className="text-sm text-gray-500">배송기사를 관리합니다</p>
               </div>
             </button>
           </div>
 
-          {/* 세 번째 줄: 사용자관리, 기사관리 */}
+          {/* 세 번째 줄: 사용자관리, 상품관리 */}
           <div className="flex justify-center gap-8">
             {/* 사용자관리 버튼 */}
             <button
@@ -274,17 +274,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
               </div>
             </button>
 
-            {/* 기사관리 버튼 */}
+            {/* 상품관리 버튼 */}
             <button
-              onClick={() => handleButtonClick('기사관리')}
+              onClick={() => handleButtonClick('상품관리')}
               className="w-48 h-48 bg-white rounded-3xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 flex flex-col items-center justify-center gap-4 group"
             >
-              <div className="w-16 h-16 bg-orange-500 group-hover:bg-orange-600 rounded-2xl flex items-center justify-center transition-colors">
-                <Truck className="w-8 h-8 text-white" />
+              <div className="w-16 h-16 bg-purple-500 group-hover:bg-purple-600 rounded-2xl flex items-center justify-center transition-colors">
+                <Package className="w-8 h-8 text-white" />
               </div>
               <div className="text-center">
-                <h3 className="text-xl font-bold text-gray-900 mb-1">기사관리</h3>
-                <p className="text-sm text-gray-500">배송기사를 관리합니다</p>
+                <h3 className="text-xl font-bold text-gray-900 mb-1">상품관리</h3>
+                <p className="text-sm text-gray-500">상품 정보를 관리합니다</p>
               </div>
             </button>
           </div>

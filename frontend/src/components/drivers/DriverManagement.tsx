@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Trash2, UserPlus, Phone, Mail, Truck, Hash, CheckCircle, XCircle } from 'lucide-react';
+import { Search, Trash2, UserPlus, Phone, Mail, Truck, Hash, CheckCircle, XCircle, Edit } from 'lucide-react';
 import { driversAPI } from '../../services/api';
 import DriverForm from './DriverForm';
+import DriverEditForm from './DriverEditForm';
 
 interface Driver {
   id: number;
@@ -22,7 +23,8 @@ const DriverManagement: React.FC = () => {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [currentView, setCurrentView] = useState<'list' | 'add-form'>('list');
+  const [currentView, setCurrentView] = useState<'list' | 'add-form' | 'edit-form'>('list');
+  const [editingDriver, setEditingDriver] = useState<Driver | null>(null);
 
   // 기사 목록 조회
   const fetchDrivers = async () => {
@@ -67,15 +69,23 @@ const DriverManagement: React.FC = () => {
     setCurrentView('add-form');
   };
 
+  // 기사 편집 폼으로 이동
+  const handleEditDriver = (driver: Driver) => {
+    setEditingDriver(driver);
+    setCurrentView('edit-form');
+  };
+
   // 폼 성공 처리
   const handleFormSuccess = () => {
     setCurrentView('list');
+    setEditingDriver(null);
     fetchDrivers(); // 기사 목록 새로고침
   };
 
   // 목록으로 돌아가기
   const handleBackToList = () => {
     setCurrentView('list');
+    setEditingDriver(null);
   };
 
   // 기사 삭제
@@ -106,6 +116,17 @@ const DriverManagement: React.FC = () => {
   if (currentView === 'add-form') {
     return (
       <DriverForm 
+        onNavigateBack={handleBackToList}
+        onSuccess={handleFormSuccess}
+      />
+    );
+  }
+
+  // 기사편집 폼 표시
+  if (currentView === 'edit-form' && editingDriver) {
+    return (
+      <DriverEditForm 
+        driver={editingDriver}
         onNavigateBack={handleBackToList}
         onSuccess={handleFormSuccess}
       />
@@ -149,6 +170,26 @@ const DriverManagement: React.FC = () => {
         >
           검색
         </button>
+      </div>
+
+      {/* 통계 정보 */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
+          <div className="text-2xl font-bold text-green-600">{drivers.length}</div>
+          <div className="text-sm text-gray-600">전체 기사</div>
+        </div>
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
+          <div className="text-2xl font-bold text-blue-600">
+            {drivers.filter(d => d.is_active !== false).length}
+          </div>
+          <div className="text-sm text-gray-600">활성 기사</div>
+        </div>
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
+          <div className="text-2xl font-bold text-orange-600">
+            {drivers.filter(d => d.is_active === false).length}
+          </div>
+          <div className="text-sm text-gray-600">비활성 기사</div>
+        </div>
       </div>
 
       {/* 기사 목록 */}
@@ -273,13 +314,22 @@ const DriverManagement: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-4 py-4">
-                      <button
-                        onClick={() => handleDeleteDriver(driver)}
-                        className="text-red-600 hover:text-red-800 hover:bg-red-50 p-1 rounded transition-colors"
-                        title="기사 삭제"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleEditDriver(driver)}
+                          className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 p-1 rounded transition-colors"
+                          title="기사 편집"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteDriver(driver)}
+                          className="text-red-600 hover:text-red-800 hover:bg-red-50 p-1 rounded transition-colors"
+                          title="기사 삭제"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -287,26 +337,6 @@ const DriverManagement: React.FC = () => {
             </table>
           </div>
         )}
-      </div>
-
-      {/* 통계 정보 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
-          <div className="text-2xl font-bold text-green-600">{drivers.length}</div>
-          <div className="text-sm text-gray-600">전체 기사</div>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
-          <div className="text-2xl font-bold text-blue-600">
-            {drivers.filter(d => d.is_active !== false).length}
-          </div>
-          <div className="text-sm text-gray-600">활성 기사</div>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
-          <div className="text-2xl font-bold text-orange-600">
-            {drivers.filter(d => d.is_active === false).length}
-          </div>
-          <div className="text-sm text-gray-600">비활성 기사</div>
-        </div>
       </div>
 
       {/* 파일명 표시 */}
