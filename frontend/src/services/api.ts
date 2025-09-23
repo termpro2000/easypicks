@@ -152,36 +152,71 @@ export const authAPI = {
  * 배송 접수 생성, 조회, 수정, 운송장 추적 기능 제공
  */
 export const shippingAPI = {
-  // 배송접수 생성
+  // 배송접수 생성 (기존 deliveries API 사용)
   createOrder: async (data: ShippingOrderData) => {
-    const response = await apiClient.post('/shipping/orders', data);
+    // ShippingOrderData를 deliveries API 형식으로 변환
+    const deliveryData = {
+      sender_name: data.sender_name,
+      sender_address: `${data.sender_address} ${data.sender_detail_address || ''}`.trim(),
+      customer_name: data.receiver_name,
+      customer_phone: data.receiver_phone,
+      customer_address: `${data.receiver_address} ${data.receiver_detail_address || ''}`.trim(),
+      product_name: data.package_description || '일반 배송',
+      weight: data.package_weight || 0,
+      delivery_fee: data.package_value || 0,
+      insurance_value: data.insurance_amount || 0,
+      fragile: data.is_fragile || false,
+      main_memo: data.delivery_memo || '',
+      special_instructions: data.special_instructions || ''
+    };
+    
+    const response = await apiClient.post('/deliveries', deliveryData);
     return response.data;
   },
 
-  // 배송접수 목록 조회
+  // 배송접수 목록 조회 (기존 deliveries API 사용)
   getOrders: async (page = 1, limit = 10): Promise<{
     orders: ShippingOrderListItem[];
     pagination: Pagination;
   }> => {
-    const response = await apiClient.get(`/shipping/orders?page=${page}&limit=${limit}`);
-    return response.data;
+    const response = await apiClient.get(`/deliveries?page=${page}&limit=${limit}`);
+    // deliveries 응답을 shipping orders 형식으로 변환
+    return {
+      orders: response.data.deliveries?.map((delivery: any) => ({
+        id: delivery.id,
+        tracking_number: delivery.tracking_number,
+        sender_name: delivery.sender_name,
+        receiver_name: delivery.customer_name,
+        receiver_phone: delivery.customer_phone,
+        receiver_address: delivery.customer_address,
+        status: delivery.status,
+        created_at: delivery.created_at,
+        updated_at: delivery.updated_at
+      })) || [],
+      pagination: {
+        page: page,
+        limit: limit,
+        total: response.data.count || 0,
+        totalPages: Math.ceil((response.data.count || 0) / limit)
+      }
+    };
   },
 
-  // 배송접수 상세 조회
+  // 배송접수 상세 조회 (기존 deliveries API 사용)
   getOrder: async (id: number): Promise<{ order: ShippingOrder }> => {
-    const response = await apiClient.get(`/shipping/orders/${id}`);
-    return response.data;
+    const response = await apiClient.get(`/deliveries/${id}`);
+    return { order: response.data.delivery };
   },
 
-  // 운송장 추적 (공개 API)
+  // 운송장 추적 (기존 deliveries API 사용)
   trackShipment: async (trackingNumber: string) => {
-    const response = await apiClient.get(`/shipping/tracking/${trackingNumber}`);
+    const response = await apiClient.get(`/deliveries/track/${trackingNumber}`);
     return response.data;
   },
 
-  // 배송 접수 상태 업데이트
+  // 배송 접수 상태 업데이트 (기존 deliveries API 사용)
   updateOrderStatus: async (id: number, status: string) => {
-    const response = await apiClient.patch(`/shipping/orders/${id}/status`, { status });
+    const response = await apiClient.patch(`/deliveries/${id}/status`, { status });
     return response.data;
   },
 
