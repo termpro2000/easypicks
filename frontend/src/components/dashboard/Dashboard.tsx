@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Package, TrendingUp, Clock, CheckCircle, AlertCircle, Eye, Search, Filter, RefreshCw, Pause, Play, Truck, Download, FileSpreadsheet, FileText } from 'lucide-react';
+import { Package, TrendingUp, Clock, CheckCircle, AlertCircle, Eye, Search, Filter, RefreshCw, Pause, Play, Truck, Download, FileSpreadsheet, FileText, Plus } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { api, shippingAPI } from '../../services/api';
 import type { ShippingOrder } from '../../types';
 import OrderDetailModal from './OrderDetailModal';
+import AdminShippingForm from '../admin/AdminShippingForm';
 
 /**
  * 대시보드 통계 데이터 인터페이스
@@ -61,6 +62,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onOrderStatusChange }) => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [showExportModal, setShowExportModal] = useState(false);
+  const [currentView, setCurrentView] = useState<'dashboard' | 'new-shipping'>('dashboard');
   const intervalRef = useRef<number | null>(null);
   const visibilityRef = useRef<boolean>(true);
 
@@ -290,6 +292,19 @@ const Dashboard: React.FC<DashboardProps> = ({ onOrderStatusChange }) => {
     }
   };
 
+  // 새 배송접수 폼 표시
+  if (currentView === 'new-shipping') {
+    return (
+      <AdminShippingForm 
+        onNavigateBack={() => setCurrentView('dashboard')}
+        onSuccess={() => {
+          setCurrentView('dashboard');
+          fetchOrders(true); // 새 주문 생성 후 목록 새로고침
+        }}
+      />
+    );
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
@@ -305,10 +320,21 @@ const Dashboard: React.FC<DashboardProps> = ({ onOrderStatusChange }) => {
     <div className="space-y-6">
       {/* 환영 메시지 */}
       <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-6 text-white">
-        <h2 className="text-2xl font-bold mb-2">안녕하세요, {user?.name}님! 👋</h2>
-        <p className="text-blue-100">
-          오늘도 안전하고 신속한 배송 서비스를 제공해보세요.
-        </p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-2xl font-bold mb-2">안녕하세요, {user?.name}님! 👋</h2>
+            <p className="text-blue-100">
+              오늘도 안전하고 신속한 배송 서비스를 제공해보세요.
+            </p>
+          </div>
+          <button
+            onClick={() => setCurrentView('new-shipping')}
+            className="flex items-center gap-2 px-6 py-3 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition-colors font-medium"
+          >
+            <Plus className="w-5 h-5" />
+            새 배송접수
+          </button>
+        </div>
       </div>
 
       {/* 통계 카드 */}
@@ -689,6 +715,13 @@ const Dashboard: React.FC<DashboardProps> = ({ onOrderStatusChange }) => {
           fetchOrders(true);
         }}
       />
+
+      {/* Filename footer */}
+      <div className="mt-8 pt-4 border-t border-gray-200">
+        <p className="text-xs text-gray-400 text-center">
+          Dashboard.tsx
+        </p>
+      </div>
     </div>
   );
 };
