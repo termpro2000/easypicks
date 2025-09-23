@@ -19,7 +19,7 @@
     },
     "android": {
       "package": "com.easypicks.delivery",
-      "versionCode": 26,
+      "versionCode": 27,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"

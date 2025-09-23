@@ -1354,23 +1354,41 @@ app.post('/api/auth/login', async (req, res) => {
       });
     }
 
-    // 간단한 사용자 검증 (실제 구현에서는 bcrypt 사용)
+    // 사용자 검증 - users 테이블과 drivers 테이블 모두 확인
+    let user = null;
+    let userType = null;
+    
+    // 먼저 users 테이블에서 검색
     const [users] = await pool.execute(
-      'SELECT * FROM users WHERE username = ?',
+      'SELECT *, "user" as user_type FROM users WHERE username = ?',
       [username]
     );
 
-    console.log('👤 사용자 검색 결과:', { username, found: users.length > 0 });
+    if (users.length > 0) {
+      user = users[0];
+      userType = 'user';
+    } else {
+      // users 테이블에 없으면 drivers 테이블에서 user_id로 검색
+      const [drivers] = await pool.execute(
+        'SELECT *, "driver" as user_type, user_id as username FROM drivers WHERE user_id = ?',
+        [username]
+      );
+      
+      if (drivers.length > 0) {
+        user = drivers[0];
+        userType = 'driver';
+      }
+    }
 
-    if (users.length === 0) {
+    console.log('👤 사용자 검색 결과:', { username, found: !!user, userType });
+
+    if (!user) {
       return res.status(401).json({
         error: 'Unauthorized',
         message: '잘못된 사용자명 또는 비밀번호입니다.',
         debug: `사용자 '${username}'를 찾을 수 없습니다.`
       });
     }
-
-    const user = users[0];
     
     console.log('🔍 비밀번호 검증:', { 
       provided: password, 
@@ -1388,14 +1406,18 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     // 성공적인 로그인 - JWT 토큰 생성
-    console.log('✅ 로그인 성공:', { username: user.username, role: user.role });
+    const actualRole = userType === 'driver' ? 'driver' : (user.role || 'user');
+    const actualUsername = userType === 'driver' ? user.user_id : user.username;
+    
+    console.log('✅ 로그인 성공:', { username: actualUsername, role: actualRole, userType });
     
     // JWT 토큰 생성 (간단한 페이로드)
     const tokenPayload = {
       id: user.id,
-      username: user.username,
-      role: user.role || 'user',
-      name: user.name
+      username: actualUsername,
+      role: actualRole,
+      name: user.name,
+      userType: userType
     };
     
     // 개발용 간단한 토큰 (실제로는 JWT 라이브러리 사용)
