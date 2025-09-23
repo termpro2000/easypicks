@@ -250,28 +250,26 @@ io.on('connection', (socket) => {
   });
 });
 
-// 전역 에러 핸들러
+// 전역 에러 핸들러 (Railway 배포용 - 경고만 출력)
 process.on('uncaughtException', (error) => {
-  console.error('❌ Uncaught Exception:', error);
-  process.exit(1);
+  console.error('⚠️ Uncaught Exception:', error.message);
+  // Railway 환경에서는 즉시 종료하지 않음
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
-  process.exit(1);
+  console.error('⚠️ Unhandled Rejection:', reason);
+  // Railway 환경에서는 즉시 종료하지 않음
 });
 
 console.log('🔄 서버 시작 준비 중...');
 console.log('📦 Environment:', process.env.NODE_ENV || 'development');
 console.log('🔌 포트:', PORT);
 
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 서버가 포트 ${PORT}에서 실행 중입니다.`);
-  console.log(`🏥 Health check: http://localhost:${PORT}/health`);
-  console.log(`🔍 Debug info: http://localhost:${PORT}/debug`);
-  console.log('🔌 Socket.IO 서버 시작됨 (기사별 푸시 알림 지원)');
-  console.log('✅ 서버 준비 완료!');
-  console.log('🔄 Railway 재배포 완료 - ' + new Date().toISOString());
+server.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🏥 Health: /health`);
+  console.log(`🔍 Debug: /debug`);
+  console.log('✅ Railway deployment successful');
 });
 
 // Graceful shutdown 처리 (Railway SIGTERM 대응)
