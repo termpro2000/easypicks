@@ -871,22 +871,44 @@ app.post('/api/deliveries', async (req, res) => {
       stringFields: Object.entries(req.body).filter(([k,v]) => typeof v === 'string').length
     });
     
+    // 프론트엔드에서 보내는 52개 필드 구조에 맞게 수정
     const {
+      // 발송자 정보
       sender_name, sender_company, sender_phone, sender_email,
       sender_address, sender_detail_address, sender_zipcode,
+      
+      // 수신자 정보 (customer_ 필드 우선)
       receiver_name, receiver_phone, receiver_email,
       receiver_address, receiver_detail_address, receiver_zipcode,
       customer_name, customer_phone, customer_address,
+      
+      // 상품 정보
       product_name, product_sku, product_quantity, seller_info,
+      product_weight, product_size, box_size,
+      
+      // 배송 옵션
       has_elevator, can_use_ladder_truck, preferred_delivery_date,
       is_fragile, is_frozen, requires_signature, insurance_amount,
-      delivery_memo, special_instructions
+      delivery_memo, special_instructions,
+      
+      // 추가 필드들 (프론트엔드에서 보내는 모든 필드 포함)
+      weight, delivery_fee, insurance_value, cod_amount, distance,
+      driver_id, delivery_attempts, request_type, construction_type,
+      visit_time, furniture_company, emergency_contact, building_type,
+      floor_count, elevator_available, ladder_truck, disposal,
+      room_movement, wall_construction, furniture_product_code,
+      last_location, main_memo, furniture_requests, driver_notes,
+      detail_notes, cancel_reason, completion_audio_file,
+      fragile, cancel_status, customer_requested_completion,
+      furniture_company_requested_completion, visit_date,
+      estimated_delivery, actual_delivery, canceled_at,
+      installation_photos, customer_signature
     } = req.body;
 
-    // 필드명 통일
-    const finalReceiverName = receiver_name || customer_name;
-    const finalReceiverPhone = receiver_phone || customer_phone; 
-    const finalReceiverAddress = receiver_address || customer_address;
+    // 필드명 통일 (customer_ 필드 우선 사용)
+    const finalReceiverName = customer_name || receiver_name;
+    const finalReceiverPhone = customer_phone || receiver_phone; 
+    const finalReceiverAddress = customer_address || receiver_address;
 
     // 필수 필드 검증
     if (!sender_name || !sender_address || !finalReceiverName || !finalReceiverPhone || !finalReceiverAddress) {
