@@ -135,18 +135,23 @@ const TestPage: React.FC<TestPageProps> = ({ onNavigateBack }) => {
 
   const handleDeleteAllDeliveries = () => {
     console.log('🗑️ 배송 삭제 버튼 클릭됨');
-    alert('배송 삭제 버튼이 클릭되었습니다!'); // 임시 테스트용
     setShowDeliveriesDeleteConfirm(true);
     console.log('🗑️ 삭제 확인 모달 상태 설정:', true);
   };
 
   const confirmDeleteAllDeliveries = async () => {
+    console.log('🚀 confirmDeleteAllDeliveries 함수 시작');
     setIsLoading(true);
     setMessage(null);
     setShowDeliveriesDeleteConfirm(false);
+    
     try {
+      console.log('📞 deliveriesAPI.deleteAllDeliveries() 호출 시작');
+      
       // 실제 API 호출로 모든 배송 데이터 삭제
       const response = await deliveriesAPI.deleteAllDeliveries();
+      
+      console.log('✅ API 응답 수신:', response);
       
       // 삭제 후 현재 목록 초기화
       setDeliveries([]);
@@ -158,12 +163,17 @@ const TestPage: React.FC<TestPageProps> = ({ onNavigateBack }) => {
       
       console.log('✅ 배송 데이터 삭제 완료:', response);
     } catch (error: any) {
-      console.error('❌ 배송 삭제 오류:', error);
+      console.error('❌ 배송 삭제 오류 상세:', error);
+      console.error('❌ 오류 응답:', error.response);
+      console.error('❌ 오류 메시지:', error.message);
+      console.error('❌ 오류 스택:', error.stack);
+      
       setMessage({
         type: 'error',
         text: '배송 삭제에 실패했습니다: ' + (error.response?.data?.message || error.message || '알 수 없는 오류')
       });
     } finally {
+      console.log('🏁 confirmDeleteAllDeliveries 함수 종료');
       setIsLoading(false);
     }
   };
