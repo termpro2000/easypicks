@@ -395,4 +395,44 @@ router.delete('/:id', authenticateToken, requireRole(['admin']), async (req, res
   }
 });
 
+// 테스트용 간단한 사용자 생성 (인증 없음)
+router.post('/test-create', async (req, res) => {
+  try {
+    console.log('[Users API] 테스트 사용자 생성 시작');
+    console.log('요청 본문:', JSON.stringify(req.body, null, 2));
+    
+    const username = req.body.username || 'test_user';
+    const password = req.body.password || 'test123';
+    const name = req.body.name || '테스트 사용자';
+    
+    console.log('필수 필드:', { username, password, name });
+    
+    // 간단한 INSERT만 수행
+    const [result] = await pool.execute(`
+      INSERT INTO users (username, password, name, created_at, updated_at) 
+      VALUES (?, ?, ?, NOW(), NOW())
+    `, [username, password, name]);
+    
+    console.log(`[Users API] 테스트 사용자 생성 완료: ID ${result.insertId}`);
+    
+    res.status(201).json({
+      success: true,
+      message: '테스트 사용자가 성공적으로 생성되었습니다.',
+      user: {
+        id: result.insertId,
+        username,
+        name
+      }
+    });
+    
+  } catch (error) {
+    console.error('[Users API] 테스트 사용자 생성 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '테스트 사용자를 생성할 수 없습니다.',
+      details: error.message
+    });
+  }
+});
+
 module.exports = router;
