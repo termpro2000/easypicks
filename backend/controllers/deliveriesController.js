@@ -136,29 +136,44 @@ async function createDelivery(req, res) {
       req.body.request_type || '배송접수'
     ];
 
-    // 추가 컬럼들 (존재하는 경우에만 포함)
+    // 추가 컬럼들 (실제 데이터베이스 컬럼명과 매핑)
     const additionalFields = [
-      { column: 'sender_phone', value: sender_phone },
-      { column: 'sender_email', value: sender_email },
-      { column: 'sender_company', value: sender_company },
+      // 발송인 관련 (sender_phone, sender_email, sender_company 컬럼은 DB에 없음)
+      { column: 'weight', value: req.body.weight },
+      { column: 'construction_type', value: req.body.construction_type },
       { column: 'visit_date', value: preferred_delivery_date },
       { column: 'visit_time', value: req.body.visit_time },
-      { column: 'delivery_memo', value: delivery_memo },
-      { column: 'special_instructions', value: special_instructions },
+      { column: 'furniture_company', value: sender_company },
       { column: 'main_memo', value: req.body.main_memo },
-      { column: 'delivery_fee', value: req.body.delivery_fee || 0 },
-      { column: 'cod_amount', value: req.body.cod_amount || 0 },
-      { column: 'insurance_value', value: insurance_amount || 0 },
-      { column: 'driver_notes', value: req.body.driver_notes },
-      { column: 'detail_notes', value: req.body.detail_notes },
-      { column: 'fragile', value: is_fragile ? 1 : 0 },
-      { column: 'weight', value: req.body.weight },
+      { column: 'emergency_contact', value: req.body.emergency_contact },
+      
+      // 건물/시공 정보
+      { column: 'building_type', value: req.body.building_type },
+      { column: 'floor_count', value: req.body.floor_count },
+      { column: 'elevator_available', value: has_elevator ? '있음' : '없음' },
+      { column: 'ladder_truck', value: can_use_ladder_truck ? '필요' : '불필요' },
+      { column: 'disposal', value: req.body.disposal },
+      { column: 'room_movement', value: req.body.room_movement },
+      { column: 'wall_construction', value: req.body.wall_construction },
+      
+      // 상품 정보
+      { column: 'furniture_product_code', value: product_sku },
       { column: 'product_weight', value: req.body.product_weight },
       { column: 'product_size', value: req.body.product_size },
-      { column: 'furniture_product_code', value: product_sku },
-      { column: 'building_type', value: req.body.building_type },
-      { column: 'elevator_available', value: has_elevator ? '있음' : '없음' },
-      { column: 'ladder_truck', value: can_use_ladder_truck ? '필요' : '불필요' }
+      { column: 'box_size', value: req.body.box_size },
+      { column: 'furniture_requests', value: req.body.furniture_requests },
+      { column: 'fragile', value: is_fragile ? 1 : 0 },
+      
+      // 배송 정보
+      { column: 'driver_notes', value: req.body.driver_notes },
+      { column: 'special_instructions', value: special_instructions },
+      { column: 'detail_notes', value: req.body.detail_notes },
+      { column: 'delivery_fee', value: req.body.delivery_fee || 0 },
+      { column: 'insurance_value', value: insurance_amount || 0 },
+      { column: 'cod_amount', value: req.body.cod_amount || 0 },
+      { column: 'estimated_delivery', value: preferred_delivery_date },
+      { column: 'delivery_attempts', value: 0 },
+      { column: 'last_location', value: req.body.last_location }
     ];
 
     // 존재하는 컬럼만 필터링
