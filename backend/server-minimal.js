@@ -1145,12 +1145,24 @@ app.post('/api/auth/login', async (req, res) => {
       });
     }
 
-    // 성공적인 로그인
+    // 성공적인 로그인 - JWT 토큰 생성
     console.log('✅ 로그인 성공:', { username: user.username, role: user.role });
+    
+    // JWT 토큰 생성 (간단한 페이로드)
+    const tokenPayload = {
+      id: user.id,
+      username: user.username,
+      role: user.role || 'user',
+      name: user.name
+    };
+    
+    // 개발용 간단한 토큰 (실제로는 JWT 라이브러리 사용)
+    const token = `token-${user.id}-${Date.now()}`;
     
     res.json({
       success: true,
       message: '로그인 성공',
+      token: token,
       user: {
         id: user.id,
         username: user.username,
