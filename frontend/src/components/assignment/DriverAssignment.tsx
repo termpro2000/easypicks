@@ -71,24 +71,24 @@ const DriverAssignment: React.FC<DriverAssignmentProps> = ({ onNavigateBack }) =
           // 해당 기사가 담당하고 있는 현재 배송 수 계산
           // driver_id, driver_name, assigned_driver 중 하나라도 매칭되면 해당 기사의 배송으로 간주
           const currentOrders = orders.filter(order => 
-            (order.driver_id === driver.driver_id.toString() || 
+            (order.driver_id === driver.driver_id?.toString() || 
              order.driver_name === driver.name || 
              order.assigned_driver === driver.name) &&
             ['pending', 'in_transit'].includes(order.status)
           ).length;
           
           return {
-            driver_id: driver.driver_id,
-            username: driver.username,
-            name: driver.name,
+            driver_id: driver.driver_id || driver.id,
+            username: driver.username || '',
+            name: driver.name || '이름 없음',
             phone: driver.phone || '연락처 없음',
-            email: driver.email,
-            vehicle_type: driver.vehicle_type,
-            vehicle_number: driver.vehicle_number,
-            license_number: driver.license_number,
-            is_active: driver.is_active,
-            created_at: driver.created_at,
-            updated_at: driver.updated_at,
+            email: driver.email || '',
+            vehicle_type: driver.vehicle_type || '미등록',
+            vehicle_number: driver.vehicle_number || '미등록',
+            license_number: driver.license_number || '미등록',
+            is_active: driver.is_active !== undefined ? driver.is_active : true,
+            created_at: driver.created_at || new Date().toISOString(),
+            updated_at: driver.updated_at || new Date().toISOString(),
             // 계산된 정보
             status: !driver.is_active ? 'offline' : 
                    currentOrders >= 8 ? 'busy' : 'available' as 'available' | 'busy' | 'offline',
@@ -123,17 +123,18 @@ const DriverAssignment: React.FC<DriverAssignmentProps> = ({ onNavigateBack }) =
         console.log('📦 배송 API 응답:', response);
         
         // API 응답을 DeliveryOrder 형태로 변환
-        const deliveryOrders: DeliveryOrder[] = response.deliveries.map((delivery: any) => ({
+        const deliveriesArray = response.deliveries || response.orders || response.data || [];
+        const deliveryOrders: DeliveryOrder[] = deliveriesArray.map((delivery: any) => ({
           id: delivery.id,
-          tracking_number: delivery.tracking_number,
-          sender_name: delivery.sender_name,
+          tracking_number: delivery.tracking_number || '',
+          sender_name: delivery.sender_name || '발송자 미정',
           receiver_name: delivery.receiver_name,
           receiver_address: delivery.receiver_address,
           customer_name: delivery.customer_name,
           customer_address: delivery.customer_address,
-          product_name: delivery.product_name,
-          status: delivery.status,
-          created_at: delivery.created_at,
+          product_name: delivery.product_name || '상품명 미정',
+          status: delivery.status || 'pending',
+          created_at: delivery.created_at || new Date().toISOString(),
           assigned_driver: delivery.assigned_driver,
           driver_id: delivery.driver_id,
           driver_name: delivery.driver_name
@@ -669,7 +670,7 @@ const DriverAssignment: React.FC<DriverAssignmentProps> = ({ onNavigateBack }) =
                     const isSelected = selectedOrders.includes(order.id);
                     const hasAssignedDriver = !!(order.assigned_driver || order.driver_id || order.driver_name);
                     const assignedDriverName = order.driver_name || order.assigned_driver || 
-                                              (order.driver_id && drivers.find(d => d.driver_id.toString() === order.driver_id)?.name);
+                                              (order.driver_id && drivers.find(d => d.driver_id?.toString() === order.driver_id)?.name);
 
                     return (
                       <tr
