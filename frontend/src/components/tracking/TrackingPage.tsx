@@ -285,7 +285,7 @@ const TrackingPage: React.FC<TrackingPageProps> = ({ onNavigateBack }) => {
       <footer className="bg-white border-t mt-12">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="text-center text-sm text-gray-500">
-            <p>&copy; 2024 배송접수 시스템. All rights reserved.</p>
+            <p>&copy; 2024 가구배송 easypicks. All rights reserved.</p>
             <p className="mt-1">안전하고 신뢰할 수 있는 배송 서비스를 제공합니다.</p>
           </div>
         </div>

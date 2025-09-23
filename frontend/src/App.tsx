@@ -125,7 +125,7 @@ const AppContent: React.FC = () => {
             <div className="flex items-center gap-3">
               <Package className="w-8 h-8 text-blue-500" />
               <div>
-                <h1 className="text-xl font-bold text-gray-900">배송접수 시스템</h1>
+                <h1 className="text-xl font-bold text-gray-900">가구배송 easypicks</h1>
                 <p className="text-sm text-gray-500">간편한 배송 접수 서비스</p>
               </div>
             </div>
@@ -298,7 +298,7 @@ const AppContent: React.FC = () => {
       <footer className="bg-white border-t mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="text-center text-sm text-gray-500">
-            <p>&copy; 2024 배송접수 시스템. All rights reserved.</p>
+            <p>&copy; 2024 가구배송 easypicks. All rights reserved.</p>
             <p className="mt-1">안전하고 신뢰할 수 있는 배송 서비스를 제공합니다.</p>
             <div className="mt-4">
               <button
