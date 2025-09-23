@@ -196,7 +196,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
 
         {/* 6개의 정사각형 버튼을 3x2 그리드로 배치 */}
         <div className="max-w-2xl mx-auto">
-          {/* 첫 번째 줄: 새배송접수, 기사배정 */}
+          {/* 첫 번째 줄: 새배송접수, 배송현황 */}
           <div className="flex justify-center gap-8 mb-8">
             {/* 새배송접수 버튼 */}
             <button
@@ -212,6 +212,23 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
               </div>
             </button>
 
+            {/* 배송현황 버튼 */}
+            <button
+              onClick={() => handleButtonClick('배송현황')}
+              className="w-48 h-48 bg-white rounded-3xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 flex flex-col items-center justify-center gap-4 group"
+            >
+              <div className="w-16 h-16 bg-teal-500 group-hover:bg-teal-600 rounded-2xl flex items-center justify-center transition-colors">
+                <MapPin className="w-8 h-8 text-white" />
+              </div>
+              <div className="text-center">
+                <h3 className="text-xl font-bold text-gray-900 mb-1">배송현황</h3>
+                <p className="text-sm text-gray-500">배송 현황을 조회합니다</p>
+              </div>
+            </button>
+          </div>
+
+          {/* 두 번째 줄: 기사배정, 상품관리 */}
+          <div className="flex justify-center gap-8 mb-8">
             {/* 기사배정 버튼 */}
             <button
               onClick={() => handleButtonClick('기사배정')}
@@ -225,10 +242,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                 <p className="text-sm text-gray-500">배송기사를 배정합니다</p>
               </div>
             </button>
-          </div>
 
-          {/* 두 번째 줄: 상품관리, 사용자관리 */}
-          <div className="flex justify-center gap-8 mb-8">
             {/* 상품관리 버튼 */}
             <button
               onClick={() => handleButtonClick('상품관리')}
@@ -242,7 +256,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                 <p className="text-sm text-gray-500">상품 정보를 관리합니다</p>
               </div>
             </button>
+          </div>
 
+          {/* 세 번째 줄: 사용자관리, 기사관리 */}
+          <div className="flex justify-center gap-8">
             {/* 사용자관리 버튼 */}
             <button
               onClick={() => handleButtonClick('사용자관리')}
@@ -256,10 +273,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                 <p className="text-sm text-gray-500">사용자 계정을 관리합니다</p>
               </div>
             </button>
-          </div>
 
-          {/* 세 번째 줄: 기사관리, 배송현황 */}
-          <div className="flex justify-center gap-8">
             {/* 기사관리 버튼 */}
             <button
               onClick={() => handleButtonClick('기사관리')}
@@ -271,20 +285,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
               <div className="text-center">
                 <h3 className="text-xl font-bold text-gray-900 mb-1">기사관리</h3>
                 <p className="text-sm text-gray-500">배송기사를 관리합니다</p>
-              </div>
-            </button>
-
-            {/* 배송현황 버튼 */}
-            <button
-              onClick={() => handleButtonClick('배송현황')}
-              className="w-48 h-48 bg-white rounded-3xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 flex flex-col items-center justify-center gap-4 group"
-            >
-              <div className="w-16 h-16 bg-teal-500 group-hover:bg-teal-600 rounded-2xl flex items-center justify-center transition-colors">
-                <MapPin className="w-8 h-8 text-white" />
-              </div>
-              <div className="text-center">
-                <h3 className="text-xl font-bold text-gray-900 mb-1">배송현황</h3>
-                <p className="text-sm text-gray-500">배송 현황을 조회합니다</p>
               </div>
             </button>
           </div>
