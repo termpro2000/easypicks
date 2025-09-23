@@ -1234,31 +1234,34 @@ app.put('/api/deliveries/:id', async (req, res) => {
       });
     }
     
-    // 동적 필드 업데이트 구성
+    // deliveries 테이블의 실제 컬럼 확인
+    const [columns] = await pool.execute(`
+      SELECT COLUMN_NAME 
+      FROM information_schema.COLUMNS 
+      WHERE TABLE_SCHEMA = DATABASE() 
+      AND TABLE_NAME = 'deliveries'
+    `);
+    
+    const existingColumns = columns.map(col => col.COLUMN_NAME);
+    console.log('📋 deliveries 테이블 컬럼:', existingColumns);
+    
+    // 동적 필드 업데이트 구성 (존재하는 컬럼만)
     const updateFields = [];
     const updateValues = [];
     
-    // 기사 배정 관련 필드들
-    if (req.body.driver_id !== undefined) {
+    // 기사 배정 관련 필드들 (존재하는 것만)
+    if (req.body.driver_id !== undefined && existingColumns.includes('driver_id')) {
       updateFields.push('driver_id = ?');
       updateValues.push(req.body.driver_id);
     }
-    if (req.body.driver_name !== undefined) {
-      updateFields.push('driver_name = ?');
-      updateValues.push(req.body.driver_name);
-    }
-    if (req.body.assigned_driver !== undefined) {
-      updateFields.push('assigned_driver = ?');
-      updateValues.push(req.body.assigned_driver);
-    }
-    if (req.body.status !== undefined) {
+    if (req.body.status !== undefined && existingColumns.includes('status')) {
       updateFields.push('status = ?');
       updateValues.push(req.body.status);
     }
     
-    // 기타 필드들
+    // 기타 필드들 (존재하는 컬럼만)
     Object.keys(req.body).forEach(key => {
-      if (!['driver_id', 'driver_name', 'assigned_driver', 'status'].includes(key)) {
+      if (!['driver_id', 'status'].includes(key) && existingColumns.includes(key)) {
         updateFields.push(`${key} = ?`);
         updateValues.push(req.body[key]);
       }
@@ -1267,13 +1270,18 @@ app.put('/api/deliveries/:id', async (req, res) => {
     if (updateFields.length === 0) {
       return res.status(400).json({
         error: 'Bad Request',
-        message: '업데이트할 필드가 없습니다.'
+        message: '업데이트할 유효한 필드가 없습니다.'
       });
     }
     
-    // updated_at 추가
-    updateFields.push('updated_at = NOW()');
+    // updated_at 추가 (존재하는 경우만)
+    if (existingColumns.includes('updated_at')) {
+      updateFields.push('updated_at = NOW()');
+    }
     updateValues.push(id);
+    
+    console.log('🔄 업데이트 필드:', updateFields);
+    console.log('🔄 업데이트 값:', updateValues);
     
     // 업데이트 실행
     const [result] = await pool.execute(`
