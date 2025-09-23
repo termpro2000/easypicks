@@ -1604,6 +1604,151 @@ app.post('/api/debug/add-driver-columns', async (req, res) => {
 });
 
 // ============================
+// SCHEMA API 엔드포인트들
+// ============================
+
+// 스키마 정보 조회
+app.get('/api/schema', async (req, res) => {
+  try {
+    console.log('📋 스키마 정보 조회 요청');
+    
+    // 모든 테이블 목록 조회
+    const [tables] = await pool.execute(`
+      SELECT TABLE_NAME, TABLE_ROWS, TABLE_COMMENT
+      FROM information_schema.TABLES 
+      WHERE TABLE_SCHEMA = DATABASE()
+      ORDER BY TABLE_NAME
+    `);
+    
+    // 각 테이블의 컬럼 정보 조회
+    const schema = {};
+    
+    for (const table of tables) {
+      const tableName = table.TABLE_NAME;
+      
+      const [columns] = await pool.execute(`
+        SELECT 
+          COLUMN_NAME,
+          DATA_TYPE,
+          IS_NULLABLE,
+          COLUMN_DEFAULT,
+          COLUMN_TYPE,
+          COLUMN_KEY,
+          EXTRA,
+          COLUMN_COMMENT
+        FROM information_schema.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE() 
+        AND TABLE_NAME = ?
+        ORDER BY ORDINAL_POSITION
+      `, [tableName]);
+      
+      schema[tableName] = {
+        table_info: {
+          name: tableName,
+          rows: table.TABLE_ROWS,
+          comment: table.TABLE_COMMENT
+        },
+        columns: columns.map(col => ({
+          name: col.COLUMN_NAME,
+          type: col.DATA_TYPE,
+          column_type: col.COLUMN_TYPE,
+          nullable: col.IS_NULLABLE === 'YES',
+          default: col.COLUMN_DEFAULT,
+          key: col.COLUMN_KEY,
+          extra: col.EXTRA,
+          comment: col.COLUMN_COMMENT
+        }))
+      };
+    }
+    
+    console.log(`✅ 스키마 정보 조회 완료: ${tables.length}개 테이블`);
+    
+    res.json({
+      success: true,
+      database: process.env.DB_NAME || 'unknown',
+      tables: tables.length,
+      schema: schema
+    });
+    
+  } catch (error) {
+    console.error('❌ 스키마 정보 조회 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '스키마 정보를 조회할 수 없습니다.',
+      details: error.message
+    });
+  }
+});
+
+// 특정 테이블 스키마 조회
+app.get('/api/schema/:tableName', async (req, res) => {
+  try {
+    const { tableName } = req.params;
+    console.log('📋 테이블 스키마 조회:', tableName);
+    
+    // 테이블 존재 확인
+    const [tableExists] = await pool.execute(`
+      SELECT TABLE_NAME, TABLE_ROWS, TABLE_COMMENT
+      FROM information_schema.TABLES 
+      WHERE TABLE_SCHEMA = DATABASE() 
+      AND TABLE_NAME = ?
+    `, [tableName]);
+    
+    if (tableExists.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: '테이블을 찾을 수 없습니다.',
+        tableName: tableName
+      });
+    }
+    
+    // 테이블 컬럼 정보 조회
+    const [columns] = await pool.execute(`
+      SELECT 
+        COLUMN_NAME,
+        DATA_TYPE,
+        IS_NULLABLE,
+        COLUMN_DEFAULT,
+        COLUMN_TYPE,
+        COLUMN_KEY,
+        EXTRA,
+        COLUMN_COMMENT
+      FROM information_schema.COLUMNS 
+      WHERE TABLE_SCHEMA = DATABASE() 
+      AND TABLE_NAME = ?
+      ORDER BY ORDINAL_POSITION
+    `, [tableName]);
+    
+    res.json({
+      success: true,
+      table: {
+        name: tableName,
+        rows: tableExists[0].TABLE_ROWS,
+        comment: tableExists[0].TABLE_COMMENT,
+        columns: columns.map(col => ({
+          name: col.COLUMN_NAME,
+          type: col.DATA_TYPE,
+          column_type: col.COLUMN_TYPE,
+          nullable: col.IS_NULLABLE === 'YES',
+          default: col.COLUMN_DEFAULT,
+          key: col.COLUMN_KEY,
+          extra: col.EXTRA,
+          comment: col.COLUMN_COMMENT
+        }))
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ 테이블 스키마 조회 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '테이블 스키마를 조회할 수 없습니다.',
+      details: error.message
+    });
+  }
+});
+
+// ============================
 // SHIPPING API 엔드포인트들
 // ============================
 
