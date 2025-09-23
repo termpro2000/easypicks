@@ -1548,6 +1548,61 @@ app.post('/api/debug/update-password', async (req, res) => {
   }
 });
 
+// drivers 테이블에 username, password 컬럼 추가 (디버그용)
+app.post('/api/debug/add-driver-columns', async (req, res) => {
+  try {
+    console.log('📋 drivers 테이블에 username, password 컬럼 추가 시작');
+    
+    // 현재 컬럼 확인
+    const [columns] = await pool.execute(`
+      SELECT COLUMN_NAME 
+      FROM information_schema.COLUMNS 
+      WHERE TABLE_SCHEMA = DATABASE() 
+      AND TABLE_NAME = 'drivers'
+    `);
+    
+    const columnNames = columns.map(col => col.COLUMN_NAME);
+    console.log('📋 기존 drivers 테이블 컬럼:', columnNames);
+    
+    const results = [];
+    
+    // username 컬럼 추가
+    if (!columnNames.includes('username')) {
+      await pool.execute(`
+        ALTER TABLE drivers ADD COLUMN username VARCHAR(50) NULL AFTER id
+      `);
+      console.log('✅ username 컬럼 추가 완료');
+      results.push('username 컬럼 추가 완료');
+    } else {
+      results.push('username 컬럼 이미 존재');
+    }
+    
+    // password 컬럼 추가
+    if (!columnNames.includes('password')) {
+      await pool.execute(`
+        ALTER TABLE drivers ADD COLUMN password VARCHAR(255) NULL AFTER username
+      `);
+      console.log('✅ password 컬럼 추가 완료');
+      results.push('password 컬럼 추가 완료');
+    } else {
+      results.push('password 컬럼 이미 존재');
+    }
+    
+    res.json({
+      success: true,
+      message: 'drivers 테이블 컬럼 추가 작업 완료',
+      results: results
+    });
+    
+  } catch (error) {
+    console.error('❌ drivers 테이블 컬럼 추가 오류:', error);
+    res.status(500).json({
+      error: error.message,
+      message: 'drivers 테이블 컬럼 추가 중 오류 발생'
+    });
+  }
+});
+
 // ============================
 // SHIPPING API 엔드포인트들
 // ============================
