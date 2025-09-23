@@ -180,18 +180,45 @@ router.post('/', authenticateToken, requireRole(['admin']), async (req, res) => 
       });
     }
     
-    // 사용자 생성 - 기본 필드만 사용
-    const params = [username, password, name, email, phone, company, role, is_active];
-    console.log('SQL 매개변수:', params.map((p, i) => `${i}: ${p === undefined ? 'UNDEFINED' : p === null ? 'NULL' : typeof p === 'string' ? `"${p}"` : p}`));
+    // 데이터베이스 스키마 확인 후 동적 INSERT
+    const [columns] = await pool.execute(`
+      SELECT COLUMN_NAME 
+      FROM INFORMATION_SCHEMA.COLUMNS 
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users'
+      ORDER BY ORDINAL_POSITION
+    `);
     
-    // undefined 값을 모두 null로 변환
-    const safeParams = params.map(p => p === undefined ? null : p);
-    console.log('안전한 매개변수:', safeParams.map((p, i) => `${i}: ${p === null ? 'NULL' : typeof p === 'string' ? `"${p}"` : p}`));
+    const existingColumns = columns.map(col => col.COLUMN_NAME);
+    console.log('기존 컬럼들:', existingColumns);
+    
+    // 기본 필드만 사용하여 INSERT
+    const basicFields = ['username', 'password', 'name'];
+    const basicValues = [username, password, name];
+    
+    // 선택적 필드들 (존재하는 컬럼만)
+    const optionalFields = [
+      { name: 'email', value: email },
+      { name: 'phone', value: phone },
+      { name: 'company', value: company },
+      { name: 'role', value: role },
+      { name: 'is_active', value: is_active }
+    ];
+    
+    const validOptionalFields = optionalFields.filter(field => existingColumns.includes(field.name));
+    
+    const allFields = [...basicFields, ...validOptionalFields.map(f => f.name), 'created_at', 'updated_at'];
+    const allValues = [...basicValues, ...validOptionalFields.map(f => f.value), 'NOW()', 'NOW()'];
+    
+    console.log('사용할 필드들:', allFields);
+    console.log('사용할 값들:', allValues.map((v, i) => `${i}: ${v === null ? 'NULL' : typeof v === 'string' && v !== 'NOW()' ? `"${v}"` : v}`));
+    
+    const placeholders = allValues.map(v => v === 'NOW()' ? 'NOW()' : '?').join(', ');
+    const actualValues = allValues.filter(v => v !== 'NOW()');
     
     const [result] = await pool.execute(`
-      INSERT INTO users (username, password, name, email, phone, company, role, is_active, created_at, updated_at) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
-    `, safeParams);
+      INSERT INTO users (${allFields.join(', ')}) 
+      VALUES (${placeholders})
+    `, actualValues);
     
     console.log(`[Users API] 사용자 생성 완료: ID ${result.insertId}`);
     
