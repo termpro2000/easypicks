@@ -519,16 +519,39 @@ app.get('/api/test/drivers', async (req, res) => {
     `);
     
     if (tables.length === 0) {
-      console.log('⚠️ [Test API] drivers 테이블이 존재하지 않음');
+      console.log('⚠️ [Test API] drivers 테이블이 존재하지 않음 - users 테이블에서 driver 역할 조회');
+      
+      // users 테이블에서 driver 역할의 사용자들을 조회
+      const [drivers] = await pool.execute(`
+        SELECT 
+          id,
+          username,
+          name,
+          email,
+          phone,
+          company as vehicle_type,
+          phone as vehicle_number,
+          '' as license_number,
+          is_active,
+          created_at,
+          updated_at
+        FROM users 
+        WHERE role = 'driver'
+        ORDER BY created_at DESC
+      `);
+      
+      console.log(`✅ [Test API] 기사 목록 조회 완료 (users 테이블에서): ${drivers.length}개`);
+      
       return res.json({
         success: true,
-        drivers: []
+        drivers: drivers
       });
     }
     
+    // drivers 테이블이 있는 경우
     const [drivers] = await pool.execute(`
       SELECT 
-        driver_id as id,
+        id,
         username,
         name,
         email,
@@ -626,7 +649,7 @@ app.get('/api/drivers', async (req, res) => {
       // drivers 테이블이 없으면 생성
       await pool.execute(`
         CREATE TABLE IF NOT EXISTS drivers (
-          driver_id INT AUTO_INCREMENT PRIMARY KEY,
+          id INT AUTO_INCREMENT PRIMARY KEY,
           username VARCHAR(100) UNIQUE NOT NULL,
           password VARCHAR(255) NOT NULL,
           name VARCHAR(100) NOT NULL,
@@ -657,7 +680,7 @@ app.get('/api/drivers', async (req, res) => {
     
     const [drivers] = await pool.execute(`
       SELECT 
-        driver_id as id,
+        id,
         username,
         name,
         email,
@@ -728,7 +751,7 @@ app.post('/api/drivers', async (req, res) => {
     
     // 사용자명 중복 확인
     const [existingDrivers] = await pool.execute(
-      'SELECT driver_id FROM drivers WHERE username = ?',
+      'SELECT id FROM drivers WHERE username = ?',
       [username]
     );
     
