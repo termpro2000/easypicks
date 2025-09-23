@@ -711,6 +711,7 @@ app.get('/api/drivers', async (req, res) => {
     
     // 기본적으로 존재할 것으로 예상되는 컬럼들만 조회
     const selectColumns = ['id'];
+    if (columnNames.includes('user_id')) selectColumns.push('user_id');
     if (columnNames.includes('username')) selectColumns.push('username');
     if (columnNames.includes('name')) selectColumns.push('name');
     if (columnNames.includes('email')) selectColumns.push('email');
