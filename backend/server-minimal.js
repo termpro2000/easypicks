@@ -269,6 +269,40 @@ app.get('/api/deliveries', async (req, res) => {
   }
 });
 
+// 모든 배송 데이터 삭제 (테스트용)
+app.delete('/api/deliveries/all', async (req, res) => {
+  try {
+    console.log('🗑️ 모든 배송 데이터 삭제 요청');
+    
+    // 삭제 전 데이터 개수 확인
+    const [countResult] = await pool.execute('SELECT COUNT(*) as count FROM deliveries');
+    const totalCount = countResult[0].count;
+    
+    console.log('📊 삭제 대상 배송 데이터:', totalCount + '개');
+    
+    // 모든 배송 데이터 삭제
+    const [result] = await pool.execute('DELETE FROM deliveries');
+    
+    console.log('✅ 모든 배송 데이터가 성공적으로 삭제되었습니다.');
+    console.log('📋 삭제된 레코드 수:', result.affectedRows);
+    
+    res.json({
+      success: true,
+      message: `총 ${result.affectedRows}개의 배송 데이터가 성공적으로 삭제되었습니다.`,
+      deletedCount: result.affectedRows,
+      totalCount: totalCount
+    });
+    
+  } catch (error) {
+    console.error('❌ 배송 데이터 삭제 오류:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: '배송 데이터 삭제 중 오류가 발생했습니다.',
+      details: error.message
+    });
+  }
+});
+
 // Auth 라우트들
 app.post('/api/auth/login', async (req, res) => {
   try {
