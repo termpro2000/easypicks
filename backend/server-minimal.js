@@ -859,6 +859,112 @@ app.post('/api/drivers', async (req, res) => {
   }
 });
 
+// 기사 정보 수정
+app.put('/api/drivers/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log('✏️ 기사 정보 수정 요청:', id);
+    
+    const {
+      username, password, name, email, phone,
+      vehicle_type, vehicle_number, license_number, is_active
+    } = req.body;
+    
+    // 기사 존재 확인
+    const [existingDrivers] = await pool.execute('SELECT id FROM drivers WHERE id = ?', [id]);
+    if (existingDrivers.length === 0) {
+      return res.status(404).json({
+        error: 'Not Found',
+        message: '기사를 찾을 수 없습니다.'
+      });
+    }
+    
+    // drivers 테이블 컬럼 확인
+    const [columns] = await pool.execute(`
+      SELECT COLUMN_NAME 
+      FROM information_schema.COLUMNS 
+      WHERE TABLE_SCHEMA = DATABASE() 
+      AND TABLE_NAME = 'drivers'
+    `);
+    
+    const columnNames = columns.map(col => col.COLUMN_NAME);
+    console.log('📋 drivers 테이블 컬럼:', columnNames);
+    
+    // 동적으로 업데이트할 필드들
+    const updates = [];
+    const values = [];
+    
+    if (username !== undefined && columnNames.includes('username')) { 
+      updates.push('username = ?'); 
+      values.push(username); 
+    }
+    if (password !== undefined && columnNames.includes('password')) { 
+      updates.push('password = ?'); 
+      values.push(password); 
+    }
+    if (name !== undefined && columnNames.includes('name')) { 
+      updates.push('name = ?'); 
+      values.push(name); 
+    }
+    if (email !== undefined && columnNames.includes('email')) { 
+      updates.push('email = ?'); 
+      values.push(email); 
+    }
+    if (phone !== undefined && columnNames.includes('phone')) { 
+      updates.push('phone = ?'); 
+      values.push(phone); 
+    }
+    if (vehicle_type !== undefined && columnNames.includes('vehicle_type')) { 
+      updates.push('vehicle_type = ?'); 
+      values.push(vehicle_type); 
+    }
+    if (vehicle_number !== undefined && columnNames.includes('vehicle_number')) { 
+      updates.push('vehicle_number = ?'); 
+      values.push(vehicle_number); 
+    }
+    if (license_number !== undefined && columnNames.includes('license_number')) { 
+      updates.push('license_number = ?'); 
+      values.push(license_number); 
+    }
+    if (is_active !== undefined && columnNames.includes('is_active')) { 
+      updates.push('is_active = ?'); 
+      values.push(is_active ? 1 : 0); 
+    }
+    
+    if (updates.length === 0) {
+      return res.status(400).json({
+        error: 'Bad Request',
+        message: '업데이트할 필드가 없습니다.'
+      });
+    }
+    
+    if (columnNames.includes('updated_at')) {
+      updates.push('updated_at = NOW()');
+    }
+    values.push(id);
+    
+    const [result] = await pool.execute(`
+      UPDATE drivers SET ${updates.join(', ')} WHERE id = ?
+    `, values);
+    
+    console.log('✅ 기사 정보 수정 성공:', { id, affectedRows: result.affectedRows });
+    
+    res.json({
+      success: true,
+      message: '기사 정보가 성공적으로 수정되었습니다.',
+      affectedRows: result.affectedRows
+    });
+    
+  } catch (error) {
+    console.error('❌ 기사 정보 수정 오류:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: '기사 정보 수정 중 오류가 발생했습니다.',
+      details: error.message
+    });
+  }
+});
+
 // 배송 생성 (52개 필드 지원)
 app.post('/api/deliveries', async (req, res) => {
   try {
