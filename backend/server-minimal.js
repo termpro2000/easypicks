@@ -53,6 +53,30 @@ app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
+// DB 컬럼 정보 확인용 임시 엔드포인트
+app.get('/api/debug/columns', async (req, res) => {
+  try {
+    const [columns] = await pool.execute(`
+      SELECT COLUMN_NAME, DATA_TYPE, IS_NULLABLE, COLUMN_DEFAULT, COLUMN_TYPE
+      FROM INFORMATION_SCHEMA.COLUMNS 
+      WHERE TABLE_SCHEMA = DATABASE() 
+      AND TABLE_NAME = 'deliveries'
+      ORDER BY ORDINAL_POSITION
+    `);
+    
+    res.json({
+      success: true,
+      columns: columns,
+      totalColumns: columns.length
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Failed to get columns',
+      message: error.message
+    });
+  }
+});
+
 // 루트 엔드포인트
 app.get('/', (req, res) => {
   res.json({
