@@ -247,3 +247,20 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log('🔄 Railway 재배포 완료 - ' + new Date().toISOString());
   console.log('✅ 서버 준비 완료!');
 });
+
+// Graceful shutdown 처리 (Railway SIGTERM 대응)
+process.on('SIGTERM', () => {
+  console.log('🛑 SIGTERM 신호 수신, 서버 종료 중...');
+  server.close(() => {
+    console.log('✅ 서버가 정상적으로 종료되었습니다.');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('🛑 SIGINT 신호 수신, 서버 종료 중...');
+  server.close(() => {
+    console.log('✅ 서버가 정상적으로 종료되었습니다.');
+    process.exit(0);
+  });
+});

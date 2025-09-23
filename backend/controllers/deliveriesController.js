@@ -212,14 +212,30 @@ async function createDelivery(req, res) {
       { column: 'completion_audio_file', value: req.body.completion_audio_file }
     ];
 
-    // 존재하는 컬럼만 필터링
+    // 존재하는 컬럼만 필터링 및 데이터 타입 검증
     const finalColumns = [...baseColumns];
     const finalValues = [...baseValues];
 
     additionalFields.forEach(field => {
       if (existingColumns.includes(field.column) && field.value !== undefined && field.value !== null) {
+        let processedValue = field.value;
+        
+        // 숫자 필드에 대한 추가 검증 및 변환
+        if (['weight', 'delivery_fee', 'insurance_value', 'cod_amount', 'distance', 'delivery_attempts'].includes(field.column)) {
+          if (typeof processedValue === 'string') {
+            // 문자열에서 숫자만 추출
+            const numericValue = parseFloat(processedValue.replace(/[^0-9.-]/g, ''));
+            processedValue = isNaN(numericValue) ? null : numericValue;
+          }
+          // null이면 건너뛰기
+          if (processedValue === null) {
+            console.log(`⚠️ Skipping null numeric field: ${field.column}`);
+            return;
+          }
+        }
+        
         finalColumns.push(field.column);
-        finalValues.push(field.value);
+        finalValues.push(processedValue);
       }
     });
 

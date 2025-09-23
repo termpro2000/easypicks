@@ -232,15 +232,25 @@ const TestPage: React.FC<TestPageProps> = ({ onNavigateBack }) => {
     setShowDeliveryDetailModal(true);
   };
 
+  // 숫자 파싱 헬퍼 함수
+  const parseNumber = (value: any) => {
+    if (!value) return null;
+    if (typeof value === 'number') return value;
+    // "50kg", "45.5kg", "30cm" 등에서 숫자만 추출
+    const numericValue = parseFloat(value.toString().replace(/[^0-9.]/g, ''));
+    return isNaN(numericValue) ? null : numericValue;
+  };
+
   // 새로운 배송 생성 함수
   const handleCreateDelivery = async (deliveryData: any) => {
     setIsCreating(true);
     setMessage(null);
     
     try {
-      // deliveriesAPI를 사용해 실제 배송 생성
+      // deliveriesAPI를 사용해 실제 배송 생성 (숫자 필드 파싱 포함)
       const createData = {
         sender_name: deliveryData.sender_name,
+        sender_company: deliveryData.sender_company,
         sender_address: deliveryData.sender_address,
         customer_name: deliveryData.customer_name,
         customer_phone: deliveryData.customer_phone,
@@ -250,15 +260,45 @@ const TestPage: React.FC<TestPageProps> = ({ onNavigateBack }) => {
         status: deliveryData.status,
         visit_date: deliveryData.visit_date,
         visit_time: deliveryData.visit_time,
+        preferred_delivery_date: deliveryData.preferred_delivery_date,
+        
+        // 숫자 필드들 파싱
+        weight: parseNumber(deliveryData.weight),
+        delivery_fee: parseNumber(deliveryData.delivery_fee),
+        cod_amount: parseNumber(deliveryData.cod_amount),
+        insurance_amount: parseNumber(deliveryData.insurance_value),
+        distance: parseNumber(deliveryData.distance),
+        delivery_attempts: parseInt(deliveryData.delivery_attempts) || 0,
+        
+        // 문자열 필드들
+        product_weight: deliveryData.product_weight,
+        product_size: deliveryData.product_size,
+        box_size: deliveryData.box_size,
+        construction_type: deliveryData.construction_type,
+        building_type: deliveryData.building_type,
+        floor_count: deliveryData.floor_count,
+        furniture_company: deliveryData.furniture_company,
+        furniture_requests: deliveryData.furniture_requests,
+        emergency_contact: deliveryData.emergency_contact,
+        disposal: deliveryData.disposal,
+        room_movement: deliveryData.room_movement,
+        wall_construction: deliveryData.wall_construction,
+        last_location: deliveryData.last_location,
+        estimated_delivery: deliveryData.estimated_delivery,
+        
+        // 메모 필드들
         special_instructions: deliveryData.special_instructions,
         main_memo: deliveryData.main_memo,
         delivery_memo: `테스트 생성 - ${new Date().toLocaleString()}`,
-        delivery_fee: deliveryData.delivery_fee,
-        cod_amount: deliveryData.cod_amount,
-        insurance_amount: deliveryData.insurance_value,
-        is_fragile: deliveryData.fragile,
         driver_notes: deliveryData.driver_notes,
-        detail_notes: deliveryData.detail_notes
+        detail_notes: deliveryData.detail_notes,
+        
+        // 불린 필드들
+        is_fragile: deliveryData.fragile || deliveryData.is_fragile,
+        has_elevator: deliveryData.has_elevator,
+        can_use_ladder_truck: deliveryData.can_use_ladder_truck,
+        requires_signature: deliveryData.requires_signature,
+        is_frozen: deliveryData.is_frozen
       };
 
       const response = await deliveriesAPI.createDelivery ? 
