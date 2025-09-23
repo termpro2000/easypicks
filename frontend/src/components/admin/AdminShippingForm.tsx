@@ -3,11 +3,12 @@ import { useForm } from 'react-hook-form';
 import { 
   User, Phone, Building, MapPin, Package, Truck, 
   Calendar, Clock, AlertTriangle, FileText, Shield, 
-  Home, Wrench, Weight, Box, Settings, ArrowLeft, Check, Search
+  Home, Wrench, Weight, Box, Settings, ArrowLeft, Check, Search, X
 } from 'lucide-react';
 import { shippingAPI, userAPI } from '../../services/api';
 // import { useAuth } from '../../hooks/useAuth'; // 향후 사용 예정
 import ProductSelectionModal from '../partner/ProductSelectionModal';
+import PartnerSelectionModal from './PartnerSelectionModal';
 
 // Daum 우편번호 서비스 타입 선언
 declare global {
@@ -110,6 +111,7 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
   const [submitResult, setSubmitResult] = useState<{ success: boolean; message: string; trackingNumber?: string } | null>(null);
   const [requestTypes, setRequestTypes] = useState<string[]>([]);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [isPartnerModalOpen, setIsPartnerModalOpen] = useState(false);
   const [users, setUsers] = useState<UserOption[]>([]);
   const [selectedUser, setSelectedUser] = useState<UserOption | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -313,6 +315,42 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
     }
   };
 
+  // 파트너사 선택 핸들러 (모달에서)
+  const handleSelectPartner = (partner: any) => {
+    setSelectedUser(partner);
+    
+    // 발송인 정보 자동 설정
+    if (partner.default_sender_name || partner.name) {
+      setValue('sender_name', partner.default_sender_name || partner.name);
+    }
+
+    if (partner.default_sender_address) {
+      setValue('sender_address', partner.default_sender_address);
+    }
+
+    if (partner.default_sender_detail_address) {
+      setValue('sender_detail_address', partner.default_sender_detail_address);
+    }
+
+    if (partner.default_sender_zipcode) {
+      setValue('sender_zipcode', partner.default_sender_zipcode);
+    }
+
+    if (partner.default_sender_company || partner.company) {
+      setValue('furniture_company', partner.default_sender_company || partner.company);
+    }
+
+    if (partner.default_sender_phone || partner.phone) {
+      setValue('emergency_contact', partner.default_sender_phone || partner.phone);
+    }
+
+    if (partner.email) {
+      setValue('sender_email', partner.email);
+    }
+
+    setIsPartnerModalOpen(false);
+  };
+
   // 폼 제출
   const onSubmit = async (data: DeliveryData) => {
     setIsSubmitting(true);
@@ -503,6 +541,15 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
                         <Search className="w-4 h-4" />
                       )}
                       조회
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsPartnerModalOpen(true)}
+                      className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors flex items-center gap-1"
+                      title="파트너사 선택 화면으로 이동"
+                    >
+                      <Building className="w-4 h-4" />
+                      선택화면
                     </button>
                   </div>
                   
@@ -1059,6 +1106,13 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
         isOpen={isProductModalOpen}
         onClose={() => setIsProductModalOpen(false)}
         onSelectProduct={handleSelectProduct}
+      />
+
+      {/* 파트너사 선택 모달 */}
+      <PartnerSelectionModal
+        isOpen={isPartnerModalOpen}
+        onClose={() => setIsPartnerModalOpen(false)}
+        onSelectPartner={handleSelectPartner}
       />
     </div>
   );

@@ -326,19 +326,23 @@ const TestPage: React.FC<TestPageProps> = ({ onNavigateBack }) => {
         customer_signature: cleanValue(deliveryData.customer_signature)
       };
 
-      console.log('📤 최종 전송 데이터:', JSON.stringify(createData, null, 2));
+      console.log('📤 최종 전송 데이터 (정확한 JSON):', JSON.stringify(createData, null, 2));
+      console.log('📋 필드별 상세 분석:');
+      Object.entries(createData).forEach(([key, value]) => {
+        console.log(`  ${key}: ${JSON.stringify(value)} (${typeof value})`);
+      });
       console.log('🔑 JWT 토큰:', localStorage.getItem('jwt_token') ? '있음' : '없음');
+      console.log('📊 전송 데이터 통계:', {
+        totalFields: Object.keys(createData).length,
+        nullFields: Object.entries(createData).filter(([k,v]) => v === null).length,
+        undefinedFields: Object.entries(createData).filter(([k,v]) => v === undefined).length,
+        stringFields: Object.entries(createData).filter(([k,v]) => typeof v === 'string').length,
+        numberFields: Object.entries(createData).filter(([k,v]) => typeof v === 'number').length
+      });
 
-      const response = await deliveriesAPI.createDelivery ? 
-        deliveriesAPI.createDelivery(createData) : 
-        await fetch('/api/deliveries', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('jwt_token')}`
-          },
-          body: JSON.stringify(createData)
-        }).then(res => res.json());
+      console.log('🚀 API 호출 시작...');
+      const response = await deliveriesAPI.createDelivery(createData);
+      console.log('✅ API 호출 성공');
 
       console.log('✅ 서버 응답:', response);
 
