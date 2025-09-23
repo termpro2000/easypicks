@@ -879,6 +879,19 @@ app.post('/api/deliveries', async (req, res) => {
       console.log(`  ${key}: ${JSON.stringify(value)} (${typeof value})`);
     });
     
+    // 날짜/시간 변환 함수 (MySQL datetime 형식으로 변환)
+    const convertToMySQLDatetime = (dateString) => {
+      if (!dateString) return null;
+      try {
+        const date = new Date(dateString);
+        // ISO 8601을 MySQL datetime 형식으로 변환 (YYYY-MM-DD HH:MM:SS)
+        return date.toISOString().slice(0, 19).replace('T', ' ');
+      } catch (e) {
+        console.warn('❌ 날짜 변환 오류:', dateString, e.message);
+        return null;
+      }
+    };
+    
     // 프론트엔드에서 보내는 52개 필드 구조에 맞게 수정
     const {
       // 발송자 정보
@@ -993,9 +1006,9 @@ app.post('/api/deliveries', async (req, res) => {
       { column: 'delivery_fee', value: parseNumber(req.body.delivery_fee) || 0 },
       { column: 'insurance_value', value: parseNumber(insurance_amount || req.body.insurance_value) || 0 },
       { column: 'cod_amount', value: parseNumber(req.body.cod_amount) || 0 },
-      { column: 'estimated_delivery', value: preferred_delivery_date || req.body.estimated_delivery },
-      { column: 'actual_delivery', value: req.body.actual_delivery },
-      { column: 'completed_at', value: req.body.completed_at },
+      { column: 'estimated_delivery', value: convertToMySQLDatetime(req.body.estimated_delivery) },
+      { column: 'actual_delivery', value: convertToMySQLDatetime(req.body.actual_delivery) },
+      { column: 'completed_at', value: convertToMySQLDatetime(req.body.completed_at) },
       { column: 'priority', value: req.body.priority || '보통' },
       { column: 'delivery_type', value: req.body.delivery_type || '일반배송' },
       { column: 'payment_method', value: req.body.payment_method },
@@ -1014,7 +1027,7 @@ app.post('/api/deliveries', async (req, res) => {
       { column: 'signature_required', value: requires_signature ? 1 : (req.body.signature_required ? 1 : 0) },
       { column: 'notes', value: req.body.notes },
       { column: 'cancellation_reason', value: req.body.cancellation_reason },
-      { column: 'cancelled_at', value: req.body.cancelled_at },
+      { column: 'cancelled_at', value: convertToMySQLDatetime(req.body.canceled_at || req.body.cancelled_at) },
       { column: 'updated_at', value: req.body.updated_at }
     ];
 
