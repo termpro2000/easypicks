@@ -262,6 +262,17 @@ io.on('connection', (socket) => {
   });
 });
 
+// 전역 에러 핸들러
+process.on('uncaughtException', (error) => {
+  console.error('❌ Uncaught Exception:', error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
+
 console.log('🔄 서버 시작 준비 중...');
 console.log('📦 Environment:', process.env.NODE_ENV || 'development');
 console.log('🔌 포트:', PORT);
@@ -281,19 +292,22 @@ async function testDatabaseConnection() {
   }
 }
 
-server.listen(PORT, '0.0.0.0', async () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 서버가 포트 ${PORT}에서 실행 중입니다.`);
   console.log(`🏥 Health check: http://localhost:${PORT}/health`);
   console.log(`🔍 Debug info: http://localhost:${PORT}/debug`);
   console.log('🔌 Socket.IO 서버 시작됨 (기사별 푸시 알림 지원)');
   
-  // 데이터베이스 연결 테스트
-  const dbConnected = await testDatabaseConnection();
-  if (dbConnected) {
-    console.log('✅ MySQL2 연결 설정 최적화 완료');
-  } else {
-    console.error('❌ 데이터베이스 연결 문제 발생!');
-  }
+  // 데이터베이스 연결 테스트 (비동기적으로 실행)
+  testDatabaseConnection().then(dbConnected => {
+    if (dbConnected) {
+      console.log('✅ MySQL2 연결 설정 최적화 완료');
+    } else {
+      console.error('❌ 데이터베이스 연결 문제 발생!');
+    }
+  }).catch(error => {
+    console.error('❌ 데이터베이스 연결 테스트 오류:', error.message);
+  });
   
   console.log('🔄 Railway 재배포 완료 - ' + new Date().toISOString());
   console.log('✅ 서버 준비 완료!');
