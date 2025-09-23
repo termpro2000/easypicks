@@ -868,7 +868,15 @@ app.post('/api/deliveries', async (req, res) => {
       totalFields: Object.keys(req.body).length,
       undefinedFields: Object.entries(req.body).filter(([k,v]) => v === undefined).length,
       nullFields: Object.entries(req.body).filter(([k,v]) => v === null).length,
-      stringFields: Object.entries(req.body).filter(([k,v]) => typeof v === 'string').length
+      stringFields: Object.entries(req.body).filter(([k,v]) => typeof v === 'string').length,
+      numberFields: Object.entries(req.body).filter(([k,v]) => typeof v === 'number').length,
+      booleanFields: Object.entries(req.body).filter(([k,v]) => typeof v === 'boolean').length,
+      objectFields: Object.entries(req.body).filter(([k,v]) => typeof v === 'object' && v !== null).length
+    });
+    
+    console.log('🔍 필드별 상세 분석:');
+    Object.entries(req.body).forEach(([key, value]) => {
+      console.log(`  ${key}: ${JSON.stringify(value)} (${typeof value})`);
     });
     
     // 프론트엔드에서 보내는 52개 필드 구조에 맞게 수정
