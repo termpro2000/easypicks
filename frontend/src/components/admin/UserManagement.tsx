@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Plus, Edit, Trash2, Search, Eye, EyeOff, ArrowLeft } from 'lucide-react';
-import { userAPI } from '../../services/api';
+import { userAPI, testAPI } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
 
 interface User {
@@ -81,11 +81,35 @@ const UserManagement: React.FC<UserManagementProps> = ({ onNavigateBack }) => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const response = await userAPI.getAllUsers(1, 50, searchTerm, roleFilter);
-      setUsers(response.users || []);
+      // 테스트페이지와 같은 API 사용 (잘 작동하는 것으로 확인됨)
+      const response = await testAPI.getPartnersList();
+      
+      console.log('🔍 파트너사 목록 응답:', response);
+      
+      // testAPI 응답 구조에 맞게 조정
+      let usersList = response.partners || [];
+      
+      // 검색 필터링 (클라이언트 사이드)
+      if (searchTerm) {
+        usersList = usersList.filter((user: any) =>
+          user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          user.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          user.company?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          user.email?.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      }
+      
+      // 역할 필터링 (클라이언트 사이드)
+      if (roleFilter) {
+        usersList = usersList.filter((user: any) => user.role === roleFilter);
+      }
+      
+      setUsers(usersList);
+      console.log('✅ 파트너사 목록 설정 완료:', usersList.length + '개');
+      
     } catch (error: any) {
-      console.error('사용자 목록 조회 실패:', error);
-      showNotification('error', '사용자 목록을 불러오는데 실패했습니다.');
+      console.error('❌ 파트너사 목록 조회 실패:', error);
+      showNotification('error', '파트너사 목록을 불러오는데 실패했습니다.');
     } finally {
       setLoading(false);
     }
