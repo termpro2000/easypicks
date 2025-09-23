@@ -802,23 +802,23 @@ app.post('/api/drivers', async (req, res) => {
     }
     if (columnNames.includes('email')) {
       insertColumns.push('email');
-      insertValues.push(email);
+      insertValues.push(email || null);
     }
     if (columnNames.includes('phone')) {
       insertColumns.push('phone');
-      insertValues.push(phone);
+      insertValues.push(phone || null);
     }
     if (columnNames.includes('vehicle_type')) {
       insertColumns.push('vehicle_type');
-      insertValues.push(vehicle_type);
+      insertValues.push(vehicle_type || null);
     }
     if (columnNames.includes('vehicle_number')) {
       insertColumns.push('vehicle_number');
-      insertValues.push(vehicle_number);
+      insertValues.push(vehicle_number || null);
     }
     if (columnNames.includes('license_number')) {
       insertColumns.push('license_number');
-      insertValues.push(license_number);
+      insertValues.push(license_number || null);
     }
     if (columnNames.includes('is_active')) {
       insertColumns.push('is_active');
