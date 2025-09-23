@@ -254,58 +254,98 @@ const TestPage: React.FC<TestPageProps> = ({ onNavigateBack }) => {
     console.log('🚀 배송 생성 시작 - 원본 데이터:', deliveryData);
     
     try {
-      // deliveriesAPI를 사용해 실제 배송 생성 (숫자 필드 파싱 포함)
+      // 백엔드 스키마에 정확히 맞춘 전체 필드 매핑
       const createData = {
-        sender_name: cleanValue(deliveryData.sender_name),
+        // 기본 필수 필드들 (백엔드 baseColumns와 일치)
+        sender_name: cleanValue(deliveryData.sender_name) || "테스트 발송자",
         sender_company: cleanValue(deliveryData.sender_company),
-        sender_address: cleanValue(deliveryData.sender_address),
-        customer_name: cleanValue(deliveryData.customer_name),
-        customer_phone: cleanValue(deliveryData.customer_phone),
-        customer_address: cleanValue(deliveryData.customer_address),
-        product_name: cleanValue(deliveryData.product_name),
-        request_type: cleanValue(deliveryData.request_type),
-        status: cleanValue(deliveryData.status),
-        visit_date: cleanValue(deliveryData.visit_date),
-        visit_time: cleanValue(deliveryData.visit_time),
-        preferred_delivery_date: cleanValue(deliveryData.preferred_delivery_date),
+        sender_phone: cleanValue(deliveryData.sender_phone),
+        sender_email: cleanValue(deliveryData.sender_email),
+        sender_address: cleanValue(deliveryData.sender_address) || "서울시 강남구",
+        sender_detail_address: cleanValue(deliveryData.sender_detail_address),
+        sender_zipcode: cleanValue(deliveryData.sender_zipcode),
         
-        // 숫자 필드들 파싱
-        weight: parseNumber(deliveryData.weight),
-        delivery_fee: parseNumber(deliveryData.delivery_fee),
-        cod_amount: parseNumber(deliveryData.cod_amount),
-        insurance_amount: parseNumber(deliveryData.insurance_value),
-        distance: parseNumber(deliveryData.distance),
-        delivery_attempts: parseInt(deliveryData.delivery_attempts) || 0,
+        // 수신자 정보 (receiver_ 와 customer_ 통합)
+        receiver_name: cleanValue(deliveryData.receiver_name),
+        receiver_phone: cleanValue(deliveryData.receiver_phone), 
+        receiver_email: cleanValue(deliveryData.receiver_email),
+        receiver_address: cleanValue(deliveryData.receiver_address),
+        receiver_detail_address: cleanValue(deliveryData.receiver_detail_address),
+        receiver_zipcode: cleanValue(deliveryData.receiver_zipcode),
         
-        // 문자열 필드들
+        // customer_ 필드들 (백워드 호환성)
+        customer_name: cleanValue(deliveryData.customer_name) || "테스트 고객",
+        customer_phone: cleanValue(deliveryData.customer_phone) || "010-1234-5678",
+        customer_address: cleanValue(deliveryData.customer_address) || "경기도 성남시",
+        
+        // 상품 정보
+        product_name: cleanValue(deliveryData.product_name) || "테스트 상품",
+        product_sku: cleanValue(deliveryData.product_sku),
+        product_quantity: parseInt(deliveryData.product_quantity) || 1,
         product_weight: cleanValue(deliveryData.product_weight),
         product_size: cleanValue(deliveryData.product_size),
         box_size: cleanValue(deliveryData.box_size),
+        seller_info: cleanValue(deliveryData.seller_info),
+        
+        // 배송 옵션 - 불린값들 (백엔드는 1/0 으로 처리)
+        has_elevator: deliveryData.has_elevator,
+        can_use_ladder_truck: deliveryData.can_use_ladder_truck,
+        is_fragile: deliveryData.is_fragile || deliveryData.fragile,
+        is_frozen: deliveryData.is_frozen || deliveryData.frozen,
+        requires_signature: deliveryData.requires_signature || deliveryData.signature_required,
+        
+        // 배송 일정
+        preferred_delivery_date: cleanValue(deliveryData.preferred_delivery_date),
+        visit_date: cleanValue(deliveryData.visit_date),
+        visit_time: cleanValue(deliveryData.visit_time),
+        estimated_delivery: cleanValue(deliveryData.estimated_delivery),
+        actual_delivery: cleanValue(deliveryData.actual_delivery),
+        
+        // 건물/시공 정보  
+        driver_id: cleanValue(deliveryData.driver_id),
         construction_type: cleanValue(deliveryData.construction_type),
         building_type: cleanValue(deliveryData.building_type),
         floor_count: cleanValue(deliveryData.floor_count),
         furniture_company: cleanValue(deliveryData.furniture_company),
-        furniture_requests: cleanValue(deliveryData.furniture_requests),
         emergency_contact: cleanValue(deliveryData.emergency_contact),
         disposal: cleanValue(deliveryData.disposal),
         room_movement: cleanValue(deliveryData.room_movement),
         wall_construction: cleanValue(deliveryData.wall_construction),
-        last_location: cleanValue(deliveryData.last_location),
-        estimated_delivery: cleanValue(deliveryData.estimated_delivery),
+        furniture_product_code: cleanValue(deliveryData.furniture_product_code),
+        furniture_requests: cleanValue(deliveryData.furniture_requests),
         
-        // 메모 필드들
+        // 비용 정보 - 숫자 파싱
+        weight: parseNumber(deliveryData.weight),
+        delivery_fee: parseNumber(deliveryData.delivery_fee),
+        insurance_amount: parseNumber(deliveryData.insurance_amount || deliveryData.insurance_value),
+        cod_amount: parseNumber(deliveryData.cod_amount),
+        
+        // 메모/지시사항
+        delivery_memo: cleanValue(deliveryData.delivery_memo) || `테스트 생성 - ${new Date().toLocaleString()}`,
         special_instructions: cleanValue(deliveryData.special_instructions),
         main_memo: cleanValue(deliveryData.main_memo),
-        delivery_memo: `테스트 생성 - ${new Date().toLocaleString()}`,
-        driver_notes: cleanValue(deliveryData.driver_notes),
         detail_notes: cleanValue(deliveryData.detail_notes),
+        driver_notes: cleanValue(deliveryData.driver_notes),
+        notes: cleanValue(deliveryData.notes),
         
-        // 불린 필드들
-        is_fragile: cleanValue(deliveryData.fragile || deliveryData.is_fragile),
-        has_elevator: cleanValue(deliveryData.has_elevator),
-        can_use_ladder_truck: cleanValue(deliveryData.can_use_ladder_truck),
-        requires_signature: cleanValue(deliveryData.requires_signature),
-        is_frozen: cleanValue(deliveryData.is_frozen)
+        // 완료/취소 정보
+        completed_at: cleanValue(deliveryData.completed_at),
+        cancellation_reason: cleanValue(deliveryData.cancellation_reason),
+        cancelled_at: cleanValue(deliveryData.cancelled_at),
+        
+        // 추가 정보
+        priority: cleanValue(deliveryData.priority) || '보통',
+        delivery_type: cleanValue(deliveryData.delivery_type) || '일반배송',
+        payment_method: cleanValue(deliveryData.payment_method),
+        shipping_method: cleanValue(deliveryData.shipping_method),
+        request_type: cleanValue(deliveryData.request_type) || '배송접수',
+        
+        // JSON 데이터
+        installation_photos: deliveryData.installation_photos ? JSON.stringify(deliveryData.installation_photos) : null,
+        customer_signature: cleanValue(deliveryData.customer_signature),
+        
+        // 타임스탬프
+        updated_at: cleanValue(deliveryData.updated_at)
       };
 
       console.log('📤 최종 전송 데이터:', JSON.stringify(createData, null, 2));
