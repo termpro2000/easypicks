@@ -107,51 +107,81 @@ async function createDelivery(req, res) {
     // 운송장 번호 생성
     const tracking_number = generateTrackingNumber();
 
-    // deliveries 테이블에 저장 (모든 입력 필드 포함하여 저장)
-    const [result] = await pool.execute(`
-      INSERT INTO deliveries (
-        tracking_number, sender_name, sender_phone, sender_email, sender_company, sender_address, 
-        customer_name, customer_phone, customer_address,
-        product_name, product_sku, product_quantity, seller_info,
-        request_type, status, visit_date, visit_time,
-        has_elevator, can_use_ladder_truck, preferred_delivery_date,
-        is_fragile, is_frozen, requires_signature, insurance_value,
-        delivery_memo, special_instructions, main_memo, 
-        delivery_fee, cod_amount, driver_notes, detail_notes
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [
+    // 먼저 실제 존재하는 컬럼 확인 후 동적으로 INSERT
+    console.log('📋 [createDelivery] 데이터베이스 컬럼 확인 중...');
+    
+    // 실제 데이터베이스의 deliveries 테이블 컬럼 확인
+    const [columns] = await pool.execute(`
+      SELECT COLUMN_NAME 
+      FROM INFORMATION_SCHEMA.COLUMNS 
+      WHERE TABLE_SCHEMA = DATABASE() 
+      AND TABLE_NAME = 'deliveries'
+      ORDER BY ORDINAL_POSITION
+    `);
+    
+    const existingColumns = columns.map(col => col.COLUMN_NAME);
+    console.log('📋 [createDelivery] 존재하는 컬럼들:', existingColumns);
+
+    // 기본 필수 컬럼들 (반드시 존재해야 함)
+    const baseColumns = ['tracking_number', 'sender_name', 'sender_address', 'customer_name', 'customer_phone', 'customer_address', 'product_name', 'status', 'request_type'];
+    const baseValues = [
       tracking_number,
       sender_name,
-      sender_phone || null,
-      sender_email || null,
-      sender_company || null,
       sender_address + (sender_detail_address ? ' ' + sender_detail_address : ''),
       finalReceiverName,
       finalReceiverPhone,
       finalReceiverAddress + (receiver_detail_address ? ' ' + receiver_detail_address : ''),
       product_name,
-      product_sku || null,
-      product_quantity || 1,
-      seller_info || null,
-      req.body.request_type || '배송접수',
       '접수완료',
-      preferred_delivery_date || null,
-      req.body.visit_time || null,
-      has_elevator ? 1 : 0,
-      can_use_ladder_truck ? 1 : 0,
-      preferred_delivery_date || null,
-      is_fragile ? 1 : 0,
-      is_frozen ? 1 : 0,
-      requires_signature ? 1 : 0,
-      insurance_amount || 0,
-      delivery_memo || null,
-      special_instructions || null,
-      req.body.main_memo || null,
-      req.body.delivery_fee || 0,
-      req.body.cod_amount || 0,
-      req.body.driver_notes || null,
-      req.body.detail_notes || null
-    ]);
+      req.body.request_type || '배송접수'
+    ];
+
+    // 추가 컬럼들 (존재하는 경우에만 포함)
+    const additionalFields = [
+      { column: 'sender_phone', value: sender_phone },
+      { column: 'sender_email', value: sender_email },
+      { column: 'sender_company', value: sender_company },
+      { column: 'visit_date', value: preferred_delivery_date },
+      { column: 'visit_time', value: req.body.visit_time },
+      { column: 'delivery_memo', value: delivery_memo },
+      { column: 'special_instructions', value: special_instructions },
+      { column: 'main_memo', value: req.body.main_memo },
+      { column: 'delivery_fee', value: req.body.delivery_fee || 0 },
+      { column: 'cod_amount', value: req.body.cod_amount || 0 },
+      { column: 'insurance_value', value: insurance_amount || 0 },
+      { column: 'driver_notes', value: req.body.driver_notes },
+      { column: 'detail_notes', value: req.body.detail_notes },
+      { column: 'fragile', value: is_fragile ? 1 : 0 },
+      { column: 'weight', value: req.body.weight },
+      { column: 'product_weight', value: req.body.product_weight },
+      { column: 'product_size', value: req.body.product_size },
+      { column: 'furniture_product_code', value: product_sku },
+      { column: 'building_type', value: req.body.building_type },
+      { column: 'elevator_available', value: has_elevator ? '있음' : '없음' },
+      { column: 'ladder_truck', value: can_use_ladder_truck ? '필요' : '불필요' }
+    ];
+
+    // 존재하는 컬럼만 필터링
+    const finalColumns = [...baseColumns];
+    const finalValues = [...baseValues];
+
+    additionalFields.forEach(field => {
+      if (existingColumns.includes(field.column) && field.value !== undefined && field.value !== null) {
+        finalColumns.push(field.column);
+        finalValues.push(field.value);
+      }
+    });
+
+    console.log('📋 [createDelivery] 최종 사용할 컬럼들:', finalColumns);
+
+    // 동적 INSERT 쿼리 생성
+    const placeholders = finalValues.map(() => '?').join(', ');
+    const insertQuery = `INSERT INTO deliveries (${finalColumns.join(', ')}) VALUES (${placeholders})`;
+    
+    console.log('📋 [createDelivery] INSERT 쿼리:', insertQuery);
+    console.log('📋 [createDelivery] VALUES 개수:', finalValues.length);
+
+    const [result] = await pool.execute(insertQuery, finalValues);
 
     res.status(201).json({
       message: '배송 접수가 완료되었습니다.',
