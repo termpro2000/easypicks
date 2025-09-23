@@ -640,6 +640,33 @@ app.delete('/api/test/drivers', async (req, res) => {
 // DRIVERS API ENDPOINTS  
 // ============================
 
+// 디버그: 특정 user_id로 기사 검색
+app.get('/api/debug/driver/:user_id', async (req, res) => {
+  try {
+    const { user_id } = req.params;
+    
+    const [drivers] = await pool.execute(
+      'SELECT * FROM drivers WHERE user_id = ?',
+      [user_id]
+    );
+    
+    res.json({
+      success: true,
+      user_id,
+      found: drivers.length > 0,
+      data: drivers[0] || null
+    });
+    
+  } catch (error) {
+    console.error('❌ 기사 검색 오류:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: '기사 검색 중 오류가 발생했습니다.',
+      details: error.message
+    });
+  }
+});
+
 // 기사 목록 조회
 app.get('/api/drivers', async (req, res) => {
   try {
