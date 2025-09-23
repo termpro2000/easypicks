@@ -1244,6 +1244,37 @@ app.get('/api/auth/me', (req, res) => {
   });
 });
 
+// 사용자명 중복 확인
+app.get('/api/auth/check-username/:username', async (req, res) => {
+  try {
+    const { username } = req.params;
+    console.log('🔍 사용자명 중복 확인:', username);
+
+    const [users] = await pool.execute(
+      'SELECT id FROM users WHERE username = ?',
+      [username]
+    );
+
+    const available = users.length === 0;
+    const message = available ? '사용 가능한 사용자명입니다.' : '이미 사용 중인 사용자명입니다.';
+
+    console.log('✅ 사용자명 확인 결과:', { username, available });
+
+    res.json({
+      available,
+      message
+    });
+
+  } catch (error) {
+    console.error('❌ 사용자명 확인 오류:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: '사용자명 확인 중 오류가 발생했습니다.',
+      details: error.message
+    });
+  }
+});
+
 // 데이터베이스 테이블 확인
 app.get('/api/debug/tables', async (req, res) => {
   try {
