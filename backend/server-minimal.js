@@ -424,6 +424,355 @@ app.delete('/api/users/:id', async (req, res) => {
   }
 });
 
+// ============================
+// TEST API ENDPOINTS
+// ============================
+
+// 파트너사 목록 조회 (테스트용)
+app.get('/api/test/partners', async (req, res) => {
+  try {
+    console.log('👥 [Test API] 파트너사 목록 조회 요청');
+    
+    const [partners] = await pool.execute(`
+      SELECT 
+        id,
+        username,
+        name,
+        email,
+        phone,
+        company,
+        role,
+        is_active,
+        default_sender_address,
+        default_sender_detail_address,
+        default_sender_zipcode,
+        created_at,
+        updated_at
+      FROM users 
+      WHERE role IN ('user', 'manager', 'admin')
+      ORDER BY created_at DESC
+    `);
+    
+    console.log(`✅ [Test API] 파트너사 목록 조회 완료: ${partners.length}개`);
+    
+    res.json({
+      success: true,
+      partners: partners.map(partner => ({
+        ...partner,
+        default_sender_name: partner.name,
+        default_sender_company: partner.company,
+        default_sender_phone: partner.phone
+      }))
+    });
+    
+  } catch (error) {
+    console.error('❌ [Test API] 파트너사 목록 조회 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '파트너사 목록을 조회할 수 없습니다.',
+      details: error.message
+    });
+  }
+});
+
+// 모든 파트너사 삭제 (테스트용)
+app.delete('/api/test/partners', async (req, res) => {
+  try {
+    console.log('🗑️ [Test API] 모든 파트너사 삭제 요청');
+    
+    // admin 계정은 삭제하지 않음
+    const [result] = await pool.execute(`
+      DELETE FROM users 
+      WHERE role IN ('user', 'manager') 
+      AND username != 'admin'
+    `);
+    
+    console.log(`✅ [Test API] 파트너사 삭제 완료: ${result.affectedRows}개 삭제`);
+    
+    res.json({
+      success: true,
+      message: `${result.affectedRows}개의 파트너사가 삭제되었습니다.`,
+      deletedCount: result.affectedRows
+    });
+    
+  } catch (error) {
+    console.error('❌ [Test API] 파트너사 삭제 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '파트너사 삭제에 실패했습니다.',
+      details: error.message
+    });
+  }
+});
+
+// 기사 목록 조회 (테스트용)
+app.get('/api/test/drivers', async (req, res) => {
+  try {
+    console.log('🚛 [Test API] 기사 목록 조회 요청');
+    
+    // drivers 테이블이 있는지 확인
+    const [tables] = await pool.execute(`
+      SELECT TABLE_NAME 
+      FROM information_schema.TABLES 
+      WHERE TABLE_SCHEMA = DATABASE() 
+      AND TABLE_NAME = 'drivers'
+    `);
+    
+    if (tables.length === 0) {
+      console.log('⚠️ [Test API] drivers 테이블이 존재하지 않음');
+      return res.json({
+        success: true,
+        drivers: []
+      });
+    }
+    
+    const [drivers] = await pool.execute(`
+      SELECT 
+        driver_id as id,
+        username,
+        name,
+        email,
+        phone,
+        vehicle_type,
+        vehicle_number,
+        license_number,
+        is_active,
+        created_at,
+        updated_at
+      FROM drivers 
+      ORDER BY created_at DESC
+    `);
+    
+    console.log(`✅ [Test API] 기사 목록 조회 완료: ${drivers.length}개`);
+    
+    res.json({
+      success: true,
+      drivers: drivers
+    });
+    
+  } catch (error) {
+    console.error('❌ [Test API] 기사 목록 조회 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '기사 목록을 조회할 수 없습니다.',
+      details: error.message
+    });
+  }
+});
+
+// 모든 기사 삭제 (테스트용)
+app.delete('/api/test/drivers', async (req, res) => {
+  try {
+    console.log('🗑️ [Test API] 모든 기사 삭제 요청');
+    
+    // drivers 테이블이 있는지 확인
+    const [tables] = await pool.execute(`
+      SELECT TABLE_NAME 
+      FROM information_schema.TABLES 
+      WHERE TABLE_SCHEMA = DATABASE() 
+      AND TABLE_NAME = 'drivers'
+    `);
+    
+    if (tables.length === 0) {
+      console.log('⚠️ [Test API] drivers 테이블이 존재하지 않음');
+      return res.json({
+        success: true,
+        message: '삭제할 기사가 없습니다.',
+        deletedCount: 0
+      });
+    }
+    
+    const [result] = await pool.execute('DELETE FROM drivers');
+    
+    console.log(`✅ [Test API] 기사 삭제 완료: ${result.affectedRows}개 삭제`);
+    
+    res.json({
+      success: true,
+      message: `${result.affectedRows}개의 기사가 삭제되었습니다.`,
+      deletedCount: result.affectedRows
+    });
+    
+  } catch (error) {
+    console.error('❌ [Test API] 기사 삭제 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '기사 삭제에 실패했습니다.',
+      details: error.message
+    });
+  }
+});
+
+// ============================
+// DRIVERS API ENDPOINTS  
+// ============================
+
+// 기사 목록 조회
+app.get('/api/drivers', async (req, res) => {
+  try {
+    console.log('🚛 기사 목록 조회 요청');
+    
+    const { page = 1, limit = 50, search = '' } = req.query;
+    const offset = (page - 1) * limit;
+    
+    // drivers 테이블이 있는지 확인
+    const [tables] = await pool.execute(`
+      SELECT TABLE_NAME 
+      FROM information_schema.TABLES 
+      WHERE TABLE_SCHEMA = DATABASE() 
+      AND TABLE_NAME = 'drivers'
+    `);
+    
+    if (tables.length === 0) {
+      // drivers 테이블이 없으면 생성
+      await pool.execute(`
+        CREATE TABLE IF NOT EXISTS drivers (
+          driver_id INT AUTO_INCREMENT PRIMARY KEY,
+          username VARCHAR(100) UNIQUE NOT NULL,
+          password VARCHAR(255) NOT NULL,
+          name VARCHAR(100) NOT NULL,
+          email VARCHAR(255),
+          phone VARCHAR(20),
+          vehicle_type VARCHAR(50),
+          vehicle_number VARCHAR(20),
+          license_number VARCHAR(50),
+          is_active TINYINT(1) DEFAULT 1,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )
+      `);
+      console.log('✅ drivers 테이블 생성 완료');
+    }
+    
+    // 검색 조건 구성
+    let whereClause = 'WHERE 1=1';
+    const params = [];
+    
+    if (search) {
+      whereClause += ' AND (name LIKE ? OR username LIKE ? OR phone LIKE ? OR vehicle_number LIKE ?)';
+      const searchTerm = `%${search}%`;
+      params.push(searchTerm, searchTerm, searchTerm, searchTerm);
+    }
+    
+    params.push(parseInt(limit), parseInt(offset));
+    
+    const [drivers] = await pool.execute(`
+      SELECT 
+        driver_id as id,
+        username,
+        name,
+        email,
+        phone,
+        vehicle_type,
+        vehicle_number,
+        license_number,
+        is_active,
+        created_at,
+        updated_at
+      FROM drivers 
+      ${whereClause}
+      ORDER BY created_at DESC
+      LIMIT ? OFFSET ?
+    `, params);
+    
+    // 총 개수 조회
+    const countParams = params.slice(0, -2);
+    const [countResult] = await pool.execute(`
+      SELECT COUNT(*) as total FROM drivers ${whereClause}
+    `, countParams);
+    
+    const total = countResult[0].total;
+    const totalPages = Math.ceil(total / limit);
+    
+    console.log(`✅ 기사 목록 조회 성공: ${drivers.length}개`);
+    
+    res.json({
+      success: true,
+      data: drivers,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        totalPages,
+        hasNext: page < totalPages,
+        hasPrev: page > 1
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ 기사 목록 조회 오류:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: '기사 목록 조회 중 오류가 발생했습니다.',
+      details: error.message
+    });
+  }
+});
+
+// 새 기사 생성
+app.post('/api/drivers', async (req, res) => {
+  try {
+    console.log('👤 새 기사 생성 요청');
+    
+    const {
+      username, password, name, email, phone,
+      vehicle_type, vehicle_number, license_number
+    } = req.body;
+    
+    // 필수 필드 검증
+    if (!username || !password || !name) {
+      return res.status(400).json({
+        error: 'Bad Request',
+        message: 'username, password, name은 필수 필드입니다.'
+      });
+    }
+    
+    // 사용자명 중복 확인
+    const [existingDrivers] = await pool.execute(
+      'SELECT driver_id FROM drivers WHERE username = ?',
+      [username]
+    );
+    
+    if (existingDrivers.length > 0) {
+      return res.status(409).json({
+        error: 'Conflict',
+        message: '이미 사용 중인 사용자명입니다.'
+      });
+    }
+    
+    // 기사 생성
+    const [result] = await pool.execute(`
+      INSERT INTO drivers (
+        username, password, name, email, phone,
+        vehicle_type, vehicle_number, license_number,
+        is_active, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, NOW(), NOW())
+    `, [
+      username, password, name, email, phone,
+      vehicle_type, vehicle_number, license_number
+    ]);
+    
+    console.log('✅ 기사 생성 성공:', { id: result.insertId, username });
+    
+    res.status(201).json({
+      success: true,
+      message: '기사가 성공적으로 생성되었습니다.',
+      data: {
+        id: result.insertId,
+        username,
+        name
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ 기사 생성 오류:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: '기사 생성 중 오류가 발생했습니다.',
+      details: error.message
+    });
+  }
+});
+
 // 배송 생성 (52개 필드 지원)
 app.post('/api/deliveries', async (req, res) => {
   try {
