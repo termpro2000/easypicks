@@ -1866,6 +1866,310 @@ app.post('/api/debug/create-delivery-products-table', async (req, res) => {
   }
 });
 
+// JSON 방식으로 멀티-제품 저장 (delivery_products 테이블 대안)
+app.post('/api/debug/add-products-json-column', async (req, res) => {
+  try {
+    console.log('📦 deliveries 테이블에 products_json 컬럼 추가 시도');
+    
+    // 먼저 컬럼이 존재하는지 확인
+    const [columns] = await pool.execute(`
+      SELECT COLUMN_NAME 
+      FROM information_schema.COLUMNS 
+      WHERE TABLE_SCHEMA = DATABASE() 
+      AND TABLE_NAME = 'deliveries' 
+      AND COLUMN_NAME = 'products_json'
+    `);
+    
+    if (columns.length > 0) {
+      return res.json({
+        success: true,
+        message: 'products_json 컬럼이 이미 존재합니다.',
+        column_exists: true
+      });
+    }
+    
+    // products_json 컬럼 추가 시도
+    const alterTableSQL = `
+      ALTER TABLE deliveries 
+      ADD COLUMN products_json JSON DEFAULT NULL 
+      COMMENT '멀티-제품 정보를 JSON 형태로 저장'
+    `;
+    
+    console.log('📝 실행할 SQL:', alterTableSQL);
+    
+    await pool.execute(alterTableSQL);
+    console.log('✅ products_json 컬럼 추가 성공');
+    
+    // 테스트 데이터 업데이트
+    const testProductsData = JSON.stringify([
+      {
+        product_code: 'PROD001',
+        product_name: '테스트 제품1',
+        product_weight: '50kg',
+        product_size: '1200x800x600mm',
+        box_size: '1300x900x700mm'
+      },
+      {
+        product_code: 'PROD002', 
+        product_name: '테스트 제품2',
+        product_weight: '30kg',
+        product_size: '800x600x400mm',
+        box_size: '900x700x500mm'
+      }
+    ]);
+    
+    // 첫 번째 배송에 테스트 데이터 추가
+    await pool.execute(`
+      UPDATE deliveries 
+      SET products_json = ? 
+      WHERE id = 1
+    `, [testProductsData]);
+    
+    console.log('✅ 테스트 데이터 업데이트 완료');
+    
+    res.json({
+      success: true,
+      message: 'products_json 컬럼이 성공적으로 추가되었습니다.',
+      column_exists: true,
+      test_data_updated: true,
+      sample_data: testProductsData
+    });
+    
+  } catch (error) {
+    console.error('❌ products_json 컬럼 추가 오류:', error);
+    
+    const isDDLError = error.message.includes('DDL') || 
+                       error.message.includes('denied') || 
+                       error.message.includes('ALTER');
+    
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: isDDLError ? 
+        'DDL 권한이 없어 컬럼을 추가할 수 없습니다.' :
+        'products_json 컬럼 추가 중 오류 발생',
+      is_ddl_error: isDDLError,
+      error_code: error.code
+    });
+  }
+});
+
+// delivery_details 테이블을 활용한 멀티-제품 관리
+app.post('/api/deliveries/:deliveryId/products', async (req, res) => {
+  try {
+    const { deliveryId } = req.params;
+    const { products } = req.body;
+    
+    console.log('📦 delivery_details를 이용한 제품 추가:', { deliveryId, productCount: products?.length });
+    
+    if (!products || !Array.isArray(products)) {
+      return res.status(400).json({
+        success: false,
+        error: 'products 배열이 필요합니다.'
+      });
+    }
+    
+    // 기존 제품 정보 삭제
+    await pool.execute(`
+      DELETE FROM delivery_details 
+      WHERE delivery_id = ? AND detail_type = 'product'
+    `, [deliveryId]);
+    
+    console.log('🗑️ 기존 제품 정보 삭제 완료');
+    
+    // 새로운 제품 정보 추가
+    let addedCount = 0;
+    for (const product of products) {
+      if (product.product_code) {
+        const productData = JSON.stringify({
+          product_code: product.product_code,
+          product_name: product.product_name || '',
+          product_weight: product.product_weight || '',
+          product_size: product.product_size || '',
+          box_size: product.box_size || ''
+        });
+        
+        await pool.execute(`
+          INSERT INTO delivery_details (delivery_id, detail_type, detail_value, created_at, updated_at)
+          VALUES (?, 'product', ?, NOW(), NOW())
+        `, [deliveryId, productData]);
+        
+        addedCount++;
+        console.log('✅ 제품 추가:', product.product_code);
+      }
+    }
+    
+    res.json({
+      success: true,
+      message: `${addedCount}개의 제품이 성공적으로 추가되었습니다.`,
+      delivery_id: deliveryId,
+      products_added: addedCount
+    });
+    
+  } catch (error) {
+    console.error('❌ 제품 추가 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: '제품 추가 중 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 배송의 제품 목록 조회
+app.get('/api/deliveries/:deliveryId/products', async (req, res) => {
+  try {
+    const { deliveryId } = req.params;
+    
+    console.log('📋 배송 제품 목록 조회:', deliveryId);
+    
+    const [products] = await pool.execute(`
+      SELECT id, detail_value, created_at, updated_at
+      FROM delivery_details 
+      WHERE delivery_id = ? AND detail_type = 'product'
+      ORDER BY created_at ASC
+    `, [deliveryId]);
+    
+    const formattedProducts = products.map(product => {
+      try {
+        const productData = JSON.parse(product.detail_value);
+        return {
+          id: product.id,
+          ...productData,
+          created_at: product.created_at,
+          updated_at: product.updated_at
+        };
+      } catch (parseError) {
+        console.error('❌ JSON 파싱 오류:', parseError);
+        return {
+          id: product.id,
+          product_code: product.detail_value,
+          error: 'JSON 파싱 실패'
+        };
+      }
+    });
+    
+    console.log('✅ 제품 목록 조회 완료:', formattedProducts.length, '개');
+    
+    res.json({
+      success: true,
+      delivery_id: deliveryId,
+      products: formattedProducts,
+      total_count: formattedProducts.length
+    });
+    
+  } catch (error) {
+    console.error('❌ 제품 목록 조회 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: '제품 목록 조회 중 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 특정 제품 삭제
+app.delete('/api/deliveries/:deliveryId/products/:productId', async (req, res) => {
+  try {
+    const { deliveryId, productId } = req.params;
+    
+    console.log('🗑️ 제품 삭제:', { deliveryId, productId });
+    
+    const [result] = await pool.execute(`
+      DELETE FROM delivery_details 
+      WHERE id = ? AND delivery_id = ? AND detail_type = 'product'
+    `, [productId, deliveryId]);
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        error: '삭제할 제품을 찾을 수 없습니다.'
+      });
+    }
+    
+    console.log('✅ 제품 삭제 완료');
+    
+    res.json({
+      success: true,
+      message: '제품이 성공적으로 삭제되었습니다.',
+      delivery_id: deliveryId,
+      product_id: productId
+    });
+    
+  } catch (error) {
+    console.error('❌ 제품 삭제 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: '제품 삭제 중 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 테스트용: 샘플 제품 데이터 추가
+app.post('/api/debug/add-sample-products/:deliveryId', async (req, res) => {
+  try {
+    const { deliveryId } = req.params;
+    
+    const sampleProducts = [
+      {
+        product_code: 'PROD001',
+        product_name: '소파 3인용',
+        product_weight: '50kg',
+        product_size: '2000x800x800mm',
+        box_size: '2100x900x900mm'
+      },
+      {
+        product_code: 'PROD002', 
+        product_name: '침대 더블',
+        product_weight: '75kg',
+        product_size: '2000x1500x400mm',
+        box_size: '2100x1600x500mm'
+      },
+      {
+        product_code: 'PROD003',
+        product_name: '옷장 4문',
+        product_weight: '120kg', 
+        product_size: '1800x600x2000mm',
+        box_size: '1900x700x2100mm'
+      }
+    ];
+    
+    // 기존 제품 삭제
+    await pool.execute(`
+      DELETE FROM delivery_details 
+      WHERE delivery_id = ? AND detail_type = 'product'
+    `, [deliveryId]);
+    
+    // 샘플 제품 추가
+    for (const product of sampleProducts) {
+      const productData = JSON.stringify(product);
+      await pool.execute(`
+        INSERT INTO delivery_details (delivery_id, detail_type, detail_value, created_at, updated_at)
+        VALUES (?, 'product', ?, NOW(), NOW())
+      `, [deliveryId, productData]);
+    }
+    
+    console.log('✅ 샘플 제품 데이터 추가 완료');
+    
+    res.json({
+      success: true,
+      message: `배송 ID ${deliveryId}에 ${sampleProducts.length}개의 샘플 제품이 추가되었습니다.`,
+      delivery_id: deliveryId,
+      products_added: sampleProducts.length,
+      sample_products: sampleProducts
+    });
+    
+  } catch (error) {
+    console.error('❌ 샘플 제품 추가 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: '샘플 제품 추가 중 오류가 발생했습니다.'
+    });
+  }
+});
+
 // 테스트 사용자 생성
 app.post('/api/debug/create-test-user', async (req, res) => {
   try {
