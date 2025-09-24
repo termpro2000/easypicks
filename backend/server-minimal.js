@@ -1761,6 +1761,112 @@ app.get('/api/debug/schema', async (req, res) => {
   }
 });
 
+// DDL 권한 테스트 및 delivery_products 테이블 생성
+app.post('/api/debug/create-delivery-products-table', async (req, res) => {
+  try {
+    console.log('🛠️ delivery_products 테이블 생성 시도');
+    
+    // 먼저 현재 사용자 권한 확인
+    const [privileges] = await pool.execute(`
+      SHOW GRANTS FOR CURRENT_USER()
+    `);
+    
+    console.log('🔐 현재 사용자 권한:', privileges.map(p => Object.values(p)[0]));
+    
+    // delivery_products 테이블 생성 시도
+    const createTableSQL = `
+      CREATE TABLE IF NOT EXISTS delivery_products (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        delivery_id INT NOT NULL,
+        product_code VARCHAR(50) NOT NULL,
+        product_weight VARCHAR(20),
+        total_weight VARCHAR(20),
+        product_size VARCHAR(100),
+        box_size VARCHAR(100),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        
+        INDEX idx_delivery_id (delivery_id),
+        INDEX idx_product_code (product_code),
+        FOREIGN KEY (delivery_id) REFERENCES deliveries(id) ON DELETE CASCADE
+      )
+    `;
+    
+    console.log('📝 실행할 SQL:', createTableSQL);
+    
+    await pool.execute(createTableSQL);
+    console.log('✅ delivery_products 테이블 생성 성공');
+    
+    // 테이블 생성 확인
+    const [tables] = await pool.execute(`
+      SELECT TABLE_NAME 
+      FROM information_schema.TABLES 
+      WHERE TABLE_SCHEMA = DATABASE() 
+      AND TABLE_NAME = 'delivery_products'
+    `);
+    
+    if (tables.length > 0) {
+      console.log('✅ 테이블 생성 확인됨');
+      
+      // 테스트 데이터 삽입
+      const testData = [
+        [1, 'PROD001', '50kg', '100kg', '1200x800x600mm', '1300x900x700mm'],
+        [1, 'PROD002', '30kg', '60kg', '800x600x400mm', '900x700x500mm'],
+        [2, 'PROD003', '75kg', '150kg', '1500x1000x800mm', '1600x1100x900mm']
+      ];
+      
+      for (const data of testData) {
+        try {
+          await pool.execute(`
+            INSERT INTO delivery_products (delivery_id, product_code, product_weight, total_weight, product_size, box_size)
+            VALUES (?, ?, ?, ?, ?, ?)
+          `, data);
+          console.log('✅ 테스트 데이터 삽입:', data[1]);
+        } catch (insertError) {
+          console.log('⚠️ 테스트 데이터 삽입 오류 (무시):', insertError.message);
+        }
+      }
+      
+      // 최종 확인
+      const [count] = await pool.execute('SELECT COUNT(*) as count FROM delivery_products');
+      
+      res.json({
+        success: true,
+        message: 'delivery_products 테이블이 성공적으로 생성되었습니다.',
+        table_exists: true,
+        record_count: count[0].count,
+        privileges: privileges.map(p => Object.values(p)[0])
+      });
+      
+    } else {
+      res.json({
+        success: false,
+        message: '테이블 생성은 완료되었지만 확인되지 않음',
+        table_exists: false,
+        privileges: privileges.map(p => Object.values(p)[0])
+      });
+    }
+    
+  } catch (error) {
+    console.error('❌ delivery_products 테이블 생성 오류:', error);
+    
+    // DDL 권한 오류인지 확인
+    const isDDLError = error.message.includes('DDL') || 
+                       error.message.includes('denied') || 
+                       error.message.includes('CREATE');
+    
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: isDDLError ? 
+        'DDL 권한이 없어 테이블을 생성할 수 없습니다. 데이터베이스 관리자에게 문의하세요.' :
+        'delivery_products 테이블 생성 중 오류 발생',
+      is_ddl_error: isDDLError,
+      error_code: error.code
+    });
+  }
+});
+
 // 테스트 사용자 생성
 app.post('/api/debug/create-test-user', async (req, res) => {
   try {
