@@ -195,7 +195,7 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
     };
   }, []);
 
-  const { register, handleSubmit, formState: { errors }, setValue } = useForm<DeliveryData>({
+  const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<DeliveryData>({
     defaultValues: {
       status: 'pending',
       elevator_available: false,
