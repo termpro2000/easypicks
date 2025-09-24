@@ -2359,10 +2359,10 @@ app.get('/api/products/search', async (req, res) => {
     
     const [products] = await pool.execute(`
       SELECT * FROM products 
-      WHERE name LIKE ? OR code LIKE ? OR maincode LIKE ? OR subcode LIKE ?
+      WHERE name LIKE ? OR maincode LIKE ? OR subcode LIKE ?
       ORDER BY name
       LIMIT 50
-    `, [`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`]);
+    `, [`%${q}%`, `%${q}%`, `%${q}%`]);
     
     console.log(`✅ 상품 검색 완료: ${products.length}개`);
     
