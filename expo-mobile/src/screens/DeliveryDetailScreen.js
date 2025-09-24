@@ -261,10 +261,6 @@ const DeliveryDetailScreen = ({ route, navigation }) => {
         audioFileName = await uploadAudioFile(trackingNumber, completionAudioFile);
       }
       
-      // 현재 날짜와 시간 생성
-      const now = new Date();
-      const actionDate = now.toISOString().split('T')[0]; // YYYY-MM-DD 형식
-      const actionTime = now.toTimeString().split(' ')[0]; // HH:MM:SS 형식
       
       // 배송완료 데이터 준비
       const completionData = {
@@ -273,9 +269,7 @@ const DeliveryDetailScreen = ({ route, navigation }) => {
         customerRequestedCompletion: customerRequestedCompletion,
         furnitureCompanyRequestedCompletion: furnitureCompanyRequestedCompletion,
         completionAudioFile: audioFileName,
-        completedAt: new Date().toISOString(),
-        action_date: actionDate,
-        action_time: actionTime
+        completedAt: new Date().toISOString()
       };
       
       // 배송완료 처리 API 호출 (axios 인스턴스 사용)
@@ -288,26 +282,24 @@ const DeliveryDetailScreen = ({ route, navigation }) => {
       console.log('배송완료 처리 응답 결과:', result);
       
       if (result.success) {
-        const { data } = result;
-        const statusMessage = data.newStatus ? `\n의뢰상태: ${data.previousStatus} → ${data.newStatus}` : '';
+        // 백엔드 API 응답 구조에 맞게 수정
+        const statusMessage = '';
         
         // DeliveryListScreen으로 상태 업데이트 전달
         try {
-          // API에서 action_date/time이 없으면 현재 시간 사용
+          // API에서 actual_delivery가 없으면 현재 시간 사용
           const now = new Date();
-          const currentActionDate = data.action_date || now.toISOString().split('T')[0];
-          const currentActionTime = data.action_time || now.toTimeString().split(' ')[0];
+          const currentActualDelivery = result.actual_delivery || now.toISOString();
           
           await AsyncStorage.setItem('updatedDeliveryStatus', JSON.stringify({
             updates: [{
               id: delivery.id,
-              status: data.newStatus,
-              action_date: currentActionDate,
-              action_time: currentActionTime
+              status: '배송완료',
+              actual_delivery: currentActualDelivery
             }],
             timestamp: Date.now()
           }));
-          console.log('배송완료: 상태 업데이트 AsyncStorage 저장됨:', delivery.id, data.newStatus, currentActionDate, currentActionTime);
+          console.log('배송완료: 상태 업데이트 AsyncStorage 저장됨:', delivery.id, '배송완료', currentActualDelivery);
         } catch (asyncError) {
           console.error('배송완료: AsyncStorage 저장 오류:', asyncError);
         }
@@ -327,16 +319,49 @@ const DeliveryDetailScreen = ({ route, navigation }) => {
       }
       
     } catch (error) {
-      console.error('배송완료 처리 오류:', error);
+      console.error('배송완료 처리 상세 오류:', {
+        message: error.message,
+        code: error.code,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        responseData: error.response?.data,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method,
+          data: error.config?.data
+        }
+      });
       
       let errorMessage = '배송완료 처리 중 오류가 발생했습니다.';
-      if (error.response && error.response.data && error.response.data.error) {
-        errorMessage = error.response.data.error;
-      } else if (error.message) {
-        errorMessage = error.message;
+      let detailMessage = '';
+      
+      if (error.response) {
+        // 서버에서 응답을 받았지만 에러 상태
+        const status = error.response.status;
+        const data = error.response.data;
+        
+        if (data && data.error) {
+          errorMessage = data.error;
+          if (data.details) {
+            if (typeof data.details === 'string') {
+              detailMessage = `\n상세: ${data.details}`;
+            } else if (data.details.message) {
+              detailMessage = `\n상세: ${data.details.message}`;
+            }
+          }
+        } else {
+          errorMessage = `서버 오류 (${status}): ${error.response.statusText || '알 수 없는 오류'}`;
+        }
+      } else if (error.request) {
+        // 요청을 보냈지만 응답을 받지 못함
+        errorMessage = '서버에 연결할 수 없습니다. 네트워크를 확인해주세요.';
+        detailMessage = '\n서버 URL을 확인하고 인터넷 연결을 점검해주세요.';
+      } else {
+        // 요청을 설정하는 중에 에러 발생
+        errorMessage = error.message || '알 수 없는 오류가 발생했습니다.';
       }
       
-      Alert.alert('오류', errorMessage);
+      Alert.alert('배송완료 처리 오류', `${errorMessage}${detailMessage}`);
     } finally {
       setLoading(false);
     }
@@ -897,37 +922,29 @@ Storage Bucket: ${firebaseConfig?.storageBucket || '없음'}
         return;
       }
       
-      // 현재 날짜와 시간 생성
-      const now = new Date();
-      const actionDate = now.toISOString().split('T')[0]; // YYYY-MM-DD 형식
-      const actionTime = now.toTimeString().split(' ')[0]; // HH:MM:SS 형식
       
       const response = await api.post(`/deliveries/delay/${trackingNumber}`, {
         delayDate: postponeDate,
-        delayReason: postponeReason.trim(),
-        action_date: actionDate,
-        action_time: actionTime
+        delayReason: postponeReason.trim()
       });
       
       if (response.data.success) {
-        const { data } = response.data;
-        const statusMessage = data.newStatus ? `\n의뢰상태: ${data.previousStatus} → ${data.newStatus}` : '';
+        const result = response.data;
+        const statusMessage = '';
         
         // DeliveryListScreen으로 상태 업데이트 전달
         try {
-          console.log('🔍 [배송연기] API 응답 data:', JSON.stringify(data, null, 2));
+          console.log('🔍 [배송연기] API 응답 result:', JSON.stringify(result, null, 2));
           
-          // API에서 action_date/time이 없으면 현재 시간 사용
+          // API에서 actual_delivery가 없으면 현재 시간 사용
           const now = new Date();
-          const currentActionDate = data.action_date || now.toISOString().split('T')[0];
-          const currentActionTime = data.action_time || now.toTimeString().split(' ')[0];
+          const currentActualDelivery = result.actual_delivery || now.toISOString();
           
           const updateData = {
             updates: [{
               id: delivery.id,
-              status: data.newStatus,
-              action_date: currentActionDate,
-              action_time: currentActionTime
+              status: '배송연기',
+              actual_delivery: currentActualDelivery
             }],
             timestamp: Date.now()
           };
@@ -935,7 +952,7 @@ Storage Bucket: ${firebaseConfig?.storageBucket || '없음'}
           console.log('🔍 [배송연기] AsyncStorage 저장할 데이터:', JSON.stringify(updateData, null, 2));
           
           await AsyncStorage.setItem('updatedDeliveryStatus', JSON.stringify(updateData));
-          console.log('배송연기: 상태 업데이트 AsyncStorage 저장됨:', delivery.id, data.newStatus, currentActionDate, currentActionTime);
+          console.log('배송연기: 상태 업데이트 AsyncStorage 저장됨:', delivery.id, '배송연기', currentActualDelivery);
         } catch (asyncError) {
           console.error('배송연기: AsyncStorage 저장 오류:', asyncError);
         }
@@ -1065,38 +1082,33 @@ Storage Bucket: ${firebaseConfig?.storageBucket || '없음'}
     try {
       setLoading(true);
       
-      // 현재 날짜와 시간 생성
-      const now = new Date();
-      const actionDate = now.toISOString().split('T')[0]; // YYYY-MM-DD 형식
-      const actionTime = now.toTimeString().split(' ')[0]; // HH:MM:SS 형식
-      
-      const response = await api.post(`/deliveries/cancel/${delivery.id}`, {
+      // 배송취소 데이터 준비 (배송완료 로직 참조)
+      const cancelData = {
         cancelReason: cancelReason.trim(),
-        action_date: actionDate,
-        action_time: actionTime
-      });
+        canceledAt: new Date().toISOString()
+      };
+      
+      const response = await api.post(`/deliveries/cancel/${delivery.id}`, cancelData);
       
       if (response.data.success) {
-        const { data } = response.data;
-        const statusMessage = data.newStatus ? `\n의뢰상태: ${data.previousStatus} → ${data.newStatus}` : '';
+        const result = response.data;
+        const statusMessage = '';
         
         // DeliveryListScreen으로 상태 업데이트 전달
         try {
-          // API에서 action_date/time이 없으면 현재 시간 사용
+          // API에서 actual_delivery가 없으면 현재 시간 사용
           const now = new Date();
-          const currentActionDate = data.action_date || now.toISOString().split('T')[0];
-          const currentActionTime = data.action_time || now.toTimeString().split(' ')[0];
+          const currentActualDelivery = result.actual_delivery || now.toISOString();
           
           await AsyncStorage.setItem('updatedDeliveryStatus', JSON.stringify({
             updates: [{
               id: delivery.id,
-              status: data.newStatus,
-              action_date: currentActionDate,
-              action_time: currentActionTime
+              status: '배송취소',
+              actual_delivery: currentActualDelivery
             }],
             timestamp: Date.now()
           }));
-          console.log('배송취소: 상태 업데이트 AsyncStorage 저장됨:', delivery.id, data.newStatus, currentActionDate, currentActionTime);
+          console.log('배송취소: 상태 업데이트 AsyncStorage 저장됨:', delivery.id, '배송취소', currentActualDelivery);
         } catch (asyncError) {
           console.error('배송취소: AsyncStorage 저장 오류:', asyncError);
         }

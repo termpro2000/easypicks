@@ -585,8 +585,11 @@ const LoadingConfirmScreen = ({ route, navigation }) => {
         data={deliveries}
         renderItem={renderDeliveryItem}
         keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={styles.listContainer}
-        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[styles.listContainer, { flexGrow: 1 }]}
+        showsVerticalScrollIndicator={true}
+        scrollEnabled={true}
+        nestedScrollEnabled={true}
+        keyboardShouldPersistTaps="handled"
       />
       
       {/* 선택 정보 및 버튼들 */}
@@ -748,6 +751,7 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     padding: 10,
+    paddingBottom: 360,
   },
   deliveryItem: {
     backgroundColor: '#fff',

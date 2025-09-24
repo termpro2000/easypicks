@@ -420,7 +420,7 @@ const DeliveryMapViewScreen = ({ navigation, route }) => {
             const mapDiv = document.getElementById('map');
             mapDiv.style.background = 'linear-gradient(45deg, #e8f5e8, #f0f8ff)';
             mapDiv.style.position = 'relative';
-            mapDiv.innerHTML = '<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #666; font-size: 14px; text-align: center;">🗺️ 배송지 지도<br><span style="font-size: 12px;">WebView 환경 - 데모 모드</span></div>';
+            mapDiv.innerHTML = '<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #666; font-size: 14px; text-align: center;">🗺️ 배송지 지도<br><span style="font-size: 12px;">네이버지도 API 로드 실패 - 대체 모드</span></div>';
             
             // 마커들을 지도 영역에 랜덤하게 배치
             markersData.forEach((markerData, index) => {
@@ -461,61 +461,67 @@ const DeliveryMapViewScreen = ({ navigation, route }) => {
             setupSliderEvents();
         }
         
-        // 마커에 포커스 (네이버지도용)
+        // 배송지 선택시 구글지도에서 해당 주소 표시
         function focusMarker(index) {
-            if (markers[index]) {
-                // 네이버지도의 경우
-                if (typeof naver !== 'undefined' && naver.maps && markers[index].getPosition) {
-                    const map = markers[index].getMap();
-                    map.setCenter(markers[index].getPosition());
-                    map.setZoom(16);
-                    
-                    // 정보창 열기
-                    if (infoWindows[index]) {
-                        // 다른 정보창들 닫기
-                        infoWindows.forEach(iw => iw.close());
-                        infoWindows[index].open(map, markers[index]);
-                    }
-                } else {
-                    // 데모 지도의 경우
-                    markers.forEach(m => m.style.transform = 'scale(1)');
-                    markers[index].style.transform = 'scale(1.3)';
-                    
-                    const markerData = markersData[index];
-                    alert('배송지 ' + markerData.number + '\\n' + 
-                          markerData.name + '\\n' + 
-                          markerData.trackingNumber + '\\n' +
-                          markerData.address);
+            const markerData = markersData[index];
+            if (markerData) {
+                // 구글지도 iframe의 주소를 선택된 배송지로 변경
+                const iframe = document.querySelector('#map iframe');
+                if (iframe) {
+                    const encodedAddress = encodeURIComponent(markerData.address);
+                    iframe.src = \`https://maps.google.com/maps?q=\${encodedAddress}&output=embed\`;
                 }
+                
+                // 정보 표시
+                alert('배송지 ' + markerData.number + '\\n' + 
+                      markerData.name + '\\n' + 
+                      markerData.trackingNumber + '\\n' +
+                      markerData.address);
             }
         }
         
         // 지도 초기화 시작
         function startMapInit() {
-            // WebView 환경에서는 네이버지도 API 인증 문제로 데모 모드 사용
-            console.log('WebView 환경에서는 데모 모드로 실행합니다.');
-            initDemoMap();
+            console.log('지도 초기화 시작 - 구글지도 사용');
+            initGoogleMap();
+        }
+        
+        // 구글지도 초기화
+        function initGoogleMap() {
+            const mapDiv = document.getElementById('map');
             
-            // 네이버지도 API 시도 (주석 처리)
-            /*
-            // 네이버지도 API가 로드되었는지 확인
-            if (typeof naver !== 'undefined' && naver.maps) {
-                initNaverMap();
-            } else {
-                // API 로드 대기 또는 데모 모드로 전환
-                setTimeout(() => {
-                    if (typeof naver !== 'undefined' && naver.maps) {
-                        initNaverMap();
-                    } else {
-                        console.warn('네이버지도 API 로드 실패, 데모 모드로 실행');
-                        initDemoMap();
-                    }
-                }, 2000);
+            // 구글지도 embed를 위한 iframe 생성
+            if (markersData.length === 0) {
+                mapDiv.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666;">배송지 정보가 없습니다.</div>';
+                hideLoading();
+                return;
             }
-            */
+            
+            // 첫 번째 배송지 주소로 기본 지도 표시
+            const firstAddress = markersData[0].address;
+            const encodedAddress = encodeURIComponent(firstAddress);
+            
+            // 구글지도 embed iframe 생성
+            const iframe = document.createElement('iframe');
+            iframe.width = '100%';
+            iframe.height = '100%';
+            iframe.style.border = '0';
+            iframe.loading = 'lazy';
+            iframe.allowFullscreen = '';
+            iframe.referrerPolicy = 'no-referrer-when-downgrade';
+            // API 키 없이도 사용 가능한 구글지도 URL (검색 기반)
+            iframe.src = \`https://maps.google.com/maps?q=\${encodedAddress}&output=embed\`;
+            
+            mapDiv.innerHTML = '';
+            mapDiv.appendChild(iframe);
+            
+            hideLoading();
+            renderDeliveryList();
+            setupSliderEvents();
         }
         
         // 페이지 로드 후 실행
+        document.addEventListener('DOMContentLoaded', startMapInit);
         window.onload = startMapInit;
     </script>
 </body>

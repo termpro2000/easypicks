@@ -37,6 +37,15 @@ React Native/Expo 기반의 가구배송 관리 모바일 애플리케이션입�
 - Railway 배포 서버 지원
 - 네트워크 오류 자동 재시도
 
+### 🗺️ 지도 기능
+- **구글지도 통합**: WebView 기반 구글지도 embed 표시
+- **배송지 마커**: 모든 배송 주소를 지도에 마커로 표시
+- **동적 주소 전환**: 배송 목록에서 선택시 해당 주소로 지도 이동
+- **API 키 불필요**: `maps.google.com/maps?q=주소&output=embed` 방식 사용
+- **안정적 동작**: WebView 환경에서 즉시 로딩, 네트워크 오류 없음
+- **지도로 보기**: 배송목록에서 "지도로보기" 버튼으로 모든 배송지 한눈에 확인
+- **상호작용**: 하단 슬라이더에서 배송지 선택시 지도 자동 이동
+
 ### ⚙️ 설정 관리
 - **지도 설정**: 기본 지도 앱 선택 (네이버지도, 카카오지도, 티맵, 구글지도)
 - **앱 정보**: 앱 이름, 버전, 개발사, 업데이트 ID 등 상세 정보 표시
@@ -153,12 +162,17 @@ API_URL=https://your-backend-url.com/api
 ```
 src/
 ├── components/          # 재사용 가능한 컴포넌트
+│   └── map/            # 지도 관련 컴포넌트
+│       └── SimpleNaverMap.js  # 개별 배송 지도 표시
 ├── config/             # 설정 파일
 │   ├── api.js         # API 설정 및 Axios 인스턴스
-│   └── firebase.js    # Firebase 설정
+│   ├── firebase.js    # Firebase 설정
+│   └── naver.js       # 네이버 API 설정 (레거시)
 ├── screens/           # 화면 컴포넌트
-│   ├── DeliveryListScreen.js
-│   └── DeliveryDetailScreen.js
+│   ├── DeliveryListScreen.js      # 배송 목록 화면
+│   ├── DeliveryDetailScreen.js    # 배송 상세 화면
+│   ├── DeliveryMapViewScreen.js   # 구글지도 통합 화면
+│   └── MapSettingScreen.js        # 지도 설정 화면
 ├── utils/             # 유틸리티 함수
 │   └── firebaseStorage.js  # Firebase Storage 헬퍼
 └── App.js            # 메인 앱 컴포넌트
@@ -236,6 +250,16 @@ MIT License
 - Development build 환경에서 권장되는 방법
 
 ## 업데이트 히스토리
+
+### v1.2.1 (2025-09-24)
+- 🗺️ **구글지도 통합**: 네이버지도에서 구글지도로 전환하여 안정성 향상
+- 🎯 **API 키 불필요**: `maps.google.com/maps?q=주소&output=embed` 방식으로 즉시 사용 가능
+- ✅ **지도로 보기 기능**: 배송목록에서 모든 배송지를 구글지도에서 한눈에 확인
+- 🔄 **동적 주소 변경**: 하단 슬라이더에서 배송지 선택시 지도가 해당 주소로 자동 이동
+- 🛠️ **WebView 최적화**: iframe embed 방식으로 React Native WebView에서 안정적 동작
+- 📍 **배송지 마커 시각화**: 모든 배송 주소를 마커로 표시하여 직관적인 위치 파악 가능
+- 💬 **배송 정보 팝업**: 배송지 선택시 고객명, 운송장번호, 주소 정보 표시
+- 🔧 **네이버 API 의존성 제거**: API 로드 실패 문제 해결 및 즉시 지도 표시 보장
 
 ### v1.2.2 (2025-09-20)
 - ✨ **배송완료 상태 녹색 라인 표시**: 왼쪽 굵은 라인이 status 배경색과 동일하게 표시

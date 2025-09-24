@@ -92,16 +92,13 @@ const DeliveryListScreen = ({ navigation }) => {
                     deliveryId: delivery.id,
                     oldStatus: delivery.status,
                     newStatus: updateItem.status,
-                    oldActionDate: delivery.action_date,
-                    newActionDate: updateItem.action_date,
-                    oldActionTime: delivery.action_time,
-                    newActionTime: updateItem.action_time
+                    oldActualDelivery: delivery.actual_delivery,
+                    newActualDelivery: updateItem.actual_delivery
                   });
                   return { 
                     ...delivery, 
                     status: updateItem.status,
-                    action_date: updateItem.action_date || delivery.action_date,
-                    action_time: updateItem.action_time || delivery.action_time
+                    actual_delivery: updateItem.actual_delivery || delivery.actual_delivery
                   };
                 }
                 return delivery;
@@ -188,11 +185,9 @@ const DeliveryListScreen = ({ navigation }) => {
         const deliveriesData = response.data.deliveries
           .map(delivery => {
             console.log('원본 배송 데이터:', delivery.id, delivery.tracking_number);
-            console.log('원본 action 필드:', {
-              action_date: delivery.action_date,
-              action_time: delivery.action_time,
-              hasActionDate: !!delivery.action_date,
-              hasActionTime: !!delivery.action_time
+            console.log('원본 actual_delivery 필드:', {
+              actual_delivery: delivery.actual_delivery,
+              hasActualDelivery: !!delivery.actual_delivery
             });
             return {
             id: delivery.id,
@@ -207,8 +202,7 @@ const DeliveryListScreen = ({ navigation }) => {
             constructionType: delivery.construction_type,
             visitDate: delivery.visit_date,
             visitTime: delivery.visit_time,
-            action_date: delivery.action_date,
-            action_time: delivery.action_time,
+            actual_delivery: delivery.actual_delivery,
             furnitureCompany: delivery.furniture_company,
             emergencyContact: delivery.emergency_contact,
             buildingType: delivery.building_type,
@@ -503,22 +497,15 @@ const DeliveryListScreen = ({ navigation }) => {
         return priorityA - priorityB;
       }
       
-      // 같은 우선순위면 action_date와 action_time 순으로 정렬
-      const actionDateA = a.action_date || '';
-      const actionDateB = b.action_date || '';
+      // 같은 우선순위면 actual_delivery 순으로 정렬
+      const actualDeliveryA = a.actual_delivery || '';
+      const actualDeliveryB = b.actual_delivery || '';
       
-      if (actionDateA !== actionDateB) {
-        return actionDateB.localeCompare(actionDateA); // 최신 날짜가 위로 (내림차순)
+      if (actualDeliveryA !== actualDeliveryB) {
+        return actualDeliveryB.localeCompare(actualDeliveryA); // 최신 시간이 위로 (내림차순)
       }
       
-      const actionTimeA = a.action_time || '';
-      const actionTimeB = b.action_time || '';
-      
-      if (actionTimeA !== actionTimeB) {
-        return actionTimeB.localeCompare(actionTimeA); // 최신 시간이 위로 (내림차순)
-      }
-      
-      // action_date/time이 모두 같으면 주소순 정렬
+      // actual_delivery가 같으면 주소순 정렬
       const addressA = a.customerAddress || '';
       const addressB = b.customerAddress || '';
       return addressA.localeCompare(addressB, 'ko');
@@ -620,7 +607,7 @@ const DeliveryListScreen = ({ navigation }) => {
           </Text>
           <Text style={styles.actionDateTime}>
             처리: {(() => {
-              // 상태 변경이 일어난 경우에만 action_date 표시
+              // 상태 변경이 일어난 경우에만 actual_delivery 표시
               const hasActionStatus = ['배송연기', 'delivery_postponed', '배송취소', 'delivery_cancelled', 'cancelled', 
                                      '배송완료', 'delivery_completed', 'collection_completed', 'processing_completed', 
                                      'delivered', 'completed'].includes(item.status);
@@ -629,39 +616,69 @@ const DeliveryListScreen = ({ navigation }) => {
                 return '-';
               }
               
-              let date = item.action_date || '';
-              let time = item.action_time || '';
+              let dateTimeValue = '';
               
-              // action_date/time이 없으면 driver_notes에서 파싱 시도
-              if (!date || !time) {
-                const notes = item.driver_notes || '';
-                // [액션: YYYY-MM-DD HH:MM:SS] 패턴 매칭
-                const actionMatch = notes.match(/\[액션:\s*(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}:\d{2})\]/);
-                if (actionMatch) {
-                  date = date || actionMatch[1];
-                  time = time || actionMatch[2];
+              // 배송연기 상태일 경우 visit_date 사용 (연기된 날짜)
+              if (item.status === '배송연기' || item.status === 'delivery_postponed') {
+                dateTimeValue = item.visit_date || '';
+                
+                // visit_date가 없으면 actual_delivery 사용
+                if (!dateTimeValue) {
+                  dateTimeValue = item.actual_delivery || '';
+                }
+              } else {
+                // 다른 상태일 경우 actual_delivery 사용 (처리된 날짜)
+                dateTimeValue = item.actual_delivery || '';
+                
+                // actual_delivery가 없으면 driver_notes에서 파싱 시도
+                if (!dateTimeValue) {
+                  const notes = item.driver_notes || '';
+                  // [액션: YYYY-MM-DD HH:MM:SS] 패턴 매칭
+                  const actionMatch = notes.match(/\[액션:\s*(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}:\d{2})\]/);
+                  if (actionMatch) {
+                    dateTimeValue = `${actionMatch[1]}T${actionMatch[2]}`;
+                  }
                 }
               }
               
-              if (!date) {
+              if (!dateTimeValue) {
                 return '-';
               }
               
-              // action_date는 YYYY-MM-DD 형식만 표시
-              const displayDate = date ? date.split('T')[0] : '-';
+              // dateTimeValue 타입에 따른 처리
+              let datetime;
               
-              // action_time은 HH:MM 형식만 표시
-              let displayTime = '';
-              if (time) {
-                const timeParts = time.split(':');
-                if (timeParts.length >= 2) {
-                  displayTime = `${timeParts[0]}:${timeParts[1]}`;
+              if (typeof dateTimeValue === 'number') {
+                // UNIX timestamp인 경우 (초 단위)
+                datetime = new Date(dateTimeValue * 1000);
+              } else if (typeof dateTimeValue === 'string') {
+                // MySQL DATETIME 문자열이나 ISO 문자열인 경우
+                if (dateTimeValue.includes('T')) {
+                  // ISO 형식: 2025-09-24T15:30:00
+                  datetime = new Date(dateTimeValue);
+                } else if (dateTimeValue.includes(' ')) {
+                  // MySQL DATETIME 형식: 2025-09-24 15:30:00
+                  datetime = new Date(dateTimeValue.replace(' ', 'T'));
                 } else {
-                  displayTime = time.substring(0, 5);
+                  datetime = new Date(dateTimeValue);
                 }
+              } else {
+                return dateTimeValue; // 알 수 없는 형식
               }
               
-              return `${displayDate} ${displayTime}`.trim();
+              if (isNaN(datetime.getTime())) {
+                return dateTimeValue; // 파싱 실패 시 원본 반환
+              }
+              
+              // 한국 시간으로 표시
+              const displayDate = datetime.toLocaleDateString('ko-KR'); // 2025. 9. 24.
+              const displayTime = datetime.toLocaleTimeString('ko-KR', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: false 
+              }); // 15:30
+              
+              return `${displayDate} ${displayTime}`;
             })()}
           </Text>
         </View>
@@ -782,7 +799,11 @@ const DeliveryListScreen = ({ navigation }) => {
           renderItem={renderDeliveryItem}
           keyExtractor={(item) => item.id.toString()}
           onDragEnd={handleDragEnd}
-          contentContainerStyle={styles.listContainer}
+          contentContainerStyle={[styles.listContainer, { flexGrow: 1 }]}
+          showsVerticalScrollIndicator={true}
+          scrollEnabled={true}
+          nestedScrollEnabled={true}
+          keyboardShouldPersistTaps="handled"
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>배송할 목록이 없습니다.</Text>
@@ -795,7 +816,11 @@ const DeliveryListScreen = ({ navigation }) => {
           data={deliveries}
           renderItem={renderDeliveryItem}
           keyExtractor={(item) => item.id.toString()}
-          contentContainerStyle={styles.listContainer}
+          contentContainerStyle={[styles.listContainer, { flexGrow: 1 }]}
+          showsVerticalScrollIndicator={true}
+          scrollEnabled={true}
+          nestedScrollEnabled={true}
+          keyboardShouldPersistTaps="handled"
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -1000,6 +1025,8 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     padding: 15,
+    paddingBottom: 80,
+    minHeight: '100%',
   },
   deliveryCard: {
     backgroundColor: '#fff',
