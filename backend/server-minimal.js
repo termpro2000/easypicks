@@ -2516,31 +2516,31 @@ app.post('/api/deliveries/complete/:id', async (req, res) => {
         `;
         updateValues = [completion_notes_final || null, customer_signature || null, completion_audio_url_final || null, deliveryId];
       } else if (dataType === 'timestamp') {
-        // TIMESTAMP 타입: 직접 저장
+        // TIMESTAMP 타입: NOW() 사용 (더 안전)
         updateQuery = `
           UPDATE deliveries 
           SET status = '배송완료',
-              actual_delivery = ?,
+              actual_delivery = NOW(),
               detail_notes = ?,
               customer_signature = ?,
               completion_audio_file = ?,
               updated_at = NOW()
           WHERE id = ?
         `;
-        updateValues = [finalTimestamp, completion_notes || null, customer_signature || null, completion_audio_url || null, deliveryId];
+        updateValues = [completion_notes_final || null, customer_signature || null, completion_audio_url_final || null, deliveryId];
       } else if (dataType === 'int' || dataType === 'bigint') {
-        // 정수 타입: timestamp 직접 저장
+        // 정수 타입: UNIX_TIMESTAMP() 사용
         updateQuery = `
           UPDATE deliveries 
           SET status = '배송완료',
-              actual_delivery = ?,
+              actual_delivery = UNIX_TIMESTAMP(),
               detail_notes = ?,
               customer_signature = ?,
               completion_audio_file = ?,
               updated_at = NOW()
           WHERE id = ?
         `;
-        updateValues = [finalTimestamp, completion_notes || null, customer_signature || null, completion_audio_url || null, deliveryId];
+        updateValues = [completion_notes_final || null, customer_signature || null, completion_audio_url_final || null, deliveryId];
       } else {
         // 기타 타입: NULL로 설정
         updateQuery = `
