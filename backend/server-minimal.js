@@ -1209,10 +1209,47 @@ app.post('/api/deliveries', async (req, res) => {
     // 배송 데이터 삽입
     const [result] = await pool.execute(insertQuery, finalValues);
     
+    const deliveryId = result.insertId;
+    
+    // 멀티-프로덕트 처리: products 필드가 있으면 delivery_products 테이블에 저장
+    let savedProductsCount = 0;
+    if (req.body.products && Array.isArray(req.body.products)) {
+      console.log('📦 제품 목록 저장 시작:', req.body.products.length, '개');
+      
+      for (const product of req.body.products) {
+        if (product.product_code || product.code) {
+          try {
+            await pool.execute(`
+              INSERT INTO delivery_products (
+                delivery_id, 
+                product_code, 
+                product_weight, 
+                total_weight, 
+                product_size, 
+                box_size
+              ) VALUES (?, ?, ?, ?, ?, ?)
+            `, [
+              deliveryId,
+              product.product_code || product.code,
+              product.product_weight || product.weight || null,
+              product.total_weight || null,
+              product.product_size || product.size || null,
+              product.box_size || null
+            ]);
+            savedProductsCount++;
+            console.log('✅ 제품 저장 완료:', product.product_code || product.code);
+          } catch (productError) {
+            console.error('❌ 제품 저장 오류:', product, productError.message);
+          }
+        }
+      }
+    }
+    
     console.log('✅ 배송 접수 생성 완료:', {
       insertId: result.insertId,
       trackingNumber: tracking_number,
-      totalFields: finalColumns.length
+      totalFields: finalColumns.length,
+      productsCount: savedProductsCount
     });
 
     res.status(201).json({
@@ -1226,7 +1263,8 @@ app.post('/api/deliveries', async (req, res) => {
         customer_name: finalReceiverName,
         product_name: product_name,
         created_at: new Date().toISOString(),
-        fieldsStored: finalColumns.length
+        fieldsStored: finalColumns.length,
+        productsCount: savedProductsCount
       }
     });
 

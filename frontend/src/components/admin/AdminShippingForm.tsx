@@ -5,7 +5,7 @@ import {
   Calendar, Clock, AlertTriangle, FileText, Shield, 
   Home, Wrench, Weight, Box, Settings, ArrowLeft, Check, Search, Plus, Trash2
 } from 'lucide-react';
-import { shippingAPI, userAPI, deliveriesAPI } from '../../services/api';
+import { shippingAPI, userAPI, deliveriesAPI, productsAPI } from '../../services/api';
 // import { useAuth } from '../../hooks/useAuth'; // 향후 사용 예정
 import ProductSelectionModal from '../partner/ProductSelectionModal';
 import PartnerSelectionModal from './PartnerSelectionModal';
@@ -115,6 +115,13 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
   const [isSearching, setIsSearching] = useState(false);
   const [products, setProducts] = useState<{id?: number; product_code: string; product_weight?: string; total_weight?: string; product_size?: string; box_size?: string}[]>([]);
   
+  // 제품 검색 관련 상태
+  const [productSearchQuery, setProductSearchQuery] = useState('');
+  const [productSearchResults, setProductSearchResults] = useState<any[]>([]);
+  const [isProductSearching, setIsProductSearching] = useState(false);
+  const [showProductDropdown, setShowProductDropdown] = useState(false);
+  const [selectedProductForAdd, setSelectedProductForAdd] = useState<any>(null);
+  
   // 제품 입력 필드들
   const [currentProductWeight, setCurrentProductWeight] = useState('');
   const [currentProductSize, setCurrentProductSize] = useState('');
@@ -171,6 +178,21 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
     };
 
     loadRequestTypes();
+  }, []);
+
+  // 제품 검색 드롭다운 외부 클릭 처리
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (!target.closest('.product-search-container')) {
+        setShowProductDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, []);
 
   const { register, handleSubmit, formState: { errors }, setValue } = useForm<DeliveryData>({
@@ -352,24 +374,65 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
     setIsPartnerModalOpen(false);
   };
 
+  // 제품 검색 함수
+  const handleProductSearch = async (query: string) => {
+    setProductSearchQuery(query);
+    
+    if (query.length < 2) {
+      setProductSearchResults([]);
+      setShowProductDropdown(false);
+      return;
+    }
+    
+    setIsProductSearching(true);
+    try {
+      const response = await productsAPI.searchProducts(query);
+      setProductSearchResults(response.products || []);
+      setShowProductDropdown(true);
+    } catch (error) {
+      console.error('제품 검색 오류:', error);
+      setProductSearchResults([]);
+    } finally {
+      setIsProductSearching(false);
+    }
+  };
+
+  // 제품 선택 처리
+  const handleSelectProductFromSearch = (product: any) => {
+    setSelectedProductForAdd(product);
+    setProductSearchQuery(product.name);
+    setShowProductDropdown(false);
+    
+    // 제품 정보 자동 입력
+    if (product.weight) {
+      setCurrentProductWeight(product.weight);
+    }
+    if (product.size) {
+      setCurrentProductSize(product.size);
+    }
+  };
+
   // 제품 추가 함수
   const handleAddProduct = () => {
-    const productName = watch('product_name');
+    const productCode = selectedProductForAdd?.code || selectedProductForAdd?.maincode || productSearchQuery.trim();
+    const productName = selectedProductForAdd?.name || productSearchQuery.trim();
     const totalWeight = watch('weight');
     
-    if (!productName?.trim()) {
-      alert('제품명을 입력해주세요.');
+    if (!productCode && !productName) {
+      alert('제품을 검색하여 선택하거나 제품명을 직접 입력해주세요.');
       return;
     }
 
-    // 중복 제품명 확인
-    if (products.some(p => p.product_code === productName.trim())) {
+    // 중복 제품 확인
+    if (products.some(p => p.product_code === (productCode || productName))) {
       alert('이미 추가된 제품입니다.');
       return;
     }
 
     const newProduct = {
-      product_code: productName.trim(),
+      id: selectedProductForAdd?.id,
+      product_code: productCode || productName,
+      product_name: productName,
       product_weight: currentProductWeight.trim() || undefined,
       total_weight: totalWeight ? `${totalWeight}kg` : undefined,
       product_size: currentProductSize.trim() || undefined,
@@ -380,10 +443,12 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
     setProducts(updatedProducts);
 
     // 입력 필드들 초기화
-    setValue('product_name', '');
+    setProductSearchQuery('');
+    setSelectedProductForAdd(null);
     setCurrentProductWeight('');
     setCurrentProductSize('');
     setCurrentBoxSize('');
+    setShowProductDropdown(false);
     
     console.log('제품이 추가되었습니다:', newProduct);
   };
@@ -404,36 +469,61 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
       console.log('배송접수 폼 제출 데이터:', data);
       console.log('선택된 제품 목록:', products);
       
-      // 데이터 형식을 shippingAPI에 맞게 변환
-      const orderData = {
+      // 데이터 형식을 deliveriesAPI에 맞게 변환 (멀티-프로덕트 지원)
+      const deliveryData = {
+        // 기본 배송 정보
         sender_name: data.sender_name,
-        sender_phone: data.emergency_contact || '',
-        sender_zipcode: '',
         sender_address: data.sender_address,
-        receiver_name: data.customer_name,
-        receiver_phone: data.customer_phone,
-        receiver_zipcode: '',
-        receiver_address: data.customer_address,
-        package_type: data.request_type || '',
-        weight: data.weight || 0
+        sender_detail_address: data.sender_detail_address,
+        customer_name: data.customer_name,
+        customer_phone: data.customer_phone,
+        customer_address: data.customer_address,
+        customer_detail_address: data.customer_detail_address,
+        product_name: products.length > 0 ? products[0].product_name || products[0].product_code : '',
+        
+        // 배송 옵션
+        request_type: data.request_type,
+        construction_type: data.construction_type,
+        visit_date: data.visit_date,
+        visit_time: data.visit_time,
+        furniture_company: data.furniture_company,
+        main_memo: data.main_memo,
+        emergency_contact: data.emergency_contact,
+        
+        // 건물 정보
+        building_type: data.building_type,
+        floor_count: data.floor_count,
+        elevator_available: data.elevator_available,
+        ladder_truck: data.ladder_truck,
+        disposal: data.disposal,
+        room_movement: data.room_movement,
+        wall_construction: data.wall_construction,
+        
+        // 기타 정보
+        weight: data.weight,
+        delivery_fee: data.delivery_fee,
+        special_instructions: data.special_instructions,
+        fragile: data.fragile,
+        insurance_value: data.insurance_value,
+        cod_amount: data.cod_amount,
+        estimated_delivery: data.estimated_delivery,
+        furniture_requests: data.furniture_requests,
+        driver_notes: data.driver_notes,
+        detail_notes: data.detail_notes,
+        delivery_time_preference: data.delivery_time_preference,
+        
+        // 멀티-프로덕트 지원: products 배열 추가
+        products: products
       };
       
-      const response = await shippingAPI.createOrder(orderData);
-      console.log('배송 생성 응답:', response);
-      
-      // 배송이 성공적으로 생성되면 제품 정보들을 저장
-      if (response.delivery?.id && products.length > 0) {
-        console.log('제품 정보 저장 시작:', { deliveryId: response.delivery.id, productsCount: products.length });
-        
-        // 제품 정보 배치 저장 - deliveriesAPI의 saveDeliveryProducts 함수 사용
-        await deliveriesAPI.saveDeliveryProducts(response.delivery.id, products);
-        console.log('✅ 제품 정보 저장 완료');
-      }
+      const response = await deliveriesAPI.createDelivery(deliveryData);
+      console.log('멀티-프로덕트 배송 생성 응답:', response);
+      console.log('저장된 제품 수:', response.delivery?.productsCount || 0);
       
       setSubmitResult({
         success: true,
-        message: response.message || '배송이 성공적으로 접수되었습니다.',
-        trackingNumber: response.trackingNumber,
+        message: `배송이 성공적으로 접수되었습니다. (제품 ${products.length}개 포함)`,
+        trackingNumber: response.trackingNumber || response.delivery?.tracking_number,
         deliveryId: response.delivery?.id,
         productsCount: products.length
       });
@@ -931,23 +1021,51 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
             </h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <InfoCell label="제품명" icon={Package} required error={errors.product_name?.message}>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    {...register('product_name', { required: '제품명은 필수입니다' })}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="제품명을 입력하세요"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setIsProductModalOpen(true)}
-                    className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-1"
-                    title="상품 조회"
-                  >
-                    <Search className="w-4 h-4" />
-                    조회
-                  </button>
+              <InfoCell label="제품 검색" icon={Package} required>
+                <div className="flex gap-2 relative product-search-container">
+                  <div className="flex-1 relative">
+                    <input
+                      type="text"
+                      value={productSearchQuery}
+                      onChange={(e) => handleProductSearch(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="제품명 또는 코드로 검색..."
+                      onFocus={() => productSearchResults.length > 0 && setShowProductDropdown(true)}
+                    />
+                    {isProductSearching && (
+                      <div className="absolute right-2 top-2.5">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                      </div>
+                    )}
+                    
+                    {/* 검색 결과 드롭다운 */}
+                    {showProductDropdown && productSearchResults.length > 0 && (
+                      <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                        {productSearchResults.map((product, index) => (
+                          <div
+                            key={index}
+                            onClick={() => handleSelectProductFromSearch(product)}
+                            className="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                          >
+                            <div className="font-medium text-gray-900">{product.name}</div>
+                            <div className="text-sm text-gray-600">
+                              코드: {product.code || product.maincode || '-'} | 
+                              무게: {product.weight || '-'} | 
+                              크기: {product.size || '-'}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {/* 검색 결과 없음 메시지 */}
+                    {showProductDropdown && productSearchResults.length === 0 && productSearchQuery.length >= 2 && !isProductSearching && (
+                      <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-3 text-gray-500 text-sm">
+                        검색 결과가 없습니다.
+                      </div>
+                    )}
+                  </div>
+                  
                   <button
                     type="button"
                     onClick={handleAddProduct}
@@ -993,47 +1111,81 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
               {/* 선택된 상품 목록 */}
               {products.length > 0 && (
                 <div className="col-span-full">
-                  <div className="bg-gray-50 rounded-lg p-4 border-2 border-dashed border-gray-300">
-                    <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
-                      <Package className="w-4 h-4 text-blue-600" />
-                      선택된 상품 목록 ({products.length}개)
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border-2 border-blue-200">
+                    <h4 className="font-bold text-gray-900 mb-4 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Package className="w-5 h-5 text-blue-600" />
+                        선택된 제품 목록
+                        <span className="bg-blue-600 text-white px-2 py-1 rounded-full text-xs font-medium">
+                          {products.length}개
+                        </span>
+                      </div>
+                      <div className="text-sm text-gray-600 font-normal">
+                        총 수량: {products.reduce((sum, p) => {
+                          const weight = parseFloat(p.product_weight?.replace(/[^0-9.]/g, '') || '0');
+                          return sum + weight;
+                        }, 0)}kg
+                      </div>
                     </h4>
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       {products.map((product, index) => (
-                        <div key={index} className="bg-white rounded-lg p-3 border border-gray-200">
+                        <div key={index} className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
                           <div className="flex items-start justify-between">
-                            <div className="grid grid-cols-1 md:grid-cols-5 gap-2 text-sm flex-1">
-                              <div>
-                                <span className="font-medium text-gray-700">제품코드:</span>
-                                <span className="ml-1 font-mono">{product.product_code}</span>
-                              </div>
-                              <div>
-                                <span className="font-medium text-gray-700">제품무게:</span>
-                                <span className="ml-1">{product.product_weight || '-'}</span>
-                              </div>
-                              <div>
-                                <span className="font-medium text-gray-700">전체무게:</span>
-                                <span className="ml-1">{product.total_weight || '-'}</span>
-                              </div>
-                              <div>
-                                <span className="font-medium text-gray-700">제품크기:</span>
-                                <span className="ml-1">{product.product_size || '-'}</span>
-                              </div>
-                              <div>
-                                <span className="font-medium text-gray-700">박스크기:</span>
-                                <span className="ml-1">{product.box_size || '-'}</span>
+                            <div className="flex-1">
+                              {/* 제품명 */}
+                              {product.product_name && (
+                                <div className="mb-2">
+                                  <h5 className="font-semibold text-gray-900 text-lg">{product.product_name}</h5>
+                                </div>
+                              )}
+                              
+                              {/* 제품 정보 그리드 */}
+                              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 text-sm">
+                                <div className="bg-gray-50 rounded-md p-2">
+                                  <span className="font-medium text-gray-600 block">제품코드</span>
+                                  <span className="font-mono text-gray-900 text-xs">{product.product_code}</span>
+                                </div>
+                                <div className="bg-gray-50 rounded-md p-2">
+                                  <span className="font-medium text-gray-600 block">제품무게</span>
+                                  <span className="text-gray-900">{product.product_weight || '-'}</span>
+                                </div>
+                                <div className="bg-gray-50 rounded-md p-2">
+                                  <span className="font-medium text-gray-600 block">전체무게</span>
+                                  <span className="text-gray-900">{product.total_weight || '-'}</span>
+                                </div>
+                                <div className="bg-gray-50 rounded-md p-2">
+                                  <span className="font-medium text-gray-600 block">제품크기</span>
+                                  <span className="text-gray-900">{product.product_size || '-'}</span>
+                                </div>
+                                <div className="bg-gray-50 rounded-md p-2">
+                                  <span className="font-medium text-gray-600 block">박스크기</span>
+                                  <span className="text-gray-900">{product.box_size || '-'}</span>
+                                </div>
                               </div>
                             </div>
                             <button
                               onClick={() => handleRemoveProduct(index)}
-                              className="ml-2 p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded"
+                              className="ml-3 p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
                               title="제품 제거"
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <Trash2 className="w-5 h-5" />
                             </button>
                           </div>
                         </div>
                       ))}
+                    </div>
+                    
+                    {/* 요약 정보 */}
+                    <div className="mt-4 pt-3 border-t border-blue-200">
+                      <div className="flex justify-between text-sm text-gray-600">
+                        <span>제품 종류: {products.length}개</span>
+                        <span>
+                          예상 총 중량: {products.reduce((sum, p) => {
+                            const weight = parseFloat(p.product_weight?.replace(/[^0-9.]/g, '') || '0');
+                            return sum + weight;
+                          }, 0).toFixed(1)}kg
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
