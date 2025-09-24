@@ -2478,10 +2478,11 @@ app.post('/api/deliveries/complete/:id', async (req, res) => {
       }
     }
     
-    // actual_delivery 컬럼 업데이트 임시 제거 - 기본 배송완료 처리만
+    // actual_delivery가 timestamp 컬럼이므로 UNIX timestamp 직접 저장
     const updateQuery = `
       UPDATE deliveries 
       SET status = '배송완료',
+          actual_delivery = ?,
           detail_notes = ?,
           customer_signature = ?,
           completion_audio_file = ?,
@@ -2490,6 +2491,7 @@ app.post('/api/deliveries/complete/:id', async (req, res) => {
     `;
     
     const updateValues = [
+      finalTimestamp,
       completion_notes || null,
       customer_signature || null,
       completion_audio_url || null,
@@ -2498,7 +2500,7 @@ app.post('/api/deliveries/complete/:id', async (req, res) => {
 
     console.log('🔧 실행할 쿼리:', updateQuery);
     console.log('🔧 쿼리 파라미터:', {
-      actualDeliveryTime,
+      finalTimestamp,
       completion_notes: completion_notes || 'null',
       customer_signature: customer_signature ? '서명 데이터' : 'null',
       completion_audio_url: completion_audio_url || 'null',
@@ -2535,9 +2537,9 @@ app.post('/api/deliveries/complete/:id', async (req, res) => {
     res.json({
       success: true,
       message: '배송이 완료 처리되었습니다.',
+      actual_delivery: finalTimestamp,
       deliveryId,
-      affectedRows: result.affectedRows,
-      timestamp: finalTimestamp
+      affectedRows: result.affectedRows
     });
 
   } catch (error) {
