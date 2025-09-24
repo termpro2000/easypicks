@@ -127,6 +127,8 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
   const [showProductDropdown, setShowProductDropdown] = useState(false);
   const [selectedProductForAdd, setSelectedProductForAdd] = useState<any>(null);
   
+  // 제품 선택 모달 관련 상태 (기존 ProductSelectionModal 활용)
+  
   // 제품 입력 필드들
   const [currentProductWeight, setCurrentProductWeight] = useState('');
   const [currentProductSize, setCurrentProductSize] = useState('');
@@ -395,18 +397,94 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
     }
   };
 
-  // 제품 선택 처리
+  // 제품 선택 처리 (검색 드롭다운에서 선택)
   const handleSelectProductFromSearch = (product: any) => {
     setSelectedProductForAdd(product);
     setProductSearchQuery(product.name);
     setShowProductDropdown(false);
     
-    // 제품 정보 자동 입력
+    // 제품 정보 자동 입력 (모달 선택과 동일한 로직)
     if (product.weight) {
-      setCurrentProductWeight(product.weight);
+      const weightStr = typeof product.weight === 'number' 
+        ? `${product.weight}kg` 
+        : String(product.weight);
+      setCurrentProductWeight(weightStr);
     }
+    
     if (product.size) {
       setCurrentProductSize(product.size);
+    }
+    
+    // 박스 크기 자동 설정
+    if (product.size && !currentBoxSize) {
+      setCurrentBoxSize(product.size);
+    }
+    
+    // 폼 필드들에 자동 입력
+    setValue('product_name', product.name || '');
+    
+    if (product.maincode) {
+      setValue('furniture_product_code', product.maincode);
+    }
+    
+    console.log('검색에서 제품 선택 완료:', product.name);
+  };
+
+  // 제품선택 버튼 클릭 처리 (기존 ProductSelectionModal 활용)
+  const handleOpenProductSelectionModal = () => {
+    setIsProductModalOpen(true);
+  };
+
+  // ProductSelectionModal에서 제품 선택 시 호출되는 함수 수정
+  const handleSelectProduct = (product: any) => {
+    console.log('선택된 제품:', product);
+    
+    // 기존 선택 제품 상태 업데이트
+    setSelectedProductForAdd(product);
+    setProductSearchQuery(product.name || '');
+    
+    // 제품 정보 자동 입력 - 모든 필드 자동 채움
+    if (product.weight) {
+      // 숫자인 경우 kg 단위 추가, 문자열인 경우 그대로 사용
+      const weightStr = typeof product.weight === 'number' 
+        ? `${product.weight}kg` 
+        : String(product.weight);
+      setCurrentProductWeight(weightStr);
+    }
+    
+    if (product.size) {
+      setCurrentProductSize(product.size);
+    }
+    
+    // 박스 크기는 제품 크기보다 약간 크게 자동 설정 (옵션)
+    if (product.size && !currentBoxSize) {
+      setCurrentBoxSize(product.size); // 기본값으로 제품 크기와 동일하게 설정
+    }
+    
+    // 폼 필드들에 자동 입력
+    setValue('product_name', product.name || '');
+    
+    // 제품 코드도 설정 (maincode 또는 subcode 사용)
+    if (product.maincode) {
+      // furniture_product_code 필드가 있다면 설정
+      setValue('furniture_product_code', product.maincode);
+    }
+    
+    // 모달 닫기
+    setIsProductModalOpen(false);
+    
+    // 성공 메시지
+    console.log('제품 정보 자동 입력 완료:', {
+      name: product.name,
+      weight: product.weight,
+      size: product.size,
+      code: product.maincode
+    });
+    
+    // 사용자에게 알림 (옵션)
+    if (product.name) {
+      // alert 대신 더 나은 UX를 위해 console로만 처리
+      console.log(`"${product.name}" 제품이 선택되었습니다.`);
     }
   };
 
@@ -1027,6 +1105,24 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
                       placeholder="제품명 또는 코드로 검색..."
                       onFocus={() => productSearchResults.length > 0 && setShowProductDropdown(true)}
                     />
+                    {isProductSearching && (
+                      <div className="absolute right-2 top-2.5">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* 제품선택 버튼 */}
+                  <button
+                    type="button"
+                    onClick={handleOpenProductSelectionModal}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 flex items-center gap-2 whitespace-nowrap"
+                  >
+                    <Search className="w-4 h-4" />
+                    제품선택
+                  </button>
+                  
+                  <div className="relative">
                     {isProductSearching && (
                       <div className="absolute right-2 top-2.5">
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
