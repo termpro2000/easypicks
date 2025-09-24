@@ -1773,7 +1773,7 @@ app.post('/api/debug/create-delivery-products-table', async (req, res) => {
     
     console.log('🔐 현재 사용자 권한:', privileges.map(p => Object.values(p)[0]));
     
-    // delivery_products 테이블 생성 시도
+    // delivery_products 테이블 생성 시도 (PlanetScale은 외래키 제약 미지원)
     const createTableSQL = `
       CREATE TABLE IF NOT EXISTS delivery_products (
         id INT PRIMARY KEY AUTO_INCREMENT,
@@ -1787,8 +1787,7 @@ app.post('/api/debug/create-delivery-products-table', async (req, res) => {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         
         INDEX idx_delivery_id (delivery_id),
-        INDEX idx_product_code (product_code),
-        FOREIGN KEY (delivery_id) REFERENCES deliveries(id) ON DELETE CASCADE
+        INDEX idx_product_code (product_code)
       )
     `;
     
