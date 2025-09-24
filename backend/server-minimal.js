@@ -2356,6 +2356,251 @@ app.get('/api/products/search/code', async (req, res) => {
   }
 });
 
+// === 배송 상태 업데이트 API ===
+
+// 배송 완료 처리
+app.post('/api/deliveries/complete/:id', async (req, res) => {
+  try {
+    const deliveryId = req.params.id;
+    const { 
+      completedAt, 
+      completion_notes, 
+      completion_photo_url,
+      completion_audio_url,
+      customer_signature
+    } = req.body;
+    
+    console.log('🎯 배송 완료 처리 요청:', {
+      deliveryId,
+      completedAt,
+      completion_notes: completion_notes?.substring(0, 50)
+    });
+
+    // action_date와 action_time 필드 생성 확인
+    await ensureActionDateTimeColumns();
+
+    const currentDateTime = new Date();
+    const actionDate = currentDateTime.toISOString().split('T')[0]; // YYYY-MM-DD
+    const actionTime = currentDateTime.toTimeString().split(' ')[0]; // HH:MM:SS
+
+    const [result] = await pool.execute(`
+      UPDATE deliveries 
+      SET status = 'delivery_completed',
+          completed_at = ?,
+          completion_notes = ?,
+          completion_photo_url = ?,
+          completion_audio_url = ?,
+          customer_signature = ?,
+          action_date = ?,
+          action_time = ?,
+          updated_at = NOW()
+      WHERE id = ?
+    `, [
+      completedAt || currentDateTime.toISOString(),
+      completion_notes || null,
+      completion_photo_url || null, 
+      completion_audio_url || null,
+      customer_signature || null,
+      actionDate,
+      actionTime,
+      deliveryId
+    ]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        error: '배송 정보를 찾을 수 없습니다.'
+      });
+    }
+
+    console.log('✅ 배송 완료 처리 성공:', deliveryId);
+    res.json({
+      success: true,
+      message: '배송이 완료 처리되었습니다.',
+      action_date: actionDate,
+      action_time: actionTime
+    });
+
+  } catch (error) {
+    console.error('❌ 배송 완료 처리 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '배송 완료 처리 중 오류가 발생했습니다.',
+      details: error.message
+    });
+  }
+});
+
+// 배송 연기 처리
+app.post('/api/deliveries/delay/:trackingNumber', async (req, res) => {
+  try {
+    const trackingNumber = req.params.trackingNumber;
+    const { delayDate, delayReason } = req.body;
+    
+    console.log('⏰ 배송 연기 처리 요청:', {
+      trackingNumber,
+      delayDate,
+      delayReason: delayReason?.substring(0, 50)
+    });
+
+    if (!delayDate || !delayReason) {
+      return res.status(400).json({
+        success: false,
+        error: '연기 날짜와 사유가 필요합니다.'
+      });
+    }
+
+    // action_date와 action_time 필드 생성 확인
+    await ensureActionDateTimeColumns();
+
+    const currentDateTime = new Date();
+    const actionDate = currentDateTime.toISOString().split('T')[0]; // YYYY-MM-DD
+    const actionTime = currentDateTime.toTimeString().split(' ')[0]; // HH:MM:SS
+
+    const [result] = await pool.execute(`
+      UPDATE deliveries 
+      SET status = 'delivery_postponed',
+          visit_date = ?,
+          delay_reason = ?,
+          action_date = ?,
+          action_time = ?,
+          updated_at = NOW()
+      WHERE tracking_number = ?
+    `, [delayDate, delayReason, actionDate, actionTime, trackingNumber]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        error: '배송 정보를 찾을 수 없습니다.'
+      });
+    }
+
+    console.log('✅ 배송 연기 처리 성공:', trackingNumber);
+    res.json({
+      success: true,
+      message: '배송이 연기되었습니다.',
+      action_date: actionDate,
+      action_time: actionTime
+    });
+
+  } catch (error) {
+    console.error('❌ 배송 연기 처리 오러:', error);
+    res.status(500).json({
+      success: false,
+      error: '배송 연기 처리 중 오류가 발생했습니다.',
+      details: error.message
+    });
+  }
+});
+
+// 배송 취소 처리
+app.post('/api/deliveries/cancel/:id', async (req, res) => {
+  try {
+    const deliveryId = req.params.id;
+    const { cancelReason } = req.body;
+    
+    console.log('❌ 배송 취소 처리 요청:', {
+      deliveryId,
+      cancelReason: cancelReason?.substring(0, 50)
+    });
+
+    if (!cancelReason) {
+      return res.status(400).json({
+        success: false,
+        error: '취소 사유가 필요합니다.'
+      });
+    }
+
+    // action_date와 action_time 필드 생성 확인
+    await ensureActionDateTimeColumns();
+
+    const currentDateTime = new Date();
+    const actionDate = currentDateTime.toISOString().split('T')[0]; // YYYY-MM-DD
+    const actionTime = currentDateTime.toTimeString().split(' ')[0]; // HH:MM:SS
+
+    const [result] = await pool.execute(`
+      UPDATE deliveries 
+      SET status = 'delivery_cancelled',
+          cancel_status = 1,
+          cancel_reason = ?,
+          canceled_at = ?,
+          action_date = ?,
+          action_time = ?,
+          updated_at = NOW()
+      WHERE id = ?
+    `, [cancelReason, currentDateTime.toISOString(), actionDate, actionTime, deliveryId]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        error: '배송 정보를 찾을 수 없습니다.'
+      });
+    }
+
+    console.log('✅ 배송 취소 처리 성공:', deliveryId);
+    res.json({
+      success: true,
+      message: '배송이 취소되었습니다.',
+      action_date: actionDate,
+      action_time: actionTime
+    });
+
+  } catch (error) {
+    console.error('❌ 배송 취소 처리 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '배송 취소 처리 중 오류가 발생했습니다.',
+      details: error.message
+    });
+  }
+});
+
+// action_date와 action_time 컬럼 생성 함수
+async function ensureActionDateTimeColumns() {
+  try {
+    // 컬럼 존재 확인
+    const [columns] = await pool.execute(`
+      SELECT COLUMN_NAME 
+      FROM information_schema.COLUMNS 
+      WHERE TABLE_SCHEMA = DATABASE() 
+      AND TABLE_NAME = 'deliveries' 
+      AND COLUMN_NAME IN ('action_date', 'action_time')
+    `);
+    
+    const existingColumns = columns.map(col => col.COLUMN_NAME);
+    console.log('📅 action 컬럼 존재 확인:', existingColumns);
+    
+    // action_date 컬럼이 없으면 생성 시도 (권한 있는 경우에만)
+    if (!existingColumns.includes('action_date')) {
+      try {
+        await pool.execute(`
+          ALTER TABLE deliveries 
+          ADD COLUMN action_date DATE NULL COMMENT '상태 변경 날짜'
+        `);
+        console.log('✅ action_date 컬럼 생성 성공');
+      } catch (error) {
+        console.log('ℹ️ action_date 컬럼 생성 건너뜀 (권한 없음):', error.message);
+      }
+    }
+    
+    // action_time 컬럼이 없으면 생성 시도 (권한 있는 경우에만)
+    if (!existingColumns.includes('action_time')) {
+      try {
+        await pool.execute(`
+          ALTER TABLE deliveries 
+          ADD COLUMN action_time TIME NULL COMMENT '상태 변경 시간'
+        `);
+        console.log('✅ action_time 컬럼 생성 성공');
+      } catch (error) {
+        console.log('ℹ️ action_time 컬럼 생성 건너뜀 (권한 없음):', error.message);
+      }
+    }
+    
+  } catch (error) {
+    console.log('ℹ️ action 컬럼 확인 중 오류 (무시):', error.message);
+  }
+}
+
 // 서버 시작
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
