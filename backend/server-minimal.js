@@ -2360,8 +2360,8 @@ app.get('/api/products/search/code', async (req, res) => {
 
 // 배송 완료 처리
 app.post('/api/deliveries/complete/:id', async (req, res) => {
+  const deliveryId = req.params.id;
   try {
-    const deliveryId = req.params.id;
     const { 
       completedAt, 
       completion_notes, 
@@ -2511,8 +2511,8 @@ app.post('/api/deliveries/complete/:id', async (req, res) => {
 
 // 배송 연기 처리
 app.post('/api/deliveries/delay/:trackingNumber', async (req, res) => {
+  const trackingNumber = req.params.trackingNumber;
   try {
-    const trackingNumber = req.params.trackingNumber;
     const { delayDate, delayReason } = req.body;
     
     console.log('⏰ 배송 연기 처리 요청:', {
@@ -2567,8 +2567,8 @@ app.post('/api/deliveries/delay/:trackingNumber', async (req, res) => {
 
 // 배송 취소 처리
 app.post('/api/deliveries/cancel/:id', async (req, res) => {
+  const deliveryId = req.params.id;
   try {
-    const deliveryId = req.params.id;
     const { cancelReason } = req.body;
     
     console.log('❌ 배송 취소 처리 요청:', {
