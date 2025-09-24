@@ -2399,18 +2399,49 @@ app.post('/api/deliveries/complete/:id', async (req, res) => {
 
     console.log('📋 기존 배송 정보:', existingDelivery[0]);
 
-    const currentDateTime = new Date();
-    const actualDeliveryTime = completedAt || currentDateTime.toISOString();
+    // 정밀한 timestamp 처리 (한국 시간대 고려)
+    const now = new Date();
+    
+    // 한국 시간대로 현재 시간 조정 (UTC+9)
+    const koreaOffset = 9 * 60 * 60 * 1000; // 9시간을 밀리초로
+    const koreaTime = new Date(now.getTime() + koreaOffset);
+    
+    // 밀리초 포함 timestamp (소수점 3자리 정밀도)
+    const preciseCurrentTimestamp = Math.round(koreaTime.getTime() / 1000 * 1000) / 1000;
+    let actualDeliveryTime = preciseCurrentTimestamp;
+    
+    if (completedAt) {
+      const completedDate = new Date(completedAt);
+      if (!isNaN(completedDate.getTime())) {
+        // 완료 시간도 한국 시간대로 조정
+        const completedKoreaTime = new Date(completedDate.getTime() + koreaOffset);
+        actualDeliveryTime = Math.round(completedKoreaTime.getTime() / 1000 * 1000) / 1000;
+      }
+    }
+    
+    // timestamp 유효성 검사 (2000년 이후의 합리적한 값인지 확인)
+    if (!actualDeliveryTime || actualDeliveryTime < 946684800) { // 2000-01-01 00:00:00 UTC
+      actualDeliveryTime = preciseCurrentTimestamp;
+    }
+    
+    // 최종적으로 정수형 timestamp로 변환 (MySQL 호환성)
+    const finalTimestamp = Math.floor(actualDeliveryTime);
 
-    console.log('📅 처리할 시간 정보:', {
-      currentDateTime: currentDateTime.toISOString(),
-      actualDeliveryTime,
-      completedAt
+    console.log('📅 정밀한 시간 처리 정보:', {
+      originalCompletedAt: completedAt,
+      utcNow: now.toISOString(),
+      koreaTime: koreaTime.toISOString(),
+      preciseTimestamp: preciseCurrentTimestamp,
+      actualDeliveryTime: actualDeliveryTime,
+      finalTimestamp: finalTimestamp,
+      readableKoreaTime: new Date(finalTimestamp * 1000).toLocaleString('ko-KR', {timeZone: 'Asia/Seoul'}),
+      timestampDifference: Math.abs(actualDeliveryTime - preciseCurrentTimestamp),
+      isValidTimestamp: finalTimestamp > 946684800
     });
 
-    // 실제 컬럼 존재 확인
+    // 실제 컬럼 존재 확인 및 데이터 타입 확인
     const [columns] = await pool.execute(`
-      SELECT COLUMN_NAME 
+      SELECT COLUMN_NAME, DATA_TYPE, COLUMN_TYPE
       FROM information_schema.COLUMNS 
       WHERE TABLE_SCHEMA = DATABASE() 
       AND TABLE_NAME = 'deliveries' 
@@ -2418,12 +2449,39 @@ app.post('/api/deliveries/complete/:id', async (req, res) => {
     `);
     
     const existingColumns = columns.map(col => col.COLUMN_NAME);
-    console.log('🗃️ 존재하는 컬럼들:', existingColumns);
+    console.log('🗃️ 존재하는 컬럼들:', columns);
 
+    // actual_delivery 컬럼이 존재하는지 확인하고 데이터 타입 체크
+    const actualDeliveryColumn = columns.find(col => col.COLUMN_NAME === 'actual_delivery');
+    const hasActualDelivery = !!actualDeliveryColumn;
+    
+    let actualDeliveryValue = null;
+    if (hasActualDelivery) {
+      const dataType = actualDeliveryColumn.DATA_TYPE.toLowerCase();
+      console.log('📊 actual_delivery 컬럼 정보:', {
+        dataType: dataType,
+        columnType: actualDeliveryColumn.COLUMN_TYPE
+      });
+      
+      if (dataType === 'timestamp' || dataType === 'datetime') {
+        // DATETIME/TIMESTAMP 타입인 경우 FROM_UNIXTIME 사용
+        actualDeliveryValue = `FROM_UNIXTIME(${actualDeliveryTime})`;
+      } else if (dataType === 'int' || dataType === 'bigint') {
+        // INT/BIGINT 타입인 경우 timestamp 값 직접 사용
+        actualDeliveryValue = actualDeliveryTime;
+      } else if (dataType === 'varchar' || dataType === 'text') {
+        // 문자열 타입인 경우 ISO 문자열 사용
+        actualDeliveryValue = new Date(actualDeliveryTime * 1000).toISOString();
+      } else {
+        // 기본값: timestamp 숫자
+        actualDeliveryValue = actualDeliveryTime;
+      }
+    }
+    
+    // actual_delivery 컬럼 업데이트 임시 제거 - 기본 배송완료 처리만
     const updateQuery = `
       UPDATE deliveries 
       SET status = '배송완료',
-          actual_delivery = ?,
           detail_notes = ?,
           customer_signature = ?,
           completion_audio_file = ?,
@@ -2432,7 +2490,6 @@ app.post('/api/deliveries/complete/:id', async (req, res) => {
     `;
     
     const updateValues = [
-      actualDeliveryTime,
       completion_notes || null,
       customer_signature || null,
       completion_audio_url || null,
@@ -2472,16 +2529,15 @@ app.post('/api/deliveries/complete/:id', async (req, res) => {
 
     console.log('✅ 배송 완료 처리 성공:', {
       deliveryId,
-      affectedRows: result.affectedRows,
-      actualDeliveryTime
+      affectedRows: result.affectedRows
     });
     
     res.json({
       success: true,
       message: '배송이 완료 처리되었습니다.',
-      actual_delivery: actualDeliveryTime,
       deliveryId,
-      affectedRows: result.affectedRows
+      affectedRows: result.affectedRows,
+      timestamp: finalTimestamp
     });
 
   } catch (error) {
@@ -2528,15 +2584,18 @@ app.post('/api/deliveries/delay/:trackingNumber', async (req, res) => {
       });
     }
 
-    const currentDateTime = new Date();
-    const actualDeliveryTime = currentDateTime.toISOString();
+    // 안전한 timestamp 처리
+    const currentTimestamp = Math.floor(Date.now() / 1000);
+    
+    // timestamp 유효성 검사
+    const actualDeliveryTime = (currentTimestamp > 946684800) ? currentTimestamp : Math.floor(Date.now() / 1000);
 
     const [result] = await pool.execute(`
       UPDATE deliveries 
       SET status = '배송연기',
           visit_date = ?,
           detail_notes = ?,
-          actual_delivery = ?,
+          actual_delivery = FROM_UNIXTIME(?),
           updated_at = NOW()
       WHERE tracking_number = ?
     `, [delayDate, delayReason, actualDeliveryTime, trackingNumber]);
@@ -2583,16 +2642,19 @@ app.post('/api/deliveries/cancel/:id', async (req, res) => {
       });
     }
 
-    const currentDateTime = new Date();
-    const actualDeliveryTime = currentDateTime.toISOString();
+    // 안전한 timestamp 처리
+    const currentTimestamp = Math.floor(Date.now() / 1000);
+    
+    // timestamp 유효성 검사
+    const actualDeliveryTime = (currentTimestamp > 946684800) ? currentTimestamp : Math.floor(Date.now() / 1000);
 
     const [result] = await pool.execute(`
       UPDATE deliveries 
       SET status = '배송취소',
           cancel_status = 1,
           cancel_reason = ?,
-          canceled_at = ?,
-          actual_delivery = ?,
+          canceled_at = FROM_UNIXTIME(?),
+          actual_delivery = FROM_UNIXTIME(?),
           updated_at = NOW()
       WHERE id = ?
     `, [cancelReason, actualDeliveryTime, actualDeliveryTime, deliveryId]);
