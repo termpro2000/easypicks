@@ -2491,18 +2491,18 @@ app.post('/api/deliveries/complete/:id', async (req, res) => {
       });
       
       if (dataType === 'datetime') {
-        // DATETIME 타입: FROM_UNIXTIME 사용
+        // DATETIME 타입: 현재 시간으로 NOW() 사용 (가장 안전)
         updateQuery = `
           UPDATE deliveries 
           SET status = '배송완료',
-              actual_delivery = FROM_UNIXTIME(?),
+              actual_delivery = NOW(),
               detail_notes = ?,
               customer_signature = ?,
               completion_audio_file = ?,
               updated_at = NOW()
           WHERE id = ?
         `;
-        updateValues = [finalTimestamp, completion_notes || null, customer_signature || null, completion_audio_url || null, deliveryId];
+        updateValues = [completion_notes || null, customer_signature || null, completion_audio_url || null, deliveryId];
       } else if (dataType === 'timestamp') {
         // TIMESTAMP 타입: 직접 저장
         updateQuery = `
@@ -2593,10 +2593,13 @@ app.post('/api/deliveries/complete/:id', async (req, res) => {
       affectedRows: result.affectedRows
     });
     
+    // 현재 시간을 actual_delivery로 반환 (MySQL NOW() 결과와 일치)
+    const currentTimeForResponse = Math.floor(Date.now() / 1000);
+    
     res.json({
       success: true,
       message: '배송이 완료 처리되었습니다.',
-      actual_delivery: finalTimestamp,
+      actual_delivery: currentTimeForResponse,
       deliveryId,
       affectedRows: result.affectedRows
     });
