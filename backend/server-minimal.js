@@ -2370,16 +2370,57 @@ app.post('/api/deliveries/complete/:id', async (req, res) => {
       customer_signature
     } = req.body;
     
-    console.log('🎯 배송 완료 처리 요청:', {
+    console.log('🎯 배송 완료 처리 요청 상세 정보:', {
       deliveryId,
+      deliveryIdType: typeof deliveryId,
       completedAt,
-      completion_notes: completion_notes?.substring(0, 50)
+      completion_notes: completion_notes?.substring(0, 50),
+      completion_photo_url,
+      completion_audio_url,
+      customer_signature: customer_signature ? '서명 데이터 있음' : '서명 데이터 없음',
+      requestBody: JSON.stringify(req.body, null, 2)
     });
+
+    // 배송 ID가 유효한지 먼저 확인
+    const [existingDelivery] = await pool.execute(
+      'SELECT id, status, tracking_number FROM deliveries WHERE id = ?',
+      [deliveryId]
+    );
+    
+    if (existingDelivery.length === 0) {
+      console.error('❌ 배송 정보를 찾을 수 없음:', deliveryId);
+      return res.status(404).json({
+        success: false,
+        error: '배송 정보를 찾을 수 없습니다.',
+        deliveryId,
+        details: '해당 ID의 배송이 존재하지 않습니다.'
+      });
+    }
+
+    console.log('📋 기존 배송 정보:', existingDelivery[0]);
 
     const currentDateTime = new Date();
     const actualDeliveryTime = completedAt || currentDateTime.toISOString();
 
-    const [result] = await pool.execute(`
+    console.log('📅 처리할 시간 정보:', {
+      currentDateTime: currentDateTime.toISOString(),
+      actualDeliveryTime,
+      completedAt
+    });
+
+    // 실제 컬럼 존재 확인
+    const [columns] = await pool.execute(`
+      SELECT COLUMN_NAME 
+      FROM information_schema.COLUMNS 
+      WHERE TABLE_SCHEMA = DATABASE() 
+      AND TABLE_NAME = 'deliveries' 
+      AND COLUMN_NAME IN ('actual_delivery', 'detail_notes', 'customer_signature', 'completion_audio_file')
+    `);
+    
+    const existingColumns = columns.map(col => col.COLUMN_NAME);
+    console.log('🗃️ 존재하는 컬럼들:', existingColumns);
+
+    const updateQuery = `
       UPDATE deliveries 
       SET status = '배송완료',
           actual_delivery = ?,
@@ -2388,34 +2429,82 @@ app.post('/api/deliveries/complete/:id', async (req, res) => {
           completion_audio_file = ?,
           updated_at = NOW()
       WHERE id = ?
-    `, [
+    `;
+    
+    const updateValues = [
       actualDeliveryTime,
       completion_notes || null,
       customer_signature || null,
       completion_audio_url || null,
       deliveryId
-    ]);
+    ];
+
+    console.log('🔧 실행할 쿼리:', updateQuery);
+    console.log('🔧 쿼리 파라미터:', {
+      actualDeliveryTime,
+      completion_notes: completion_notes || 'null',
+      customer_signature: customer_signature ? '서명 데이터' : 'null',
+      completion_audio_url: completion_audio_url || 'null',
+      deliveryId
+    });
+
+    const [result] = await pool.execute(updateQuery, updateValues);
+
+    console.log('📊 쿼리 실행 결과:', {
+      affectedRows: result.affectedRows,
+      insertId: result.insertId,
+      changedRows: result.changedRows,
+      info: result.info,
+      serverStatus: result.serverStatus,
+      warningStatus: result.warningStatus
+    });
 
     if (result.affectedRows === 0) {
+      console.error('❌ 업데이트 실패 - 영향받은 행 없음:', deliveryId);
       return res.status(404).json({
         success: false,
-        error: '배송 정보를 찾을 수 없습니다.'
+        error: '배송 정보 업데이트에 실패했습니다.',
+        deliveryId,
+        details: '배송 정보가 존재하지만 업데이트되지 않았습니다.',
+        queryResult: result
       });
     }
 
-    console.log('✅ 배송 완료 처리 성공:', deliveryId);
+    console.log('✅ 배송 완료 처리 성공:', {
+      deliveryId,
+      affectedRows: result.affectedRows,
+      actualDeliveryTime
+    });
+    
     res.json({
       success: true,
       message: '배송이 완료 처리되었습니다.',
-      actual_delivery: actualDeliveryTime
+      actual_delivery: actualDeliveryTime,
+      deliveryId,
+      affectedRows: result.affectedRows
     });
 
   } catch (error) {
-    console.error('❌ 배송 완료 처리 오류:', error);
+    console.error('❌ 배송 완료 처리 전체 오류:', {
+      errorMessage: error.message,
+      errorCode: error.code,
+      errorStack: error.stack,
+      deliveryId,
+      sqlState: error.sqlState,
+      errno: error.errno,
+      sql: error.sql
+    });
+    
     res.status(500).json({
       success: false,
       error: '배송 완료 처리 중 오류가 발생했습니다.',
-      details: error.message
+      details: {
+        message: error.message,
+        code: error.code,
+        errno: error.errno,
+        sqlState: error.sqlState,
+        deliveryId
+      }
     });
   }
 });
