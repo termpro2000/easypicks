@@ -3,13 +3,12 @@ import { useForm } from 'react-hook-form';
 import { 
   User, Phone, Building, MapPin, Package, Truck, 
   Calendar, Clock, AlertTriangle, FileText, Shield, 
-  Home, Wrench, Weight, Box, Settings, ArrowLeft, Check, Search
+  Home, Wrench, Weight, Box, Settings, ArrowLeft, Check, Search, Plus, Trash2
 } from 'lucide-react';
 import { shippingAPI, userAPI, deliveriesAPI } from '../../services/api';
 // import { useAuth } from '../../hooks/useAuth'; // 향후 사용 예정
 import ProductSelectionModal from '../partner/ProductSelectionModal';
 import PartnerSelectionModal from './PartnerSelectionModal';
-import ProductManagement from './ProductManagement';
 
 // Daum 우편번호 서비스 타입 선언
 declare global {
@@ -114,7 +113,12 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<UserOption[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [products, setProducts] = useState<{id?: number; product_code: string}[]>([]);
+  const [products, setProducts] = useState<{id?: number; product_code: string; product_weight?: string; total_weight?: string; product_size?: string; box_size?: string}[]>([]);
+  
+  // 제품 입력 필드들
+  const [currentProductWeight, setCurrentProductWeight] = useState('');
+  const [currentProductSize, setCurrentProductSize] = useState('');
+  const [currentBoxSize, setCurrentBoxSize] = useState('');
 
   // Daum 우편번호 서비스 초기화
   useEffect(() => {
@@ -346,6 +350,51 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
     // }
 
     setIsPartnerModalOpen(false);
+  };
+
+  // 제품 추가 함수
+  const handleAddProduct = () => {
+    const productName = watch('product_name');
+    const totalWeight = watch('weight');
+    
+    if (!productName?.trim()) {
+      alert('제품명을 입력해주세요.');
+      return;
+    }
+
+    // 중복 제품명 확인
+    if (products.some(p => p.product_code === productName.trim())) {
+      alert('이미 추가된 제품입니다.');
+      return;
+    }
+
+    const newProduct = {
+      product_code: productName.trim(),
+      product_weight: currentProductWeight.trim() || undefined,
+      total_weight: totalWeight ? `${totalWeight}kg` : undefined,
+      product_size: currentProductSize.trim() || undefined,
+      box_size: currentBoxSize.trim() || undefined
+    };
+
+    const updatedProducts = [...products, newProduct];
+    setProducts(updatedProducts);
+
+    // 입력 필드들 초기화
+    setValue('product_name', '');
+    setCurrentProductWeight('');
+    setCurrentProductSize('');
+    setCurrentBoxSize('');
+    
+    console.log('제품이 추가되었습니다:', newProduct);
+  };
+
+  // 제품 제거 함수
+  const handleRemoveProduct = (index: number) => {
+    if (confirm('이 제품을 제거하시겠습니까?')) {
+      const updatedProducts = products.filter((_, i) => i !== index);
+      setProducts(updatedProducts);
+      console.log('제품이 제거되었습니다:', products[index]);
+    }
   };
 
   // 폼 제출
@@ -881,11 +930,7 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
               제품 정보
             </h2>
             
-            <ProductManagement 
-              onChange={(newProducts) => setProducts(newProducts)}
-            />
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <InfoCell label="제품명" icon={Package} required error={errors.product_name?.message}>
                 <div className="flex gap-2">
                   <input
@@ -903,7 +948,46 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
                     <Search className="w-4 h-4" />
                     조회
                   </button>
+                  <button
+                    type="button"
+                    onClick={handleAddProduct}
+                    className="px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center gap-1"
+                    title="제품 추가"
+                  >
+                    <Plus className="w-4 h-4" />
+                    추가
+                  </button>
                 </div>
+              </InfoCell>
+
+              <InfoCell label="제품무게" icon={Weight}>
+                <input
+                  type="text"
+                  value={currentProductWeight}
+                  onChange={(e) => setCurrentProductWeight(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="예: 50kg"
+                />
+              </InfoCell>
+
+              <InfoCell label="제품크기" icon={Box}>
+                <input
+                  type="text"
+                  value={currentProductSize}
+                  onChange={(e) => setCurrentProductSize(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="예: 1200x800x600mm"
+                />
+              </InfoCell>
+
+              <InfoCell label="박스크기" icon={Box}>
+                <input
+                  type="text"
+                  value={currentBoxSize}
+                  onChange={(e) => setCurrentBoxSize(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="예: 1300x900x700mm"
+                />
               </InfoCell>
 
               {/* 선택된 상품 목록 */}
@@ -917,27 +1001,36 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
                     <div className="space-y-2">
                       {products.map((product, index) => (
                         <div key={index} className="bg-white rounded-lg p-3 border border-gray-200">
-                          <div className="grid grid-cols-1 md:grid-cols-5 gap-2 text-sm">
-                            <div>
-                              <span className="font-medium text-gray-700">제품코드:</span>
-                              <span className="ml-1 font-mono">{product.product_code}</span>
+                          <div className="flex items-start justify-between">
+                            <div className="grid grid-cols-1 md:grid-cols-5 gap-2 text-sm flex-1">
+                              <div>
+                                <span className="font-medium text-gray-700">제품코드:</span>
+                                <span className="ml-1 font-mono">{product.product_code}</span>
+                              </div>
+                              <div>
+                                <span className="font-medium text-gray-700">제품무게:</span>
+                                <span className="ml-1">{product.product_weight || '-'}</span>
+                              </div>
+                              <div>
+                                <span className="font-medium text-gray-700">전체무게:</span>
+                                <span className="ml-1">{product.total_weight || '-'}</span>
+                              </div>
+                              <div>
+                                <span className="font-medium text-gray-700">제품크기:</span>
+                                <span className="ml-1">{product.product_size || '-'}</span>
+                              </div>
+                              <div>
+                                <span className="font-medium text-gray-700">박스크기:</span>
+                                <span className="ml-1">{product.box_size || '-'}</span>
+                              </div>
                             </div>
-                            <div>
-                              <span className="font-medium text-gray-700">제품무게:</span>
-                              <span className="ml-1">{product.product_weight || '-'}</span>
-                            </div>
-                            <div>
-                              <span className="font-medium text-gray-700">전체무게:</span>
-                              <span className="ml-1">{product.total_weight || '-'}</span>
-                            </div>
-                            <div>
-                              <span className="font-medium text-gray-700">제품크기:</span>
-                              <span className="ml-1">{product.product_size || '-'}</span>
-                            </div>
-                            <div>
-                              <span className="font-medium text-gray-700">박스크기:</span>
-                              <span className="ml-1">{product.box_size || '-'}</span>
-                            </div>
+                            <button
+                              onClick={() => handleRemoveProduct(index)}
+                              className="ml-2 p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded"
+                              title="제품 제거"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </div>
                         </div>
                       ))}
