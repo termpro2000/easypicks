@@ -2503,46 +2503,63 @@ app.post('/api/deliveries/complete/:id', async (req, res) => {
       });
       
       if (dataType === 'datetime') {
-        // DATETIME 타입: 현재 시간으로 NOW() 사용 (가장 안전)
+        // DATETIME 타입: 한국 시간으로 직접 생성
+        const koreaTime = new Date();
+        koreaTime.setHours(koreaTime.getHours() + 9); // UTC+9 한국 시간
+        const mysqlDateTime = koreaTime.toISOString().slice(0, 19).replace('T', ' ');
+        
         updateQuery = `
           UPDATE deliveries 
           SET status = '배송완료',
-              actual_delivery = NOW(),
+              actual_delivery = ?,
               detail_notes = ?,
               customer_signature = ?,
               completion_audio_file = ?,
-              updated_at = NOW()
+              updated_at = ?
           WHERE id = ?
         `;
-        updateValues = [completion_notes_final || null, customer_signature || null, completion_audio_url_final || null, deliveryId];
+        updateValues = [mysqlDateTime, completion_notes_final || null, customer_signature || null, completion_audio_url_final || null, mysqlDateTime, deliveryId];
       } else if (dataType === 'timestamp') {
-        // TIMESTAMP 타입: NOW() 사용 (더 안전)
+        // TIMESTAMP 타입: 한국 시간으로 직접 생성
+        const koreaTime = new Date();
+        koreaTime.setHours(koreaTime.getHours() + 9); // UTC+9 한국 시간
+        const mysqlDateTime = koreaTime.toISOString().slice(0, 19).replace('T', ' ');
+        
         updateQuery = `
           UPDATE deliveries 
           SET status = '배송완료',
-              actual_delivery = NOW(),
+              actual_delivery = ?,
               detail_notes = ?,
               customer_signature = ?,
               completion_audio_file = ?,
-              updated_at = NOW()
+              updated_at = ?
           WHERE id = ?
         `;
-        updateValues = [completion_notes_final || null, customer_signature || null, completion_audio_url_final || null, deliveryId];
+        updateValues = [mysqlDateTime, completion_notes_final || null, customer_signature || null, completion_audio_url_final || null, mysqlDateTime, deliveryId];
       } else if (dataType === 'int' || dataType === 'bigint') {
-        // 정수 타입: UNIX_TIMESTAMP() 사용
+        // 정수 타입: 한국 시간 기준 UNIX timestamp
+        const koreaTime = new Date();
+        koreaTime.setHours(koreaTime.getHours() + 9); // UTC+9 한국 시간
+        const koreaTimestamp = Math.floor(koreaTime.getTime() / 1000);
+        const mysqlDateTime = koreaTime.toISOString().slice(0, 19).replace('T', ' ');
+        
         updateQuery = `
           UPDATE deliveries 
           SET status = '배송완료',
-              actual_delivery = UNIX_TIMESTAMP(),
+              actual_delivery = ?,
               detail_notes = ?,
               customer_signature = ?,
               completion_audio_file = ?,
-              updated_at = NOW()
+              updated_at = ?
           WHERE id = ?
         `;
-        updateValues = [completion_notes_final || null, customer_signature || null, completion_audio_url_final || null, deliveryId];
+        updateValues = [koreaTimestamp, completion_notes_final || null, customer_signature || null, completion_audio_url_final || null, mysqlDateTime, deliveryId];
       } else {
         // 기타 타입: NULL로 설정
+        const koreaTime = new Date();
+        koreaTime.setHours(koreaTime.getHours() + 9); // UTC+9 한국 시간
+        const mysqlDateTime = koreaTime.toISOString().slice(0, 19).replace('T', ' ');
+        
         updateQuery = `
           UPDATE deliveries 
           SET status = '배송완료',
@@ -2550,23 +2567,27 @@ app.post('/api/deliveries/complete/:id', async (req, res) => {
               detail_notes = ?,
               customer_signature = ?,
               completion_audio_file = ?,
-              updated_at = NOW()
+              updated_at = ?
           WHERE id = ?
         `;
-        updateValues = [completion_notes_final || null, customer_signature || null, completion_audio_url_final || null, deliveryId];
+        updateValues = [completion_notes_final || null, customer_signature || null, completion_audio_url_final || null, mysqlDateTime, deliveryId];
       }
     } else {
       // actual_delivery 컬럼이 없는 경우
+      const koreaTime = new Date();
+      koreaTime.setHours(koreaTime.getHours() + 9); // UTC+9 한국 시간
+      const mysqlDateTime = koreaTime.toISOString().slice(0, 19).replace('T', ' ');
+      
       updateQuery = `
         UPDATE deliveries 
         SET status = '배송완료',
             detail_notes = ?,
             customer_signature = ?,
             completion_audio_file = ?,
-            updated_at = NOW()
+            updated_at = ?
         WHERE id = ?
       `;
-      updateValues = [completion_notes_final || null, customer_signature || null, completion_audio_url_final || null, deliveryId];
+      updateValues = [completion_notes_final || null, customer_signature || null, completion_audio_url_final || null, mysqlDateTime, deliveryId];
     }
 
     console.log('🔧 실행할 쿼리:', updateQuery);
