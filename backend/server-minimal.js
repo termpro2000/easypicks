@@ -2364,19 +2364,31 @@ app.post('/api/deliveries/complete/:id', async (req, res) => {
   try {
     const { 
       completedAt, 
+      driverNotes,
+      customerRequestedCompletion,
+      furnitureCompanyRequestedCompletion,
+      completionAudioFile,
+      // 기존 필드명도 지원 (하위 호환성)
       completion_notes, 
       completion_photo_url,
       completion_audio_url,
       customer_signature
     } = req.body;
     
+    // 필드 매핑 (모바일 앱 필드명 우선)
+    const completion_notes_final = driverNotes || completion_notes;
+    const completion_audio_url_final = completionAudioFile || completion_audio_url;
+    
     console.log('🎯 배송 완료 처리 요청 상세 정보:', {
       deliveryId,
       deliveryIdType: typeof deliveryId,
       completedAt,
-      completion_notes: completion_notes?.substring(0, 50),
-      completion_photo_url,
-      completion_audio_url,
+      driverNotes: driverNotes?.substring(0, 50),
+      customerRequestedCompletion,
+      furnitureCompanyRequestedCompletion,
+      completionAudioFile,
+      completion_notes_final: completion_notes_final?.substring(0, 50),
+      completion_audio_url_final,
       customer_signature: customer_signature ? '서명 데이터 있음' : '서명 데이터 없음',
       requestBody: JSON.stringify(req.body, null, 2)
     });
@@ -2502,7 +2514,7 @@ app.post('/api/deliveries/complete/:id', async (req, res) => {
               updated_at = NOW()
           WHERE id = ?
         `;
-        updateValues = [completion_notes || null, customer_signature || null, completion_audio_url || null, deliveryId];
+        updateValues = [completion_notes_final || null, customer_signature || null, completion_audio_url_final || null, deliveryId];
       } else if (dataType === 'timestamp') {
         // TIMESTAMP 타입: 직접 저장
         updateQuery = `
@@ -2541,7 +2553,7 @@ app.post('/api/deliveries/complete/:id', async (req, res) => {
               updated_at = NOW()
           WHERE id = ?
         `;
-        updateValues = [completion_notes || null, customer_signature || null, completion_audio_url || null, deliveryId];
+        updateValues = [completion_notes_final || null, customer_signature || null, completion_audio_url_final || null, deliveryId];
       }
     } else {
       // actual_delivery 컬럼이 없는 경우
@@ -2554,15 +2566,15 @@ app.post('/api/deliveries/complete/:id', async (req, res) => {
             updated_at = NOW()
         WHERE id = ?
       `;
-      updateValues = [completion_notes || null, customer_signature || null, completion_audio_url || null, deliveryId];
+      updateValues = [completion_notes_final || null, customer_signature || null, completion_audio_url_final || null, deliveryId];
     }
 
     console.log('🔧 실행할 쿼리:', updateQuery);
     console.log('🔧 쿼리 파라미터:', {
       finalTimestamp,
-      completion_notes: completion_notes || 'null',
+      completion_notes_final: completion_notes_final || 'null',
       customer_signature: customer_signature ? '서명 데이터' : 'null',
-      completion_audio_url: completion_audio_url || 'null',
+      completion_audio_url_final: completion_audio_url_final || 'null',
       deliveryId
     });
 
