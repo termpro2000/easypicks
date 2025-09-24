@@ -2478,25 +2478,84 @@ app.post('/api/deliveries/complete/:id', async (req, res) => {
       }
     }
     
-    // actual_delivery가 timestamp 컬럼이므로 UNIX timestamp 직접 저장
-    const updateQuery = `
-      UPDATE deliveries 
-      SET status = '배송완료',
-          actual_delivery = ?,
-          detail_notes = ?,
-          customer_signature = ?,
-          completion_audio_file = ?,
-          updated_at = NOW()
-      WHERE id = ?
-    `;
+    // actual_delivery 컬럼 타입에 따른 동적 처리
+    let updateQuery, updateValues;
     
-    const updateValues = [
-      finalTimestamp,
-      completion_notes || null,
-      customer_signature || null,
-      completion_audio_url || null,
-      deliveryId
-    ];
+    if (hasActualDelivery) {
+      const dataType = actualDeliveryColumn.DATA_TYPE.toLowerCase();
+      console.log('🔧 actual_delivery 컬럼 처리:', {
+        dataType: dataType,
+        columnType: actualDeliveryColumn.COLUMN_TYPE,
+        finalTimestamp: finalTimestamp,
+        readableTime: new Date(finalTimestamp * 1000).toLocaleString('ko-KR')
+      });
+      
+      if (dataType === 'datetime') {
+        // DATETIME 타입: FROM_UNIXTIME 사용
+        updateQuery = `
+          UPDATE deliveries 
+          SET status = '배송완료',
+              actual_delivery = FROM_UNIXTIME(?),
+              detail_notes = ?,
+              customer_signature = ?,
+              completion_audio_file = ?,
+              updated_at = NOW()
+          WHERE id = ?
+        `;
+        updateValues = [finalTimestamp, completion_notes || null, customer_signature || null, completion_audio_url || null, deliveryId];
+      } else if (dataType === 'timestamp') {
+        // TIMESTAMP 타입: 직접 저장
+        updateQuery = `
+          UPDATE deliveries 
+          SET status = '배송완료',
+              actual_delivery = ?,
+              detail_notes = ?,
+              customer_signature = ?,
+              completion_audio_file = ?,
+              updated_at = NOW()
+          WHERE id = ?
+        `;
+        updateValues = [finalTimestamp, completion_notes || null, customer_signature || null, completion_audio_url || null, deliveryId];
+      } else if (dataType === 'int' || dataType === 'bigint') {
+        // 정수 타입: timestamp 직접 저장
+        updateQuery = `
+          UPDATE deliveries 
+          SET status = '배송완료',
+              actual_delivery = ?,
+              detail_notes = ?,
+              customer_signature = ?,
+              completion_audio_file = ?,
+              updated_at = NOW()
+          WHERE id = ?
+        `;
+        updateValues = [finalTimestamp, completion_notes || null, customer_signature || null, completion_audio_url || null, deliveryId];
+      } else {
+        // 기타 타입: NULL로 설정
+        updateQuery = `
+          UPDATE deliveries 
+          SET status = '배송완료',
+              actual_delivery = NULL,
+              detail_notes = ?,
+              customer_signature = ?,
+              completion_audio_file = ?,
+              updated_at = NOW()
+          WHERE id = ?
+        `;
+        updateValues = [completion_notes || null, customer_signature || null, completion_audio_url || null, deliveryId];
+      }
+    } else {
+      // actual_delivery 컬럼이 없는 경우
+      updateQuery = `
+        UPDATE deliveries 
+        SET status = '배송완료',
+            detail_notes = ?,
+            customer_signature = ?,
+            completion_audio_file = ?,
+            updated_at = NOW()
+        WHERE id = ?
+      `;
+      updateValues = [completion_notes || null, customer_signature || null, completion_audio_url || null, deliveryId];
+    }
 
     console.log('🔧 실행할 쿼리:', updateQuery);
     console.log('🔧 쿼리 파라미터:', {
