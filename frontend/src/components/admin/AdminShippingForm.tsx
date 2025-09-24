@@ -21,8 +21,6 @@ interface DeliveryData {
   sender_name: string;
   sender_address: string;
   sender_detail_address?: string;
-  weight?: number;
-  size?: string;
   status: string;
   request_type?: string;
   construction_type?: string;
@@ -324,13 +322,6 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
   // 상품 선택 핸들러
   const handleSelectProduct = (product: any) => {
     setValue('product_name', product.name);
-    // 상품의 무게 정보 설정
-    if (product.weight) {
-      setValue('weight', product.weight);
-    }
-    if (product.size) {
-      setValue('size', product.size);
-    }
   };
 
   // 파트너사 선택 핸들러 (모달에서)
@@ -483,7 +474,6 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
         wall_construction: data.wall_construction,
         
         // 기타 정보
-        weight: data.weight,
         delivery_fee: data.delivery_fee,
         special_instructions: data.special_instructions,
         fragile: data.fragile,
@@ -1032,9 +1022,7 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
                           >
                             <div className="font-medium text-gray-900">{product.name}</div>
                             <div className="text-sm text-gray-600">
-                              코드: {product.code || product.maincode || '-'} | 
-                              무게: {product.weight || '-'} | 
-                              크기: {product.size || '-'}
+                              코드: {product.code || product.maincode || '-'}
                             </div>
                           </div>
                         ))}
@@ -1073,12 +1061,6 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
                         <span className="bg-blue-600 text-white px-2 py-1 rounded-full text-xs font-medium">
                           {products.length}개
                         </span>
-                      </div>
-                      <div className="text-sm text-gray-600 font-normal">
-                        총 수량: {products.reduce((sum, p) => {
-                          const weight = parseFloat(p.product_weight?.replace(/[^0-9.]/g, '') || '0');
-                          return sum + weight;
-                        }, 0)}kg
                       </div>
                     </h4>
                     <div className="space-y-3">
