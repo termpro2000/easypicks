@@ -2347,7 +2347,8 @@ app.delete('/api/products/:id', async (req, res) => {
 app.get('/api/products/search', async (req, res) => {
   try {
     const { q } = req.query;
-    console.log('📦 상품 검색 요청:', q);
+    console.log('📦 상품 검색 요청:', q, '(decoded)');
+    console.log('📦 검색 파라미터 타입:', typeof q, 'length:', q ? q.length : 0);
     
     if (!q) {
       return res.status(400).json({
