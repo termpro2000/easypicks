@@ -1771,12 +1771,27 @@ Storage Bucket: ${firebaseConfig?.storageBucket || '없음'}
     }
   };
 
-  const DetailItem = ({ label, value }) => (
-    <View style={styles.detailItem}>
-      <Text style={styles.detailLabel}>{label}</Text>
-      <Text style={styles.detailValue}>{value || '-'}</Text>
-    </View>
-  );
+  const DetailItem = ({ label, value }) => {
+    // 방문일인 경우 YYYY-MM-DD 형식으로 포맷팅
+    let displayValue = value || '-';
+    if (label === '방문일' && value) {
+      try {
+        const date = new Date(value);
+        if (!isNaN(date.getTime())) {
+          displayValue = date.toISOString().split('T')[0]; // YYYY-MM-DD 형식
+        }
+      } catch (error) {
+        console.log('날짜 포맷팅 오류:', error);
+      }
+    }
+    
+    return (
+      <View style={styles.detailItem}>
+        <Text style={styles.detailLabel}>{label}</Text>
+        <Text style={styles.detailValue}>{displayValue}</Text>
+      </View>
+    );
+  };
 
   const PhoneDetailItem = ({ label, value }) => {
     const handlePhoneCall = () => {
@@ -1910,7 +1925,6 @@ Storage Bucket: ${firebaseConfig?.storageBucket || '없음'}
             <DetailItem label="시공유형" value={delivery.constructionType} />
             <DetailItem label="방문일" value={delivery.visitDate} />
             <DetailItem label="방문시간" value={delivery.visitTime} />
-            <DetailItem label="담당기사" value={delivery.assignedDriver} />
             <DetailItem label="가구사" value={delivery.furnitureCompany} />
             <DetailItem label="주요메모" value={delivery.mainMemo} />
             <DetailItem label="비상연락망" value={delivery.emergencyContact} />
@@ -1940,7 +1954,6 @@ Storage Bucket: ${firebaseConfig?.storageBucket || '없음'}
             <DetailItem label="방문일" value={delivery.visitDate} />
             <DetailItem label="방문시간" value={delivery.visitTime} />
             <DetailItem label="배정시간" value={delivery.assignmentTime} />
-            <DetailItem label="담당기사" value={delivery.assignedDriver} />
             <DetailItem label="가구회사" value={delivery.furnitureCompany} />
             <DetailItem label="비상연락망" value={delivery.emergencyContact} />
           </View>

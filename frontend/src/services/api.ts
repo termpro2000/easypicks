@@ -538,6 +538,18 @@ export const deliveriesAPI = {
   cancelDelivery: async (id: number) => {
     const response = await apiClient.post(`/deliveries/cancel/${id}`);
     return response.data;
+  },
+
+  // 배송에 제품 목록 저장
+  saveDeliveryProducts: async (deliveryId: number, products: {product_code: string; product_weight?: string; total_weight?: string; product_size?: string; box_size?: string}[]) => {
+    const response = await apiClient.post(`/deliveries/${deliveryId}/products/batch`, { products });
+    return response.data;
+  },
+
+  // 배송의 제품 목록 조회
+  getDeliveryProducts: async (deliveryId: number) => {
+    const response = await apiClient.get(`/deliveries/${deliveryId}/products`);
+    return response.data;
   }
 };
 

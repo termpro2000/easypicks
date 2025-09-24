@@ -2988,6 +2988,83 @@ app.put('/api/deliveries/:id/products', async (req, res) => {
   }
 });
 
+// 배송에 제품 목록 배치 저장 (새로운 엔드포인트)
+app.post('/api/deliveries/:id/products/batch', async (req, res) => {
+  try {
+    const { id: deliveryId } = req.params;
+    const { products } = req.body;
+    
+    console.log('📦 배송 제품 배치 저장 요청:', { deliveryId, productsCount: products?.length });
+    
+    if (!Array.isArray(products)) {
+      return res.status(400).json({
+        success: false,
+        error: 'products는 배열이어야 합니다.'
+      });
+    }
+    
+    // 트랜잭션 시작
+    const connection = await pool.getConnection();
+    await connection.beginTransaction();
+    
+    try {
+      // 기존 제품 모두 삭제
+      await connection.execute(`
+        DELETE FROM delivery_products WHERE delivery_id = ?
+      `, [deliveryId]);
+      
+      console.log('🗑️ 기존 제품 삭제 완료');
+      
+      // 새로운 제품들 추가
+      for (const product of products) {
+        if (product.product_code) {
+          await connection.execute(`
+            INSERT INTO delivery_products (delivery_id, product_code, product_weight, total_weight, product_size, box_size)
+            VALUES (?, ?, ?, ?, ?, ?)
+          `, [
+            deliveryId, 
+            product.product_code,
+            product.product_weight || null,
+            product.total_weight || null,
+            product.product_size || null,
+            product.box_size || null
+          ]);
+          
+          console.log('✅ 제품 추가:', {
+            product_code: product.product_code,
+            product_weight: product.product_weight,
+            total_weight: product.total_weight,
+            product_size: product.product_size,
+            box_size: product.box_size
+          });
+        }
+      }
+      
+      await connection.commit();
+      
+      res.json({
+        success: true,
+        message: `총 ${products.length}개의 제품이 저장되었습니다.`,
+        savedCount: products.filter(p => p.product_code).length
+      });
+      
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+    
+  } catch (error) {
+    console.error('❌ 제품 배치 저장 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '제품 배치 저장 중 오류가 발생했습니다.',
+      details: error.message
+    });
+  }
+});
+
 
 // 서버 시작
 app.listen(PORT, () => {

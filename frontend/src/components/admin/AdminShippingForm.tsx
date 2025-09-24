@@ -5,10 +5,11 @@ import {
   Calendar, Clock, AlertTriangle, FileText, Shield, 
   Home, Wrench, Weight, Box, Settings, ArrowLeft, Check, Search
 } from 'lucide-react';
-import { shippingAPI, userAPI } from '../../services/api';
+import { shippingAPI, userAPI, deliveriesAPI } from '../../services/api';
 // import { useAuth } from '../../hooks/useAuth'; // 향후 사용 예정
 import ProductSelectionModal from '../partner/ProductSelectionModal';
 import PartnerSelectionModal from './PartnerSelectionModal';
+import ProductManagement from './ProductManagement';
 
 // Daum 우편번호 서비스 타입 선언
 declare global {
@@ -113,6 +114,7 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<UserOption[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [products, setProducts] = useState<{id?: number; product_code: string}[]>([]);
 
   // Daum 우편번호 서비스 초기화
   useEffect(() => {
@@ -351,6 +353,7 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
     setIsSubmitting(true);
     try {
       console.log('배송접수 폼 제출 데이터:', data);
+      console.log('선택된 제품 목록:', products);
       
       // 데이터 형식을 shippingAPI에 맞게 변환
       const orderData = {
@@ -367,15 +370,26 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
       };
       
       const response = await shippingAPI.createOrder(orderData);
-      
       console.log('배송 생성 응답:', response);
+      
+      // 배송이 성공적으로 생성되면 제품 정보들을 저장
+      if (response.delivery?.id && products.length > 0) {
+        console.log('제품 정보 저장 시작:', { deliveryId: response.delivery.id, productsCount: products.length });
+        
+        // 제품 정보 배치 저장 - deliveriesAPI의 saveDeliveryProducts 함수 사용
+        await deliveriesAPI.saveDeliveryProducts(response.delivery.id, products);
+        console.log('✅ 제품 정보 저장 완료');
+      }
       
       setSubmitResult({
         success: true,
         message: response.message || '배송이 성공적으로 접수되었습니다.',
-        trackingNumber: response.trackingNumber
+        trackingNumber: response.trackingNumber,
+        deliveryId: response.delivery?.id,
+        productsCount: products.length
       });
     } catch (error: any) {
+      console.error('❌ 배송 접수 오류:', error);
       setSubmitResult({
         success: false,
         message: error.response?.data?.message || error.message || '배송 접수 중 오류가 발생했습니다.'
@@ -867,7 +881,9 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
               제품 정보
             </h2>
             
-            <ProductManagement />
+            <ProductManagement 
+              onChange={(newProducts) => setProducts(newProducts)}
+            />
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
               <InfoCell label="제품명" icon={Package} required error={errors.product_name?.message}>
@@ -890,6 +906,45 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
                 </div>
               </InfoCell>
 
+              {/* 선택된 상품 목록 */}
+              {products.length > 0 && (
+                <div className="col-span-full">
+                  <div className="bg-gray-50 rounded-lg p-4 border-2 border-dashed border-gray-300">
+                    <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+                      <Package className="w-4 h-4 text-blue-600" />
+                      선택된 상품 목록 ({products.length}개)
+                    </h4>
+                    <div className="space-y-2">
+                      {products.map((product, index) => (
+                        <div key={index} className="bg-white rounded-lg p-3 border border-gray-200">
+                          <div className="grid grid-cols-1 md:grid-cols-5 gap-2 text-sm">
+                            <div>
+                              <span className="font-medium text-gray-700">제품코드:</span>
+                              <span className="ml-1 font-mono">{product.product_code}</span>
+                            </div>
+                            <div>
+                              <span className="font-medium text-gray-700">제품무게:</span>
+                              <span className="ml-1">{product.product_weight || '-'}</span>
+                            </div>
+                            <div>
+                              <span className="font-medium text-gray-700">전체무게:</span>
+                              <span className="ml-1">{product.total_weight || '-'}</span>
+                            </div>
+                            <div>
+                              <span className="font-medium text-gray-700">제품크기:</span>
+                              <span className="ml-1">{product.product_size || '-'}</span>
+                            </div>
+                            <div>
+                              <span className="font-medium text-gray-700">박스크기:</span>
+                              <span className="ml-1">{product.box_size || '-'}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <InfoCell label="전체 무게 (kg)" icon={Weight}>
                 <input
