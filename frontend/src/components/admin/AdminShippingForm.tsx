@@ -195,7 +195,7 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
     };
   }, []);
 
-  const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<DeliveryData>({
+  const { register, handleSubmit, formState: { errors }, setValue } = useForm<DeliveryData>({
     defaultValues: {
       status: 'pending',
       elevator_available: false,
@@ -416,7 +416,6 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
   const handleAddProduct = () => {
     const productCode = selectedProductForAdd?.code || selectedProductForAdd?.maincode || productSearchQuery.trim();
     const productName = selectedProductForAdd?.name || productSearchQuery.trim();
-    const totalWeight = watch('weight');
     
     if (!productCode && !productName) {
       alert('제품을 검색하여 선택하거나 제품명을 직접 입력해주세요.');
@@ -434,7 +433,7 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
       product_code: productCode || productName,
       product_name: productName,
       product_weight: currentProductWeight.trim() || undefined,
-      total_weight: totalWeight ? `${totalWeight}kg` : undefined,
+      total_weight: currentProductWeight.trim() ? `${currentProductWeight.trim()}kg` : undefined,
       product_size: currentProductSize.trim() || undefined,
       box_size: currentBoxSize.trim() || undefined
     };
