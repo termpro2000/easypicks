@@ -331,10 +331,6 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
     }).open();
   };
 
-  // 상품 선택 핸들러
-  const handleSelectProduct = (product: any) => {
-    setValue('product_name', product.name);
-  };
 
   // 파트너사 선택 핸들러 (모달에서)
   const handleSelectPartner = (partner: any) => {
