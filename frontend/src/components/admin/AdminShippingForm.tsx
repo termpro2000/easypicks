@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { 
   User, Phone, Building, MapPin, Package, Truck, 
   Calendar, Clock, AlertTriangle, FileText, Shield, 
-  Home, Wrench, Settings, ArrowLeft, Check, Search, Plus, Trash2
+  Home, Wrench, Weight, Box, Settings, ArrowLeft, Check, Search, Plus, Trash2
 } from 'lucide-react';
 import { shippingAPI, userAPI, deliveriesAPI, productsAPI } from '../../services/api';
 // import { useAuth } from '../../hooks/useAuth'; // 향후 사용 예정
@@ -111,7 +111,14 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<UserOption[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [products, setProducts] = useState<{id?: number; product_code: string}[]>([]);
+  const [products, setProducts] = useState<{
+    id?: number; 
+    product_code: string;
+    product_name?: string;
+    product_size?: string;
+    box_size?: string;
+    product_weight?: string;
+  }[]>([]);
   
   // 제품 검색 관련 상태
   const [productSearchQuery, setProductSearchQuery] = useState('');
@@ -121,6 +128,9 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
   const [selectedProductForAdd, setSelectedProductForAdd] = useState<any>(null);
   
   // 제품 입력 필드들
+  const [currentProductWeight, setCurrentProductWeight] = useState('');
+  const [currentProductSize, setCurrentProductSize] = useState('');
+  const [currentBoxSize, setCurrentBoxSize] = useState('');
 
   // Daum 우편번호 서비스 초기화
   useEffect(() => {
@@ -392,6 +402,12 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
     setShowProductDropdown(false);
     
     // 제품 정보 자동 입력
+    if (product.weight) {
+      setCurrentProductWeight(product.weight);
+    }
+    if (product.size) {
+      setCurrentProductSize(product.size);
+    }
   };
 
   // 제품 추가 함수
@@ -414,6 +430,9 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
       id: selectedProductForAdd?.id,
       product_code: productCode || productName,
       product_name: productName,
+      product_size: currentProductSize.trim() || undefined,
+      box_size: currentBoxSize.trim() || undefined,
+      product_weight: currentProductWeight.trim() || undefined,
     };
 
     const updatedProducts = [...products, newProduct];
@@ -423,6 +442,9 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
     setProductSearchQuery('');
     setSelectedProductForAdd(null);
     setShowProductDropdown(false);
+    setCurrentProductWeight('');
+    setCurrentProductSize('');
+    setCurrentBoxSize('');
     
     console.log('제품이 추가되었습니다:', newProduct);
   };
@@ -1049,6 +1071,35 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
                 </div>
               </InfoCell>
 
+              <InfoCell label="제품무게" icon={Weight}>
+                <input
+                  type="text"
+                  value={currentProductWeight}
+                  onChange={(e) => setCurrentProductWeight(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="예: 50kg"
+                />
+              </InfoCell>
+
+              <InfoCell label="제품크기" icon={Box}>
+                <input
+                  type="text"
+                  value={currentProductSize}
+                  onChange={(e) => setCurrentProductSize(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="예: 1200x800x600mm"
+                />
+              </InfoCell>
+
+              <InfoCell label="박스크기" icon={Box}>
+                <input
+                  type="text"
+                  value={currentBoxSize}
+                  onChange={(e) => setCurrentBoxSize(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="예: 1300x900x700mm"
+                />
+              </InfoCell>
 
               {/* 선택된 상품 목록 */}
               {products.length > 0 && (
@@ -1076,10 +1127,26 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
                               )}
                               
                               {/* 제품 정보 그리드 */}
-                              <div className="text-sm">
+                              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 text-sm">
                                 <div className="bg-gray-50 rounded-md p-2">
                                   <span className="font-medium text-gray-600 block">제품코드</span>
                                   <span className="font-mono text-gray-900 text-xs">{product.product_code}</span>
+                                </div>
+                                <div className="bg-gray-50 rounded-md p-2">
+                                  <span className="font-medium text-gray-600 block">제품명</span>
+                                  <span className="text-gray-900">{product.product_name || '-'}</span>
+                                </div>
+                                <div className="bg-gray-50 rounded-md p-2">
+                                  <span className="font-medium text-gray-600 block">제품무게</span>
+                                  <span className="text-gray-900">{product.product_weight || '-'}</span>
+                                </div>
+                                <div className="bg-gray-50 rounded-md p-2">
+                                  <span className="font-medium text-gray-600 block">제품크기</span>
+                                  <span className="text-gray-900">{product.product_size || '-'}</span>
+                                </div>
+                                <div className="bg-gray-50 rounded-md p-2">
+                                  <span className="font-medium text-gray-600 block">박스크기</span>
+                                  <span className="text-gray-900">{product.box_size || '-'}</span>
                                 </div>
                               </div>
                             </div>
@@ -1099,6 +1166,12 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
                     <div className="mt-4 pt-3 border-t border-blue-200">
                       <div className="flex justify-between text-sm text-gray-600">
                         <span>제품 종류: {products.length}개</span>
+                        <span>
+                          예상 총 중량: {products.reduce((sum, p) => {
+                            const weight = parseFloat(p.product_weight?.replace(/[^0-9.]/g, '') || '0');
+                            return sum + weight;
+                          }, 0).toFixed(1)}kg
+                        </span>
                       </div>
                     </div>
                   </div>
