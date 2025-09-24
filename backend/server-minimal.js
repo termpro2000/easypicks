@@ -48,6 +48,30 @@ app.use(express.urlencoded({ extended: true }));
 // 데이터베이스 설정 (단순화)
 const { pool, generateTrackingNumber } = require('./config/database');
 
+// delivery_products 테이블 생성 (존재하지 않을 경우)
+async function createDeliveryProductsTable() {
+  try {
+    await pool.execute(`
+      CREATE TABLE IF NOT EXISTS delivery_products (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        delivery_id INT NOT NULL,
+        product_code VARCHAR(50) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        
+        INDEX idx_delivery_id (delivery_id),
+        INDEX idx_product_code (product_code)
+      );
+    `);
+    console.log('✅ delivery_products 테이블 확인/생성 완료');
+  } catch (error) {
+    console.error('❌ delivery_products 테이블 생성 오류:', error);
+  }
+}
+
+// 앱 시작 시 테이블 생성
+createDeliveryProductsTable();
+
 // 헬스체크 엔드포인트
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
@@ -2725,11 +2749,12 @@ app.post('/api/deliveries/delay/:trackingNumber', async (req, res) => {
 app.post('/api/deliveries/cancel/:id', async (req, res) => {
   const deliveryId = req.params.id;
   try {
-    const { cancelReason } = req.body;
+    const { cancelReason, canceledAt } = req.body;
     
     console.log('❌ 배송 취소 처리 요청:', {
       deliveryId,
-      cancelReason: cancelReason?.substring(0, 50)
+      cancelReason: cancelReason?.substring(0, 50),
+      canceledAt
     });
 
     if (!cancelReason) {
@@ -2739,10 +2764,30 @@ app.post('/api/deliveries/cancel/:id', async (req, res) => {
       });
     }
 
-    // 안전한 timestamp 처리
+    // 한국 시간 기준 canceled_at 처리 (배송완료 로직 참조)
+    let mysqlCanceledAt;
+    if (canceledAt) {
+      try {
+        const canceledDate = new Date(canceledAt);
+        // 한국 시간 적용 (UTC+9)
+        canceledDate.setHours(canceledDate.getHours() + 9);
+        mysqlCanceledAt = canceledDate.toISOString().slice(0, 19).replace('T', ' ');
+      } catch (error) {
+        console.error('canceledAt 파싱 오류:', error);
+        // 파싱 실패시 한국 시간 기준 현재 시간 사용
+        const koreaTime = new Date();
+        koreaTime.setHours(koreaTime.getHours() + 9);
+        mysqlCanceledAt = koreaTime.toISOString().slice(0, 19).replace('T', ' ');
+      }
+    } else {
+      // canceledAt가 없으면 한국 시간 기준 현재 시간 사용
+      const koreaTime = new Date();
+      koreaTime.setHours(koreaTime.getHours() + 9);
+      mysqlCanceledAt = koreaTime.toISOString().slice(0, 19).replace('T', ' ');
+    }
+
+    // 안전한 timestamp 처리 (actual_delivery용)
     const currentTimestamp = Math.floor(Date.now() / 1000);
-    
-    // timestamp 유효성 검사
     const actualDeliveryTime = (currentTimestamp > 946684800) ? currentTimestamp : Math.floor(Date.now() / 1000);
 
     const [result] = await pool.execute(`
@@ -2750,11 +2795,11 @@ app.post('/api/deliveries/cancel/:id', async (req, res) => {
       SET status = '배송취소',
           cancel_status = 1,
           cancel_reason = ?,
-          canceled_at = FROM_UNIXTIME(?),
+          canceled_at = ?,
           actual_delivery = FROM_UNIXTIME(?),
           updated_at = NOW()
       WHERE id = ?
-    `, [cancelReason, actualDeliveryTime, actualDeliveryTime, deliveryId]);
+    `, [cancelReason, mysqlCanceledAt, actualDeliveryTime, deliveryId]);
 
     if (result.affectedRows === 0) {
       return res.status(404).json({
@@ -2775,6 +2820,169 @@ app.post('/api/deliveries/cancel/:id', async (req, res) => {
     res.status(500).json({
       success: false,
       error: '배송 취소 처리 중 오류가 발생했습니다.',
+      details: error.message
+    });
+  }
+});
+
+// ===== DELIVERY PRODUCTS API =====
+
+// 배송별 제품 목록 조회
+app.get('/api/deliveries/:id/products', async (req, res) => {
+  try {
+    const { id: deliveryId } = req.params;
+    
+    const [products] = await pool.execute(`
+      SELECT id, product_code, created_at, updated_at
+      FROM delivery_products 
+      WHERE delivery_id = ?
+      ORDER BY created_at ASC
+    `, [deliveryId]);
+    
+    res.json({
+      success: true,
+      products: products
+    });
+  } catch (error) {
+    console.error('❌ 제품 목록 조회 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '제품 목록 조회 중 오류가 발생했습니다.',
+      details: error.message
+    });
+  }
+});
+
+// 배송에 제품 추가
+app.post('/api/deliveries/:id/products', async (req, res) => {
+  try {
+    const { id: deliveryId } = req.params;
+    const { product_code } = req.body;
+    
+    if (!product_code) {
+      return res.status(400).json({
+        success: false,
+        error: '제품코드가 필요합니다.'
+      });
+    }
+    
+    // 중복 체크
+    const [existing] = await pool.execute(`
+      SELECT id FROM delivery_products 
+      WHERE delivery_id = ? AND product_code = ?
+    `, [deliveryId, product_code]);
+    
+    if (existing.length > 0) {
+      return res.status(400).json({
+        success: false,
+        error: '이미 추가된 제품코드입니다.'
+      });
+    }
+    
+    const [result] = await pool.execute(`
+      INSERT INTO delivery_products (delivery_id, product_code)
+      VALUES (?, ?)
+    `, [deliveryId, product_code]);
+    
+    res.json({
+      success: true,
+      message: '제품이 추가되었습니다.',
+      product_id: result.insertId
+    });
+  } catch (error) {
+    console.error('❌ 제품 추가 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '제품 추가 중 오류가 발생했습니다.',
+      details: error.message
+    });
+  }
+});
+
+// 배송에서 제품 제거
+app.delete('/api/deliveries/:deliveryId/products/:productId', async (req, res) => {
+  try {
+    const { deliveryId, productId } = req.params;
+    
+    const [result] = await pool.execute(`
+      DELETE FROM delivery_products 
+      WHERE id = ? AND delivery_id = ?
+    `, [productId, deliveryId]);
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        error: '제품을 찾을 수 없습니다.'
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: '제품이 제거되었습니다.'
+    });
+  } catch (error) {
+    console.error('❌ 제품 제거 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '제품 제거 중 오류가 발생했습니다.',
+      details: error.message
+    });
+  }
+});
+
+// 배송의 모든 제품 일괄 업데이트
+app.put('/api/deliveries/:id/products', async (req, res) => {
+  try {
+    const { id: deliveryId } = req.params;
+    const { product_codes } = req.body;
+    
+    if (!Array.isArray(product_codes)) {
+      return res.status(400).json({
+        success: false,
+        error: 'product_codes는 배열이어야 합니다.'
+      });
+    }
+    
+    // 트랜잭션 시작
+    const connection = await pool.getConnection();
+    await connection.beginTransaction();
+    
+    try {
+      // 기존 제품 모두 삭제
+      await connection.execute(`
+        DELETE FROM delivery_products WHERE delivery_id = ?
+      `, [deliveryId]);
+      
+      // 새 제품들 추가
+      if (product_codes.length > 0) {
+        const values = product_codes.map(code => [deliveryId, code]);
+        const placeholders = values.map(() => '(?, ?)').join(', ');
+        const flatValues = values.flat();
+        
+        await connection.execute(`
+          INSERT INTO delivery_products (delivery_id, product_code)
+          VALUES ${placeholders}
+        `, flatValues);
+      }
+      
+      await connection.commit();
+      
+      res.json({
+        success: true,
+        message: '제품 목록이 업데이트되었습니다.',
+        count: product_codes.length
+      });
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  } catch (error) {
+    console.error('❌ 제품 일괄 업데이트 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '제품 일괄 업데이트 중 오류가 발생했습니다.',
       details: error.message
     });
   }

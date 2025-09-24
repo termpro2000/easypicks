@@ -44,10 +44,6 @@ interface DeliveryData {
   room_movement?: boolean;
   wall_construction?: boolean;
   product_name: string;
-  furniture_product_code?: string;
-  product_weight?: number;
-  product_size?: string;
-  box_size?: string;
   furniture_requests?: string;
   driver_notes?: string;
   delivery_fee?: number;
@@ -303,10 +299,7 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
   // 상품 선택 핸들러
   const handleSelectProduct = (product: any) => {
     setValue('product_name', product.name);
-    if (product.maincode) {
-      setValue('furniture_product_code', product.maincode);
-    }
-    // 상품의 무게와 크기 정보도 설정
+    // 상품의 무게 정보 설정
     if (product.weight) {
       setValue('weight', product.weight);
     }
@@ -874,7 +867,9 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
               제품 정보
             </h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <ProductManagement />
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
               <InfoCell label="제품명" icon={Package} required error={errors.product_name?.message}>
                 <div className="flex gap-2">
                   <input
@@ -895,25 +890,6 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
                 </div>
               </InfoCell>
 
-              <InfoCell label="제품 코드" icon={FileText}>
-                <input
-                  type="text"
-                  {...register('furniture_product_code')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="제품 코드"
-                />
-              </InfoCell>
-
-              <InfoCell label="제품 무게 (kg)" icon={Weight}>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.1"
-                  {...register('product_weight')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="0.0"
-                />
-              </InfoCell>
 
               <InfoCell label="전체 무게 (kg)" icon={Weight}>
                 <input
@@ -926,23 +902,6 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
                 />
               </InfoCell>
 
-              <InfoCell label="제품 크기" icon={Box}>
-                <input
-                  type="text"
-                  {...register('product_size')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="가로x세로x높이 (cm)"
-                />
-              </InfoCell>
-
-              <InfoCell label="박스 크기" icon={Box}>
-                <input
-                  type="text"
-                  {...register('box_size')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="박스 크기"
-                />
-              </InfoCell>
             </div>
           </div>
 
