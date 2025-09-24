@@ -1677,6 +1677,90 @@ app.get('/api/debug/tables', async (req, res) => {
   }
 });
 
+// 데이터베이스 스키마 전체 조회
+app.get('/api/debug/schema', async (req, res) => {
+  try {
+    console.log('📊 데이터베이스 스키마 조회 시작');
+    
+    // 모든 테이블 목록 조회
+    const [tables] = await pool.execute(`
+      SELECT TABLE_NAME, TABLE_ROWS, TABLE_COMMENT
+      FROM information_schema.TABLES 
+      WHERE TABLE_SCHEMA = DATABASE()
+      ORDER BY TABLE_NAME
+    `);
+    
+    console.log('📋 발견된 테이블:', tables.map(t => t.TABLE_NAME).join(', '));
+    
+    const result = {
+      success: true,
+      database: await pool.execute('SELECT DATABASE() as db_name').then(r => r[0][0].db_name),
+      total_tables: tables.length,
+      tables: {}
+    };
+    
+    // 각 테이블의 상세 정보 조회
+    for (const table of tables) {
+      const tableName = table.TABLE_NAME;
+      console.log(`🔍 테이블 '${tableName}' 분석 중...`);
+      
+      try {
+        // 테이블 컬럼 정보
+        const [columns] = await pool.execute(`
+          SELECT 
+            COLUMN_NAME,
+            DATA_TYPE,
+            IS_NULLABLE,
+            COLUMN_DEFAULT,
+            CHARACTER_MAXIMUM_LENGTH as max_length,
+            NUMERIC_PRECISION as numeric_precision,
+            NUMERIC_SCALE as numeric_scale
+          FROM information_schema.COLUMNS 
+          WHERE TABLE_SCHEMA = DATABASE() 
+          AND TABLE_NAME = ?
+          ORDER BY ORDINAL_POSITION
+        `, [tableName]);
+        
+        // 테이블 row count 조회
+        const [countResult] = await pool.execute(`SELECT COUNT(*) as row_count FROM \`${tableName}\``);
+        
+        result.tables[tableName] = {
+          row_count: countResult[0].row_count,
+          columns: columns.map(col => ({
+            name: col.COLUMN_NAME,
+            type: col.DATA_TYPE,
+            nullable: col.IS_NULLABLE === 'YES',
+            default: col.COLUMN_DEFAULT,
+            max_length: col.max_length,
+            precision: col.numeric_precision,
+            scale: col.numeric_scale
+          }))
+        };
+        
+        console.log(`✅ 테이블 '${tableName}': ${columns.length}개 컬럼, ${countResult[0].row_count}개 레코드`);
+        
+      } catch (tableError) {
+        console.error(`❌ 테이블 '${tableName}' 분석 오류:`, tableError.message);
+        result.tables[tableName] = {
+          error: tableError.message,
+          accessible: false
+        };
+      }
+    }
+    
+    console.log('✅ 데이터베이스 스키마 조회 완료');
+    res.json(result);
+    
+  } catch (error) {
+    console.error('❌ 스키마 조회 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: '데이터베이스 스키마 조회 중 오류 발생'
+    });
+  }
+});
+
 // 테스트 사용자 생성
 app.post('/api/debug/create-test-user', async (req, res) => {
   try {
