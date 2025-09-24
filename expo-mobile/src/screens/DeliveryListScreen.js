@@ -32,15 +32,39 @@ const DeliveryListScreen = ({ navigation }) => {
   useEffect(() => {
     loadUserInfo();
     loadOrderMode(); // 저장된 배송순서 모드 로드
+    loadSavedDate(); // 저장된 날짜 로드
     fetchDeliveries();
-    // 초기 날짜를 AsyncStorage에 저장
-    saveInitialDate();
   }, []);
+
+  const loadSavedDate = async () => {
+    try {
+      const savedDateString = await AsyncStorage.getItem('selectedDeliveryDate');
+      if (savedDateString) {
+        const savedDate = new Date(savedDateString);
+        // 유효한 날짜인지 확인
+        if (!isNaN(savedDate.getTime())) {
+          setSelectedDate(savedDate);
+          console.log('배송화면: 저장된 날짜 로드:', extractDateOnly(savedDate));
+        } else {
+          console.log('배송화면: 저장된 날짜가 유효하지 않음, 오늘 날짜 사용');
+          saveInitialDate(); // 오늘 날짜로 저장
+        }
+      } else {
+        console.log('배송화면: 저장된 날짜 없음, 오늘 날짜 사용');
+        saveInitialDate(); // 오늘 날짜로 저장
+      }
+    } catch (error) {
+      console.error('배송화면: 저장된 날짜 로드 오류:', error);
+      saveInitialDate(); // 오류 시 오늘 날짜로 저장
+    }
+  };
 
   const saveInitialDate = async () => {
     try {
-      await AsyncStorage.setItem('selectedDeliveryDate', selectedDate.toISOString());
-      console.log('배송화면: 초기 날짜 저장:', selectedDate.toISOString().split('T')[0]);
+      // 로컬 시간 기준으로 저장 (UTC 오류 방지)
+      const localDateString = extractDateOnly(selectedDate);
+      await AsyncStorage.setItem('selectedDeliveryDate', `${localDateString}T00:00:00.000Z`);
+      console.log('배송화면: 초기 날짜 저장:', localDateString);
     } catch (error) {
       console.error('배송화면: 초기 날짜 저장 오류:', error);
     }
@@ -155,7 +179,7 @@ const DeliveryListScreen = ({ navigation }) => {
     }
   };
 
-  // 날짜만 추출하는 헬퍼 함수 (시간 부분 완전 제거)
+  // 날짜만 추출하는 헬퍼 함수 (시간 부분 완전 제거, 한국 시간 기준)
   const extractDateOnly = (dateInput) => {
     if (!dateInput) return null;
     
@@ -164,9 +188,12 @@ const DeliveryListScreen = ({ navigation }) => {
       return dateInput.split('T')[0];
     }
     
-    // Date 객체인 경우: UTC 날짜만 추출
+    // Date 객체인 경우: 로컬 시간 기준으로 날짜 추출 (UTC 변환 오류 방지)
     if (dateInput instanceof Date) {
-      return dateInput.toISOString().split('T')[0];
+      const year = dateInput.getFullYear();
+      const month = String(dateInput.getMonth() + 1).padStart(2, '0');
+      const day = String(dateInput.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
     }
     
     return null;
@@ -306,10 +333,11 @@ const DeliveryListScreen = ({ navigation }) => {
     setSelectedDate(newDate);
     // setLoading(true) 제거 - useEffect에서 fetchDeliveries가 자동으로 호출되고 거기서 로딩 처리
     
-    // 선택된 날짜를 AsyncStorage에 저장
+    // 선택된 날짜를 AsyncStorage에 저장 (로컬 시간 기준)
     try {
-      await AsyncStorage.setItem('selectedDeliveryDate', newDate.toISOString());
-      console.log('배송화면: 선택된 날짜 저장:', newDate.toISOString().split('T')[0]);
+      const localDateString = extractDateOnly(newDate);
+      await AsyncStorage.setItem('selectedDeliveryDate', `${localDateString}T00:00:00.000Z`);
+      console.log('배송화면: 선택된 날짜 저장:', localDateString);
     } catch (error) {
       console.error('배송화면: 날짜 저장 오류:', error);
     }
