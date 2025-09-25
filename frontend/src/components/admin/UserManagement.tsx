@@ -89,6 +89,9 @@ const UserManagement: React.FC<UserManagementProps> = ({ onNavigateBack }) => {
       // testAPI 응답 구조에 맞게 조정
       let usersList = response.partners || [];
       
+      // role이 'user'인 사용자만 필터링 (기본값)
+      usersList = usersList.filter((user: any) => user.role === 'user');
+      
       // 검색 필터링 (클라이언트 사이드)
       if (searchTerm) {
         usersList = usersList.filter((user: any) =>
@@ -99,7 +102,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onNavigateBack }) => {
         );
       }
       
-      // 역할 필터링 (클라이언트 사이드)
+      // 추가 역할 필터링 (클라이언트 사이드) - user로 이미 제한되어 있지만 추가 필터링 가능
       if (roleFilter) {
         usersList = usersList.filter((user: any) => user.role === roleFilter);
       }
