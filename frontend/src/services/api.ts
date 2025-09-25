@@ -660,15 +660,23 @@ export const userAPI = {
     newPassword: string;
   }) => {
     try {
-      // 임시 해결책: 사용자 정보 업데이트 API를 사용
+      // 먼저 현재 사용자 정보를 가져와서 기존 name을 유지하면서 password만 변경
+      const userResponse = await apiClient.get(`/users/${data.userId}`);
+      const currentUser = userResponse.data.data;
+      
+      // 임시 해결책: 사용자 정보 업데이트 API를 사용 (name과 함께 전송)
       const response = await apiClient.put(`/users/${data.userId}`, {
         password: data.newPassword,
+        name: currentUser.name, // 기존 name 유지 (백엔드에서 필드 인식을 위해)
         // 현재 비밀번호 검증은 서버에서 처리하지 않음 (보안상 문제가 있지만 임시)
       });
       return response.data;
     } catch (error: any) {
       if (error.response?.status === 404) {
         throw new Error('비밀번호 변경 기능이 현재 사용할 수 없습니다. 관리자에게 문의하세요.');
+      }
+      if (error.response?.status === 400) {
+        throw new Error(error.response?.data?.message || '비밀번호 변경 요청이 잘못되었습니다.');
       }
       throw error;
     }
