@@ -213,10 +213,11 @@ async function me(req, res) {
     let userId = null;
     
     // JWT 토큰에서 사용자 ID 가져오기
-    console.log('[Auth ME] req.user:', req.user);
+    console.log('[Auth ME] req.user 전체 객체:', JSON.stringify(req.user, null, 2));
     if (req.user && req.user.id) {
       userId = req.user.id;
-      console.log(`[Auth ME] JWT 토큰에서 추출한 사용자 ID: ${userId}`);
+      console.log(`[Auth ME] JWT 토큰에서 추출한 사용자 ID: ${userId} (타입: ${typeof userId})`);
+      console.log(`[Auth ME] req.user.username: ${req.user.username}, req.user.role: ${req.user.role}`);
     }
 
     if (!userId) {
@@ -227,6 +228,7 @@ async function me(req, res) {
     }
 
     // 데이터베이스에서 최신 사용자 정보 조회 (모든 필드 포함)
+    console.log(`[Auth ME] 데이터베이스에서 사용자 조회 시작: ID=${userId}`);
     const [users] = await executeWithRetry(() =>
       pool.execute(`
         SELECT 
@@ -237,6 +239,11 @@ async function me(req, res) {
         WHERE id = ? AND is_active = true
       `, [userId])
     );
+    
+    console.log(`[Auth ME] 데이터베이스 조회 결과: ${users.length}개 사용자 발견`);
+    if (users.length > 0) {
+      console.log(`[Auth ME] 조회된 사용자: ID=${users[0].id}, username=${users[0].username}, name=${users[0].name}`);
+    }
 
     if (users.length === 0) {
       return res.status(401).json({

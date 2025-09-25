@@ -15,17 +15,8 @@ function authenticateToken(req, res, next) {
       });
     }
 
-    // 개발 환경에서 test-token 허용 (더 엄격한 체크)
-    if (token === 'test-token' && process.env.NODE_ENV === 'development') {
-      console.log('[Auth Middleware] test-token 사용됨');
-      req.user = {
-        id: 1,
-        username: 'testuser',
-        role: 'admin',
-        name: '테스트 사용자'
-      };
-      return next();
-    }
+    // test-token 기능 완전 제거 - 프로덕션에서 문제 발생
+    console.log(`[Auth Middleware] 토큰 길이: ${token.length}, 시작: ${token.substring(0, 20)}...`);
 
     const jwtSecret = process.env.JWT_SECRET || 'easypicks-jwt-secret-2024';
     
