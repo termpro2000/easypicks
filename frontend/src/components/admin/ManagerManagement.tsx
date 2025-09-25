@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, Edit, Trash2, Search, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Users, Plus, Edit, Trash2, Search, Eye, EyeOff, ArrowLeft, Shield, UserCog, Settings } from 'lucide-react';
 import { userAPI, testAPI } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -252,16 +252,16 @@ const ManagerManagement: React.FC<ManagerManagementProps> = ({ onNavigateBack })
 
   const getRoleBadge = (role: string) => {
     const config = {
-      admin: { color: 'bg-red-100 text-red-800', text: '관리자' },
-      manager: { color: 'bg-blue-100 text-blue-800', text: '매니저' },
-      user: { color: 'bg-gray-100 text-gray-800', text: '파트너사' },
-      driver: { color: 'bg-green-100 text-green-800', text: '기사' }
+      admin: { color: 'bg-gradient-to-r from-red-400 to-rose-500 text-white shadow-lg', text: '관리자' },
+      manager: { color: 'bg-gradient-to-r from-blue-400 to-purple-500 text-white shadow-lg', text: '매니저' },
+      user: { color: 'bg-gradient-to-r from-slate-400 to-slate-500 text-white shadow-lg', text: '파트너사' },
+      driver: { color: 'bg-gradient-to-r from-emerald-400 to-green-500 text-white shadow-lg', text: '기사' }
     };
     
     const { color, text } = config[role as keyof typeof config] || config.manager;
     
     return (
-      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${color}`}>
+      <span className={`inline-flex items-center px-3 py-1 rounded-2xl text-xs font-semibold ${color}`}>
         {text}
       </span>
     );
@@ -269,10 +269,10 @@ const ManagerManagement: React.FC<ManagerManagementProps> = ({ onNavigateBack })
 
   const getStatusBadge = (isActive: boolean) => {
     return (
-      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+      <span className={`inline-flex items-center px-3 py-1 rounded-2xl text-xs font-semibold shadow-md ${
         isActive 
-          ? 'bg-green-100 text-green-800' 
-          : 'bg-red-100 text-red-800'
+          ? 'bg-gradient-to-r from-emerald-400 to-green-500 text-white' 
+          : 'bg-gradient-to-r from-slate-400 to-slate-500 text-white'
       }`}>
         {isActive ? '활성' : '비활성'}
       </span>
@@ -285,72 +285,84 @@ const ManagerManagement: React.FC<ManagerManagementProps> = ({ onNavigateBack })
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="bg-white rounded-lg shadow-lg p-8 text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">매니저 목록을 로딩 중...</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center p-6">
+        <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-xl border border-white/20 p-12 text-center">
+          <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-6 animate-pulse">
+            <Settings className="w-8 h-8 text-white animate-spin" />
+          </div>
+          <h3 className="text-xl font-semibold text-slate-700 mb-2">매니저 목록을 로딩 중...</h3>
+          <p className="text-slate-500">잠시만 기다려주세요</p>
+          <div className="flex items-center justify-center gap-2 mt-6">
+            <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"></div>
+            <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce delay-75"></div>
+            <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce delay-150"></div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* 알림 메시지 */}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-6">
+      {/* 알림 메시지 - Neumorphic 스타일 */}
       {notification && (
-        <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg border ${
+        <div className={`fixed top-8 right-8 z-50 p-6 rounded-2xl shadow-lg backdrop-blur-sm border ${
           notification.type === 'success' 
-            ? 'bg-green-50 text-green-800 border-green-200' 
-            : 'bg-red-50 text-red-800 border-red-200'
-        }`}>
+            ? 'bg-emerald-50/90 text-emerald-800 border-emerald-200 shadow-emerald-100/50' 
+            : 'bg-rose-50/90 text-rose-800 border-rose-200 shadow-rose-100/50'
+        } animate-in slide-in-from-top-5`}>
           <span className="font-medium">{notification.message}</span>
         </div>
       )}
 
-      {/* 헤더 */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex items-center justify-between mb-6">
-          {/* 뒤로가기 버튼 */}
+      {/* 헤더 - Neumorphic 카드 */}
+      <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-xl border border-white/20 p-8 mb-8">
+        <div className="flex items-center justify-between mb-8">
+          {/* 뒤로가기 버튼 - Neumorphic 스타일 */}
           <button
             onClick={onNavigateBack}
-            className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+            className="flex items-center gap-3 px-6 py-3 bg-white/60 backdrop-blur-sm text-slate-700 hover:text-slate-900 rounded-2xl shadow-lg hover:shadow-xl border border-white/30 transition-all duration-300 hover:-translate-y-0.5"
           >
             <ArrowLeft className="w-5 h-5" />
-            <span>돌아가기</span>
+            <span className="font-medium">돌아가기</span>
           </button>
           
           {/* 중앙 제목 */}
-          <div className="flex items-center gap-3">
-            <Users className="w-8 h-8 text-blue-500" />
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">매니저 관리</h2>
-              <p className="text-gray-600">시스템 매니저를 관리합니다</p>
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl">
+              <Shield className="w-8 h-8 text-white" />
+            </div>
+            <div className="text-center">
+              <h2 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+                매니저 관리
+              </h2>
+              <p className="text-slate-600 font-medium mt-1">시스템 매니저를 관리합니다</p>
             </div>
           </div>
           
-          {/* 매니저 등록 버튼 */}
+          {/* 매니저 등록 버튼 - Neumorphic 스타일 */}
           <button
             onClick={() => {
               resetManagerForm();
               setShowManagerModal(true);
             }}
-            className="flex items-center justify-center gap-3 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="group flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 hover:scale-105"
           >
-            <Plus className="w-5 h-5" />
-            <span className="font-medium">매니저 등록</span>
+            <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
+            <span className="font-semibold">매니저 등록</span>
           </button>
         </div>
 
-        {/* 검색 */}
+        {/* 검색 - Neumorphic 스타일 */}
         <div className="flex gap-4">
           <div className="flex-1">
-            <div className="relative flex">
+            <div className="relative flex bg-white/60 backdrop-blur-sm rounded-2xl shadow-lg border border-white/30 overflow-hidden">
               <div className="relative flex-1">
-                <Search className="w-5 h-5 absolute left-3 top-3 text-gray-400" />
+                <Search className="w-5 h-5 absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="매니저명, 이름, 회사명으로 검색..."
-                  className="w-full pl-10 pr-4 py-2 border rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="매니저명, 이름, 부서명으로 검색..."
+                  className="w-full pl-12 pr-4 py-4 bg-transparent focus:outline-none text-slate-700 placeholder-slate-400 font-medium"
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
                   onKeyPress={handleManagerSearchKeyPress}
@@ -358,7 +370,7 @@ const ManagerManagement: React.FC<ManagerManagementProps> = ({ onNavigateBack })
               </div>
               <button
                 onClick={handleManagerSearch}
-                className="px-4 py-2 bg-blue-600 text-white border border-blue-600 rounded-r-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                className="px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold hover:from-blue-600 hover:to-purple-700 transition-all duration-300"
               >
                 검색
               </button>
@@ -367,88 +379,107 @@ const ManagerManagement: React.FC<ManagerManagementProps> = ({ onNavigateBack })
         </div>
       </div>
 
-      {/* 매니저 목록 */}
-      <div className="bg-white rounded-lg shadow">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  매니저
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  역할
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  상태
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  마지막 로그인
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  가입일
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  액션
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {managers.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
-                    등록된 매니저가 없습니다.
-                  </td>
-                </tr>
-              ) : (
-                managers.map((manager) => (
-                  <tr key={manager.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{manager.name}</p>
-                        <p className="text-sm text-gray-500">@{manager.username}</p>
-                        {manager.company && <p className="text-xs text-gray-400">{manager.company}</p>}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {getRoleBadge(manager.role)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {getStatusBadge(manager.is_active)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {manager.last_login ? formatDate(manager.last_login) : '로그인 기록 없음'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {formatDate(manager.created_at)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => openEditModal(manager)}
-                          className="text-blue-600 hover:text-blue-900 p-1 rounded"
-                          title="편집"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        
-                        {currentUser?.role === 'admin' && currentUser.id !== manager.id && (
-                          <button
-                            onClick={() => handleDeleteManager(manager)}
-                            className="text-red-600 hover:text-red-900 p-1 rounded"
-                            title="삭제"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+      {/* 매니저 목록 - Neumorphic 카드 그리드 */}
+      <div className="space-y-6">
+        {managers.length === 0 ? (
+          <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-xl border border-white/20 p-12 text-center">
+            <div className="w-20 h-20 bg-gradient-to-br from-slate-300 to-slate-400 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Users className="w-10 h-10 text-white" />
+            </div>
+            <h3 className="text-xl font-semibold text-slate-700 mb-2">등록된 매니저가 없습니다</h3>
+            <p className="text-slate-500">새 매니저를 등록하여 시작하세요</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {managers.map((manager) => (
+              <div
+                key={manager.id}
+                className="group bg-white/70 backdrop-blur-md rounded-3xl shadow-xl border border-white/20 p-6 hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 hover:scale-105"
+              >
+                {/* 매니저 아바타와 정보 */}
+                <div className="flex items-start justify-between mb-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-purple-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+                      <span className="text-white font-bold text-xl">
+                        {manager.name?.charAt(0) || 'M'}
+                      </span>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-800">{manager.name}</h3>
+                      <p className="text-slate-500 font-medium">@{manager.username}</p>
+                      {manager.company && (
+                        <p className="text-sm text-slate-400 mt-1">{manager.company}</p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* 상태 배지 */}
+                  <div className="flex flex-col items-end gap-2">
+                    {getRoleBadge(manager.role)}
+                    {getStatusBadge(manager.is_active)}
+                  </div>
+                </div>
+
+                {/* 세부 정보 */}
+                <div className="space-y-3 mb-6">
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                    <span className="text-slate-600">
+                      최근 로그인: {manager.last_login ? formatDate(manager.last_login) : '기록 없음'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                    <span className="text-slate-600">
+                      가입일: {formatDate(manager.created_at)}
+                    </span>
+                  </div>
+                  {manager.email && (
+                    <div className="flex items-center gap-3 text-sm">
+                      <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
+                      <span className="text-slate-600">{manager.email}</span>
+                    </div>
+                  )}
+                  {manager.phone && (
+                    <div className="flex items-center gap-3 text-sm">
+                      <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
+                      <span className="text-slate-600">{manager.phone}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* 액션 버튼들 */}
+                <div className="flex items-center justify-between pt-4 border-t border-slate-200/50">
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => openEditModal(manager)}
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 text-blue-600 rounded-xl hover:bg-blue-500/20 transition-all duration-200 font-medium"
+                      title="편집"
+                    >
+                      <Edit className="w-4 h-4" />
+                      <span className="text-sm">편집</span>
+                    </button>
+                    
+                    {currentUser?.role === 'admin' && currentUser.id !== manager.id && (
+                      <button
+                        onClick={() => handleDeleteManager(manager)}
+                        className="flex items-center gap-2 px-4 py-2 bg-rose-500/10 text-rose-600 rounded-xl hover:bg-rose-500/20 transition-all duration-200 font-medium"
+                        title="삭제"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        <span className="text-sm">삭제</span>
+                      </button>
+                    )}
+                  </div>
+                  
+                  <div className="w-8 h-8 bg-slate-100 rounded-xl flex items-center justify-center group-hover:bg-slate-200 transition-colors">
+                    <UserCog className="w-4 h-4 text-slate-500" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* 매니저 편집 모달 */}
@@ -712,8 +743,11 @@ const ManagerManagement: React.FC<ManagerManagementProps> = ({ onNavigateBack })
       )}
 
       {/* 파일명 표시 */}
-      <div className="mt-4 text-xs text-gray-400 text-center">
-        ManagerManagement.tsx
+      <div className="mt-8 text-center">
+        <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/40 backdrop-blur-sm rounded-2xl border border-white/20 text-xs text-slate-400">
+          <Settings className="w-3 h-3" />
+          <span>ManagerManagement.tsx</span>
+        </div>
       </div>
     </div>
   );
