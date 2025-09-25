@@ -168,13 +168,16 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
     setSuccessMessage(null);
 
     try {
+      console.log('UserProfileModal: 비밀번호 변경 시작');
       const response = await userAPI.changePassword({
         userId: user.id!.toString(),
         currentPassword: passwordData.currentPassword,
         newPassword: passwordData.newPassword
       });
       
-      if (response.success) {
+      console.log('UserProfileModal: API 응답:', response);
+      
+      if (response && response.success) {
         setSuccessMessage('비밀번호가 성공적으로 변경되었습니다. 다시 로그인해주세요.');
         
         // 비밀번호 변경 성공 후 로그아웃 처리

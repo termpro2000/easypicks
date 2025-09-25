@@ -653,32 +653,53 @@ export const userAPI = {
     return response.data;
   },
 
-  // 비밀번호 변경 (임시로 일반 사용자 업데이트 API 사용)
+  // 비밀번호 변경 (사용자 정보 업데이트 API 사용)
   changePassword: async (data: {
     userId: string;
     currentPassword: string;
     newPassword: string;
   }) => {
     try {
-      // 먼저 현재 사용자 정보를 가져와서 기존 name을 유지하면서 password만 변경
-      const userResponse = await apiClient.get(`/users/${data.userId}`);
-      const currentUser = userResponse.data.data;
+      console.log('API changePassword 시작:', { userId: data.userId });
       
-      // 임시 해결책: 사용자 정보 업데이트 API를 사용 (name과 함께 전송)
+      // 사용자 정보 업데이트 API를 사용하여 비밀번호만 변경
       const response = await apiClient.put(`/users/${data.userId}`, {
-        password: data.newPassword,
-        name: currentUser.name, // 기존 name 유지 (백엔드에서 필드 인식을 위해)
-        // 현재 비밀번호 검증은 서버에서 처리하지 않음 (보안상 문제가 있지만 임시)
+        password: data.newPassword
       });
-      return response.data;
+      
+      console.log('API changePassword 응답:', response.data);
+      
+      // 백엔드에서 success: true를 반환하면 성공으로 처리
+      if (response.data && response.data.success) {
+        return {
+          success: true,
+          message: response.data.message || '비밀번호가 성공적으로 변경되었습니다.'
+        };
+      }
+      
+      // success가 false이거나 없으면 실패로 처리
+      return {
+        success: false,
+        message: response.data?.message || '비밀번호 변경에 실패했습니다.'
+      };
+      
     } catch (error: any) {
-      if (error.response?.status === 404) {
-        throw new Error('비밀번호 변경 기능이 현재 사용할 수 없습니다. 관리자에게 문의하세요.');
+      console.error('API changePassword 오류:', error);
+      
+      // 에러 응답 처리
+      if (error.response) {
+        const errorMessage = error.response.data?.message || error.response.data?.error || '비밀번호 변경 중 오류가 발생했습니다.';
+        return {
+          success: false,
+          message: errorMessage
+        };
       }
-      if (error.response?.status === 400) {
-        throw new Error(error.response?.data?.message || '비밀번호 변경 요청이 잘못되었습니다.');
-      }
-      throw error;
+      
+      // 네트워크 오류 등
+      return {
+        success: false,
+        message: '네트워크 오류가 발생했습니다. 다시 시도해주세요.'
+      };
     }
   },
 

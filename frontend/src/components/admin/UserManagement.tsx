@@ -474,7 +474,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onNavigateBack }) => {
             
             <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
               <form onSubmit={handleUpdateUser}>
-                <div className="bg-white px-6 py-4 max-h-96 overflow-y-auto">
+                <div className="bg-white px-6 py-4 max-h-[80vh] overflow-y-auto">
                   <h3 className="text-lg font-medium text-gray-900 mb-4">파트너사 편집: {selectedUser.name}</h3>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -672,7 +672,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onNavigateBack }) => {
             
             <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
               <form onSubmit={handleCreatePartner}>
-                <div className="bg-white px-6 py-4 max-h-96 overflow-y-auto">
+                <div className="bg-white px-6 py-4 max-h-[80vh] overflow-y-auto">
                   <h3 className="text-lg font-medium text-gray-900 mb-4">파트너사 등록</h3>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
