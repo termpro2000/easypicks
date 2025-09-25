@@ -653,6 +653,19 @@ export const userAPI = {
     return response.data;
   },
 
+  // 비밀번호 변경
+  changePassword: async (data: {
+    userId: string;
+    currentPassword: string;
+    newPassword: string;
+  }) => {
+    const response = await apiClient.put(`/users/${data.userId}/password`, {
+      currentPassword: data.currentPassword,
+      newPassword: data.newPassword
+    });
+    return response.data;
+  },
+
   // 사용자 로그인
   login: async (username: string, password: string) => {
     const response = await apiClient.post('/auth/login', { username, password });

@@ -479,4 +479,71 @@ router.post('/test-create', async (req, res) => {
   }
 });
 
+// 비밀번호 변경
+router.put('/:id/password', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { currentPassword, newPassword } = req.body;
+
+    console.log(`[Users API] 비밀번호 변경 요청: 사용자 ID ${id}`);
+
+    // 입력값 검증
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: '현재 비밀번호와 새 비밀번호를 모두 입력해주세요.'
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: '새 비밀번호는 최소 6자 이상이어야 합니다.'
+      });
+    }
+
+    // 사용자 존재 확인 및 현재 비밀번호 검증
+    const [users] = await executeWithRetry(() =>
+      pool.execute('SELECT id, username, password FROM users WHERE id = ?', [id])
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: '사용자를 찾을 수 없습니다.'
+      });
+    }
+
+    const user = users[0];
+
+    // 현재 비밀번호 확인 (단순 문자열 비교 - 프로덕션에서는 bcrypt 사용 권장)
+    if (user.password !== currentPassword) {
+      return res.status(400).json({
+        success: false,
+        message: '현재 비밀번호가 올바르지 않습니다.'
+      });
+    }
+
+    // 새 비밀번호로 업데이트
+    await executeWithRetry(() =>
+      pool.execute('UPDATE users SET password = ?, updated_at = NOW() WHERE id = ?', [newPassword, id])
+    );
+
+    console.log(`[Users API] 비밀번호 변경 완료: 사용자 ID ${id} (${user.username})`);
+
+    res.json({
+      success: true,
+      message: '비밀번호가 성공적으로 변경되었습니다.'
+    });
+
+  } catch (error) {
+    console.error('[Users API] 비밀번호 변경 오류:', error);
+    res.status(500).json({
+      success: false,
+      message: '비밀번호 변경 중 오류가 발생했습니다.',
+      details: error.message
+    });
+  }
+});
+
 module.exports = router;

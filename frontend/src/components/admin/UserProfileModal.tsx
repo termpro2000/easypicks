@@ -1,22 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, User, Mail, Phone, Building, MapPin, Calendar, Shield, Edit3 } from 'lucide-react';
+import { X, Save, User, Mail, Phone, Building, MapPin, Calendar, Shield, Edit3, Key, Eye, EyeOff } from 'lucide-react';
 import { userAPI } from '../../services/api';
+import type { User as AuthUser } from '../../types';
 
-interface UserProfileModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  userId: number | string;
-  onUserUpdated?: () => void;
-}
-
-interface UserProfile {
-  id?: number;
-  username: string;
-  name: string;
+interface UserProfile extends AuthUser {
   email?: string;
-  phone?: string;
-  role: 'admin' | 'manager' | 'driver' | 'user';
-  company?: string;
   department?: string;
   position?: string;
   address?: string;
@@ -30,10 +18,17 @@ interface UserProfile {
   last_login?: string;
 }
 
+interface UserProfileModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  currentUser: AuthUser;
+  onUserUpdated?: () => void;
+}
+
 const UserProfileModal: React.FC<UserProfileModalProps> = ({ 
   isOpen, 
   onClose, 
-  userId, 
+  currentUser, 
   onUserUpdated 
 }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -43,32 +38,70 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  
+  // Password change states
+  const [showPasswordSection, setShowPasswordSection] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [showPasswords, setShowPasswords] = useState({
+    current: false,
+    new: false,
+    confirm: false
+  });
+  const [passwordError, setPasswordError] = useState<string | null>(null);
 
-  // Load user profile data
+  // Load user profile data from currentUser prop
   useEffect(() => {
-    if (isOpen && userId) {
-      loadUserProfile();
-    }
-  }, [isOpen, userId]);
-
-  const loadUserProfile = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const response = await userAPI.getUserById(userId.toString());
-      if (response.success && response.user) {
-        setUser(response.user);
-        setEditedUser({ ...response.user });
+    if (isOpen) {
+      console.log('UserProfileModal - isOpen:', isOpen);
+      console.log('UserProfileModal - currentUser:', currentUser);
+      
+      // Reset states when opening
+      setIsLoading(true);
+      setError(null);
+      setSuccessMessage(null);
+      setPasswordError(null);
+      setShowPasswordSection(false);
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setShowPasswords({ current: false, new: false, confirm: false });
+      
+      if (currentUser) {
+        // Use the currentUser directly and extend it with additional UserProfile fields
+        console.log('UserProfileModal - Setting user data:', currentUser);
+        const extendedUser: UserProfile = {
+          ...currentUser,
+          email: (currentUser as any).email || '',
+          department: (currentUser as any).department || '',
+          position: (currentUser as any).position || '',
+          address: (currentUser as any).address || '',
+          default_sender_address: (currentUser as any).default_sender_address || '',
+          emergency_contact: (currentUser as any).emergency_contact || '',
+          emergency_phone: (currentUser as any).emergency_phone || '',
+          notes: (currentUser as any).notes || '',
+          is_active: (currentUser as any).is_active !== false,
+          created_at: (currentUser as any).created_at || '',
+          updated_at: (currentUser as any).updated_at || '',
+          last_login: (currentUser as any).last_login || ''
+        };
+        setUser(extendedUser);
+        setEditedUser({ ...extendedUser });
+        setIsLoading(false);
+        console.log('UserProfileModal - User data loaded successfully');
       } else {
-        setError('사용자 정보를 불러올 수 없습니다.');
+        setError('사용자 정보를 불러올 수 없습니다. 로그인 상태를 확인해주세요.');
+        setIsLoading(false);
+        console.error('UserProfileModal - No currentUser provided');
       }
-    } catch (err: any) {
-      console.error('사용자 프로필 로드 오류:', err);
-      setError(err.response?.data?.message || '사용자 정보 로드 중 오류가 발생했습니다.');
-    } finally {
-      setIsLoading(false);
+    } else {
+      // Reset states when closing
+      setUser(null);
+      setEditedUser(null);
+      setIsEditing(false);
     }
-  };
+  }, [isOpen, currentUser]);
 
   const handleInputChange = (field: keyof UserProfile, value: any) => {
     if (!editedUser) return;
@@ -108,13 +141,64 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
     }
   };
 
+  const handlePasswordChange = async () => {
+    if (!user) return;
+
+    // Validate password fields
+    if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+      setPasswordError('모든 비밀번호 필드를 입력해주세요.');
+      return;
+    }
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setPasswordError('새 비밀번호가 일치하지 않습니다.');
+      return;
+    }
+
+    if (passwordData.newPassword.length < 6) {
+      setPasswordError('새 비밀번호는 최소 6자 이상이어야 합니다.');
+      return;
+    }
+
+    setIsSaving(true);
+    setPasswordError(null);
+    setError(null);
+    setSuccessMessage(null);
+
+    try {
+      const response = await userAPI.changePassword({
+        userId: user.id!.toString(),
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword
+      });
+      
+      if (response.success) {
+        setSuccessMessage('비밀번호가 성공적으로 변경되었습니다.');
+        setShowPasswordSection(false);
+        setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+        setShowPasswords({ current: false, new: false, confirm: false });
+      } else {
+        setPasswordError(response.message || '비밀번호 변경에 실패했습니다.');
+      }
+    } catch (err: any) {
+      console.error('비밀번호 변경 오류:', err);
+      setPasswordError(err.response?.data?.message || '비밀번호 변경 중 오류가 발생했습니다.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleCancel = () => {
     if (user) {
       setEditedUser({ ...user });
     }
     setIsEditing(false);
+    setShowPasswordSection(false);
+    setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    setShowPasswords({ current: false, new: false, confirm: false });
     setError(null);
     setSuccessMessage(null);
+    setPasswordError(null);
   };
 
   const getRoleDisplay = (role: string) => {
@@ -158,13 +242,22 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
             
             <div className="flex items-center gap-3">
               {!isEditing && user && (
-                <button
-                  onClick={() => setIsEditing(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  <Edit3 className="w-4 h-4" />
-                  편집
-                </button>
+                <>
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                    편집
+                  </button>
+                  <button
+                    onClick={() => setShowPasswordSection(!showPasswordSection)}
+                    className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                  >
+                    <Key className="w-4 h-4" />
+                    비밀번호 변경
+                  </button>
+                </>
               )}
               
               {isEditing && (
@@ -205,6 +298,116 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
           {successMessage && (
             <div className="mt-3 p-3 bg-green-100 border border-green-200 rounded-lg text-green-700">
               {successMessage}
+            </div>
+          )}
+
+          {passwordError && (
+            <div className="mt-3 p-3 bg-red-100 border border-red-200 rounded-lg text-red-700">
+              {passwordError}
+            </div>
+          )}
+
+          {/* Password Change Section */}
+          {showPasswordSection && (
+            <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+              <h4 className="text-lg font-semibold text-purple-900 mb-4 flex items-center gap-2">
+                <Key className="w-5 h-5" />
+                비밀번호 변경
+              </h4>
+              
+              <div className="space-y-4">
+                {/* Current Password */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    현재 비밀번호
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPasswords.current ? "text" : "password"}
+                      value={passwordData.currentPassword}
+                      onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
+                      className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      placeholder="현재 비밀번호를 입력하세요"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPasswords(prev => ({ ...prev, current: !prev.current }))}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      {showPasswords.current ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* New Password */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    새 비밀번호
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPasswords.new ? "text" : "password"}
+                      value={passwordData.newPassword}
+                      onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
+                      className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      placeholder="새 비밀번호를 입력하세요 (최소 6자)"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPasswords(prev => ({ ...prev, new: !prev.new }))}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      {showPasswords.new ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Confirm Password */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    새 비밀번호 확인
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPasswords.confirm ? "text" : "password"}
+                      value={passwordData.confirmPassword}
+                      onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                      className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      placeholder="새 비밀번호를 다시 입력하세요"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPasswords(prev => ({ ...prev, confirm: !prev.confirm }))}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      {showPasswords.confirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Password Change Buttons */}
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={handlePasswordChange}
+                    disabled={isSaving || !passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword}
+                    className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
+                  >
+                    <Key className="w-4 h-4" />
+                    {isSaving ? '변경 중...' : '비밀번호 변경'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowPasswordSection(false);
+                      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+                      setShowPasswords({ current: false, new: false, confirm: false });
+                      setPasswordError(null);
+                    }}
+                    className="px-4 py-2 text-purple-600 hover:text-purple-800 hover:bg-purple-100 rounded-lg transition-colors"
+                  >
+                    취소
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </div>

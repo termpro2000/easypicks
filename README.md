@@ -2,15 +2,17 @@
 
 React Native 모바일 앱, React 웹 어드민, Node.js 백엔드 서버로 구성된 완전한 배송 관리 시스템입니다.
 
-> **최근 업데이트**: 2025-09-24 - AdminShippingForm 멀티-프로덕트 배송 관리 시스템 구현 완료 🎉
+> **최근 업데이트**: 2025-09-25 - 사용자 프로필 모달 시스템 및 비밀번호 변경 기능 구현 완료 🎉
 > 
-> 🌟 **신규 기능**: 하나의 배송에 여러 제품을 할당할 수 있는 완전한 멀티-프로덕트 시스템!
+> 🌟 **신규 기능**: 클릭 가능한 role 배지와 완전한 사용자 프로필 관리 및 보안 기능!
 
 ## 📋 목차
 - [프로젝트 구조](#프로젝트-구조)
 - [주요 기능](#주요-기능)
 - [🌐 웹 어드민 대시보드](#-웹-어드민-대시보드)
 - [🎯 멀티-프로덕트 배송 시스템](#-멀티-프로덕트-배송-시스템)
+- [👤 사용자 프로필 모달 시스템](#-사용자-프로필-모달-시스템)
+- [🔐 비밀번호 변경 기능](#-비밀번호-변경-기능)
 - [🆕 Status 관리 시스템](#-status-관리-시스템)
 - [🔥 Firebase Storage 시스템](#-firebase-storage-시스템)
 - [📱 EAS Build & Update 시스템](#-eas-build--update-시스템)
@@ -357,6 +359,327 @@ Database
 - ✅ **사용자 경험**: 검색부터 저장까지 seamless한 워크플로
 
 **커밋**: `ceb7963` - "Implement comprehensive multi-product delivery system in AdminShippingForm"
+
+## 👤 사용자 프로필 모달 시스템
+
+### 🖱️ 클릭 가능한 Role 배지와 완전한 프로필 관리 (2025-09-25)
+
+AdminDashboard에서 **사용자 role 배지를 클릭**하면 로그인된 사용자의 완전한 프로필 정보를 보고 편집할 수 있는 포괄적인 모달 시스템이 구현되었습니다.
+
+#### 🚀 주요 기능
+
+##### 1. 클릭 가능한 Role 배지
+- **Interactive UI**: 관리자/매니저/기사/파트너사 배지를 클릭 가능한 버튼으로 변경
+- **Visual Feedback**: 호버 효과, 툴팁, 크기 변환 애니메이션
+- **Direct Access**: 즉시 사용자 프로필 모달 열기
+
+```typescript
+// AdminDashboard.tsx - 클릭 가능한 role 배지
+<button
+  onClick={() => setShowUserProfile(true)}
+  className={`px-3 py-1 rounded-full text-sm font-medium transition-all duration-200 
+    cursor-pointer hover:shadow-md transform hover:scale-105 ${roleColors}`}
+  title="프로필 보기/편집"
+>
+  {getRoleLabel(user.role)}
+</button>
+```
+
+##### 2. 완전한 사용자 프로필 표시
+- **현재 사용자 정보**: 로그인된 사용자의 정보를 users 테이블에서 직접 표시
+- **모든 필드 커버**: 기본정보, 연락처, 회사정보, 주소, 시스템 정보
+- **2컬럼 레이아웃**: 정보를 논리적 섹션으로 구성된 반응형 디자인
+
+##### 3. 편집 모드와 읽기 모드
+- **Mode Toggle**: 편집/읽기 모드 간 seamless 전환
+- **Real-time Validation**: 입력 필드별 실시간 유효성 검증
+- **Status Indicators**: 활성/비활성 상태, role 변경 등 시각적 표시
+
+#### 🔧 기술적 구현
+
+##### Frontend 컴포넌트 아키텍처
+```typescript
+// UserProfileModal.tsx - 완전한 프로필 관리 모달
+interface UserProfileModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  currentUser: User;          // 로그인된 사용자 정보 직접 전달
+  onUserUpdated?: () => void;
+}
+```
+
+##### 상태 관리
+```typescript
+const UserProfileModal: React.FC<UserProfileModalProps> = ({ 
+  isOpen, onClose, currentUser, onUserUpdated 
+}) => {
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [editedUser, setEditedUser] = useState<UserProfile | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  
+  // Load user profile data from currentUser prop (no API call needed)
+  useEffect(() => {
+    if (isOpen && currentUser) {
+      setUser(currentUser as UserProfile);
+      setEditedUser({ ...currentUser } as UserProfile);
+    }
+  }, [isOpen, currentUser]);
+};
+```
+
+##### API 통합
+```typescript
+// services/api.ts - 사용자 정보 업데이트
+export const userAPI = {
+  // 사용자 ID로 조회
+  getUserById: async (id: string) => {
+    const response = await apiClient.get(`/users/${id}`);
+    return response.data;
+  },
+
+  // 사용자 정보 업데이트
+  updateUser: async (id: string, data: any) => {
+    const response = await apiClient.put(`/users/${id}`, data);
+    return response.data;
+  },
+};
+```
+
+#### 📊 필드 정보 관리
+
+**기본 정보 섹션**:
+- 사용자 ID, 이름, 권한 (admin/manager/driver/user)
+- 활성 상태 토글
+
+**연락처 정보 섹션**:
+- 이메일, 전화번호
+- 비상연락처, 비상연락처 전화번호
+
+**회사 정보 섹션**:
+- 회사명, 부서, 직급
+
+**주소 정보 섹션**:
+- 주소, 기본 발송지 주소
+
+**추가 정보 섹션**:
+- 메모, 시스템 정보 (생성일, 수정일, 마지막 로그인)
+
+#### 🎨 UI/UX 개선사항
+
+##### 시각적 디자인
+```css
+/* 모달 디자인 - 현대적이고 직관적 */
+.modal-content {
+  background: white;
+  border-radius: 16px;
+  max-width: 4xl;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+/* Role 배지 호버 효과 */
+.role-badge:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+```
+
+##### 사용자 경험
+- **Immediate Loading**: API 호출 없이 즉시 사용자 정보 표시
+- **Smart Defaults**: 기존 값 유지 및 스마트 입력 필드
+- **Error Handling**: 포괄적인 에러 처리 및 사용자 피드백
+- **Success Feedback**: 저장 완료 시 명확한 성공 메시지
+
+## 🔐 비밀번호 변경 기능
+
+### 🔒 통합된 보안 관리 시스템 (2025-09-25)
+
+사용자 프로필 모달 내에서 **비밀번호 변경 기능**이 완전히 통합되어, 보안 관리를 위한 원스톱 솔루션을 제공합니다.
+
+#### 🚀 주요 기능
+
+##### 1. 통합된 비밀번호 변경 UI
+- **Header Integration**: 프로필 모달 헤더에 "비밀번호 변경" 버튼 추가
+- **Toggle Section**: 클릭 시 비밀번호 변경 섹션 표시/숨기기
+- **Purple Theme**: 보안 기능을 나타내는 전용 퍼플 테마
+
+##### 2. 완전한 보안 검증 시스템
+- **3단계 입력**: 현재 비밀번호, 새 비밀번호, 새 비밀번호 확인
+- **Real-time Validation**: 
+  - 현재 비밀번호 확인
+  - 새 비밀번호 최소 6자 검증
+  - 비밀번호 일치 확인
+- **Show/Hide Toggle**: 각 필드별 비밀번호 보기/숨기기 기능
+
+##### 3. 사용자 친화적 인터페이스
+```typescript
+// 비밀번호 변경 섹션 UI
+{showPasswordSection && (
+  <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+    <h4 className="text-lg font-semibold text-purple-900 mb-4 flex items-center gap-2">
+      <Key className="w-5 h-5" />
+      비밀번호 변경
+    </h4>
+    
+    {/* Current Password Field */}
+    <div className="relative">
+      <input type={showPasswords.current ? "text" : "password"} />
+      <button onClick={() => togglePasswordVisibility('current')}>
+        {showPasswords.current ? <EyeOff /> : <Eye />}
+      </button>
+    </div>
+  </div>
+)}
+```
+
+#### 🔧 백엔드 보안 구현
+
+##### 비밀번호 변경 API
+```javascript
+// routes/users.js - 비밀번호 변경 엔드포인트
+router.put('/:id/password', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { currentPassword, newPassword } = req.body;
+
+    // 입력값 검증
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: '현재 비밀번호와 새 비밀번호를 모두 입력해주세요.'
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: '새 비밀번호는 최소 6자 이상이어야 합니다.'
+      });
+    }
+
+    // 현재 비밀번호 확인
+    const [users] = await pool.execute(
+      'SELECT id, username, password FROM users WHERE id = ?', [id]
+    );
+
+    if (users[0].password !== currentPassword) {
+      return res.status(400).json({
+        success: false,
+        message: '현재 비밀번호가 올바르지 않습니다.'
+      });
+    }
+
+    // 새 비밀번호로 업데이트
+    await pool.execute(
+      'UPDATE users SET password = ?, updated_at = NOW() WHERE id = ?', 
+      [newPassword, id]
+    );
+
+    res.json({
+      success: true,
+      message: '비밀번호가 성공적으로 변경되었습니다.'
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: '비밀번호 변경 중 오류가 발생했습니다.'
+    });
+  }
+});
+```
+
+#### 🛡️ 보안 검증 플로우
+
+##### Frontend 검증
+```typescript
+const handlePasswordChange = async () => {
+  // 1. 필드 완성도 검증
+  if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+    setPasswordError('모든 비밀번호 필드를 입력해주세요.');
+    return;
+  }
+
+  // 2. 비밀번호 일치 검증
+  if (passwordData.newPassword !== passwordData.confirmPassword) {
+    setPasswordError('새 비밀번호가 일치하지 않습니다.');
+    return;
+  }
+
+  // 3. 길이 검증
+  if (passwordData.newPassword.length < 6) {
+    setPasswordError('새 비밀번호는 최소 6자 이상이어야 합니다.');
+    return;
+  }
+
+  // 4. API 호출
+  const response = await userAPI.changePassword({
+    userId: user.id.toString(),
+    currentPassword: passwordData.currentPassword,
+    newPassword: passwordData.newPassword
+  });
+};
+```
+
+##### 상태 관리
+```typescript
+// 비밀번호 변경 관련 상태
+const [showPasswordSection, setShowPasswordSection] = useState(false);
+const [passwordData, setPasswordData] = useState({
+  currentPassword: '',
+  newPassword: '',
+  confirmPassword: ''
+});
+const [showPasswords, setShowPasswords] = useState({
+  current: false,
+  new: false,
+  confirm: false
+});
+const [passwordError, setPasswordError] = useState<string | null>(null);
+```
+
+#### 📱 사용자 워크플로
+
+```
+1. Role 배지 클릭 → 2. 프로필 모달 열림 → 3. "비밀번호 변경" 버튼 클릭
+                    ↓
+4. 비밀번호 변경 섹션 표시 → 5. 현재 비밀번호 입력 → 6. 새 비밀번호 입력 및 확인
+                    ↓
+7. 실시간 검증 확인 → 8. "비밀번호 변경" 버튼 클릭 → 9. 백엔드 검증 및 업데이트
+                    ↓
+10. 성공 메시지 표시 → 11. 비밀번호 필드 초기화 → 12. 섹션 자동 닫기
+```
+
+#### 🎯 보안 특징
+
+##### 클라이언트 측 보안
+- **Input Masking**: 기본적으로 모든 비밀번호 필드 마스킹
+- **Toggle Visibility**: 사용자 선택에 따른 비밀번호 표시/숨김
+- **Auto Clear**: 성공적인 변경 후 모든 필드 자동 초기화
+- **Session Security**: 변경 완료 후 필요시 페이지 새로고침
+
+##### 서버 측 보안
+- **JWT Authentication**: 인증된 사용자만 접근 가능
+- **Input Validation**: 모든 입력 값 서버 측 재검증
+- **Password Verification**: 현재 비밀번호 정확성 확인
+- **Database Update**: 안전한 쿼리 실행 및 타임스탬프 업데이트
+
+#### 🚀 기술적 성취
+
+##### 통합 시스템
+- **Single Modal**: 하나의 모달에서 프로필 관리와 보안 관리 통합
+- **State Management**: 효율적인 상태 관리로 UI/UX 최적화
+- **Error Handling**: 포괄적인 에러 처리 및 사용자 피드백
+- **API Design**: RESTful API 설계로 확장성 확보
+
+##### 사용자 경험
+- **No Page Refresh**: 모달 내에서 모든 작업 완료
+- **Immediate Feedback**: 실시간 검증 및 즉시 피드백
+- **Intuitive UI**: 직관적인 아이콘과 색상 구분
+- **Responsive Design**: 모바일 친화적 반응형 디자인
+
+**커밋**: `50c5575` - "사용자 프로필 모달 시스템 구현: 클릭 가능한 role 배지와 완전한 프로필 편집 기능"
 
 ## 🆕 Status 관리 시스템
 
@@ -754,6 +1077,33 @@ FormData {
 }
 ```
 
+#### PUT `/api/users/:id/password` - 비밀번호 변경
+**헤더:** `Authorization: Bearer {token}`
+
+**요청:**
+```json
+{
+  "currentPassword": "current123",
+  "newPassword": "newpassword123"
+}
+```
+
+**응답:**
+```json
+{
+  "success": true,
+  "message": "비밀번호가 성공적으로 변경되었습니다."
+}
+```
+
+**오류 응답:**
+```json
+{
+  "success": false,
+  "message": "현재 비밀번호가 올바르지 않습니다."
+}
+```
+
 ## 🧪 테스트 방법
 
 ### 웹 브라우저 테스트 (추천)
@@ -884,6 +1234,8 @@ FormData {
 - [x] **배송완료 처리 체계 (귀책사항 + 녹음파일)**
 - [x] **Firebase Storage 실제 사진 업로드 구현**
 - [x] **EAS Build 프로덕션 APK 빌드 시스템 구축**
+- [x] **사용자 프로필 모달 시스템 (클릭 가능한 role 배지)**
+- [x] **통합 비밀번호 변경 기능 (보안 관리)**
 
 ### Phase 3 - 고급 기능
 - [ ] 푸시 알림 시스템

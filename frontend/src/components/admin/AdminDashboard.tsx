@@ -447,7 +447,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                   </span>
                 </div>
                 <button
-                  onClick={() => setShowUserProfile(true)}
+                  onClick={() => {
+                    console.log('AdminDashboard - Role badge clicked');
+                    console.log('AdminDashboard - Current user:', user);
+                    setShowUserProfile(true);
+                  }}
                   className={`px-3 py-1 rounded-full text-sm font-medium transition-all duration-200 cursor-pointer hover:shadow-md transform hover:scale-105 ${
                     user?.role === 'admin'
                       ? 'bg-red-100 text-red-700 border border-red-200 hover:bg-red-200'
@@ -527,14 +531,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
       </footer>
 
       {/* User Profile Modal */}
-      {showUserProfile && user?.id && (
+      {showUserProfile && user && (
         <UserProfileModal
           isOpen={showUserProfile}
           onClose={() => setShowUserProfile(false)}
-          userId={user.id}
+          currentUser={user}
           onUserUpdated={() => {
             // 사용자 정보 업데이트 시 필요한 처리
             console.log('사용자 정보가 업데이트되었습니다.');
+            // 필요시 사용자 정보 새로고침
+            window.location.reload();
           }}
         />
       )}
