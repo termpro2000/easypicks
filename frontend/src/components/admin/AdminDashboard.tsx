@@ -486,7 +486,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
         {/* 웰컴 섹션 */}
         <div className="text-center mb-10">
           <h2 className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent mb-4">
-            안녕하세요, {user?.name}님! 👋
+            안녕하세요, {user?.name}님!
           </h2>
           <p className="text-xl text-gray-600 mb-2">
             실시간 통계와 함께하는 스마트 관리자 대시보드
