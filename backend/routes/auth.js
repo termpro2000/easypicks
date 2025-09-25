@@ -10,7 +10,8 @@ const {
   me,
   profile,
   getMapPreference,
-  updateMapPreference
+  updateMapPreference,
+  updateProfile
 } = require('../controllers/authController');
 
 // 회원가입
@@ -36,6 +37,9 @@ router.get('/map-preference', authenticateToken, getMapPreference);
 
 // 지도 설정 업데이트
 router.put('/map-preference', authenticateToken, updateMapPreference);
+
+// 사용자 자신의 프로필 업데이트 (일반 사용자용)
+router.put('/profile', authenticateToken, updateProfile);
 
 // 임시 컬럼 추가 엔드포인트
 router.post('/add-user-columns', async (req, res) => {

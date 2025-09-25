@@ -492,6 +492,145 @@ async function updateMapPreference(req, res) {
   }
 }
 
+/**
+ * 사용자 자신의 프로필 업데이트
+ */
+async function updateProfile(req, res) {
+  try {
+    let userId = null;
+    
+    if (req.user && req.user.id) {
+      userId = req.user.id;
+    }
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        error: 'Unauthorized',
+        message: '로그인이 필요합니다.'
+      });
+    }
+
+    console.log(`[Auth updateProfile] 사용자 프로필 업데이트 요청: ID ${userId}`);
+    console.log(`[Auth updateProfile] 요청 본문:`, req.body);
+
+    const {
+      name,
+      email,
+      phone,
+      company,
+      department,
+      position,
+      default_sender_address,
+      default_sender_detail_address,
+      default_sender_zipcode
+    } = req.body;
+
+    // 업데이트할 필드 구성 (password와 role은 제외)
+    const updateFields = [];
+    const updateValues = [];
+
+    if (name !== undefined) {
+      updateFields.push('name = ?');
+      updateValues.push(name);
+    }
+    if (email !== undefined) {
+      updateFields.push('email = ?');
+      updateValues.push(email);
+    }
+    if (phone !== undefined) {
+      updateFields.push('phone = ?');
+      updateValues.push(phone);
+    }
+    if (company !== undefined) {
+      updateFields.push('company = ?');
+      updateValues.push(company);
+    }
+    if (department !== undefined) {
+      updateFields.push('department = ?');
+      updateValues.push(department);
+    }
+    if (position !== undefined) {
+      updateFields.push('position = ?');
+      updateValues.push(position);
+    }
+    if (default_sender_address !== undefined) {
+      updateFields.push('default_sender_address = ?');
+      updateValues.push(default_sender_address);
+    }
+    if (default_sender_detail_address !== undefined) {
+      updateFields.push('default_sender_detail_address = ?');
+      updateValues.push(default_sender_detail_address);
+    }
+    if (default_sender_zipcode !== undefined) {
+      updateFields.push('default_sender_zipcode = ?');
+      updateValues.push(default_sender_zipcode);
+    }
+
+    updateFields.push('updated_at = NOW()');
+
+    if (updateFields.length === 1) { // updated_at만 있는 경우
+      return res.status(400).json({
+        success: false,
+        error: 'Bad Request',
+        message: '업데이트할 필드가 없습니다.'
+      });
+    }
+
+    // 업데이트 전 데이터 확인
+    const [beforeData] = await executeWithRetry(() =>
+      pool.execute('SELECT id, name, company, department, position, updated_at FROM users WHERE id = ?', [userId])
+    );
+    console.log(`[Auth updateProfile] 업데이트 전 데이터:`, beforeData[0]);
+
+    // 사용자 프로필 업데이트
+    updateValues.push(userId);
+    console.log(`[Auth updateProfile] 실행할 쿼리:`, `UPDATE users SET ${updateFields.join(', ')} WHERE id = ? AND is_active = true`);
+    console.log(`[Auth updateProfile] 쿼리 파라미터:`, updateValues);
+
+    const [result] = await executeWithRetry(() =>
+      pool.execute(`
+        UPDATE users SET ${updateFields.join(', ')} WHERE id = ? AND is_active = true
+      `, updateValues)
+    );
+
+    console.log(`[Auth updateProfile] SQL UPDATE 실행 결과:`, {
+      affectedRows: result.affectedRows,
+      changedRows: result.changedRows,
+      info: result.info
+    });
+
+    // 업데이트 후 데이터 확인
+    const [afterData] = await executeWithRetry(() =>
+      pool.execute('SELECT id, name, company, department, position, updated_at FROM users WHERE id = ?', [userId])
+    );
+    console.log(`[Auth updateProfile] 업데이트 후 데이터:`, afterData[0]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Not Found',
+        message: '사용자를 찾을 수 없습니다.'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: '프로필이 성공적으로 업데이트되었습니다.',
+      affectedRows: result.affectedRows
+    });
+
+  } catch (error) {
+    console.error('[Auth updateProfile] 프로필 업데이트 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal Server Error',
+      message: '프로필 업데이트 중 오류가 발생했습니다.',
+      details: error.message
+    });
+  }
+}
+
 module.exports = {
   register,
   checkUsername,
@@ -500,5 +639,6 @@ module.exports = {
   me,
   profile,
   getMapPreference,
-  updateMapPreference
+  updateMapPreference,
+  updateProfile
 };
