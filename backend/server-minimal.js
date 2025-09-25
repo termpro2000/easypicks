@@ -3737,6 +3737,42 @@ app.get('/api/debug/columns/:table', async (req, res) => {
   }
 });
 
+// 디버그 엔드포인트: 직접 SQL 실행 (UPDATE 테스트)
+app.post('/api/debug/update-user', async (req, res) => {
+  try {
+    const { id, department, position } = req.body;
+    
+    // 업데이트 전 상태 확인
+    const [beforeData] = await pool.execute('SELECT id, department, position FROM users WHERE id = ?', [id]);
+    console.log('업데이트 전:', beforeData[0]);
+    
+    // 직접 SQL UPDATE 실행
+    const [result] = await pool.execute(
+      'UPDATE users SET department = ?, position = ?, updated_at = NOW() WHERE id = ?',
+      [department, position, id]
+    );
+    
+    // 업데이트 후 상태 확인
+    const [afterData] = await pool.execute('SELECT id, department, position, updated_at FROM users WHERE id = ?', [id]);
+    console.log('업데이트 후:', afterData[0]);
+    
+    res.json({
+      success: true,
+      before: beforeData[0],
+      after: afterData[0],
+      result: {
+        affectedRows: result.affectedRows,
+        changedRows: result.changedRows
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // 서버 시작
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
