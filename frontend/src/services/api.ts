@@ -637,8 +637,46 @@ export const userAPI = {
     default_sender_detail_address?: string;
     default_sender_zipcode?: string;
   }) => {
-    const response = await apiClient.post('/users', data);
-    return response.data;
+    try {
+      console.log('API createUser 시작:', { username: data.username, name: data.name });
+      
+      const response = await apiClient.post('/users', data);
+      
+      console.log('API createUser 응답:', response.data);
+      
+      // 백엔드에서 success: true를 반환하면 성공으로 처리
+      if (response.data && response.data.success) {
+        return {
+          success: true,
+          message: response.data.message || '사용자가 성공적으로 생성되었습니다.',
+          data: response.data.data
+        };
+      }
+      
+      // success가 false이거나 없으면 실패로 처리
+      return {
+        success: false,
+        message: response.data?.message || '사용자 생성에 실패했습니다.'
+      };
+      
+    } catch (error: any) {
+      console.error('API createUser 오류:', error);
+      
+      // 에러 응답 처리
+      if (error.response) {
+        const errorMessage = error.response.data?.message || error.response.data?.error || '사용자 생성 중 오류가 발생했습니다.';
+        return {
+          success: false,
+          message: errorMessage
+        };
+      }
+      
+      // 네트워크 오류 등
+      return {
+        success: false,
+        message: '네트워크 오류가 발생했습니다. 다시 시도해주세요.'
+      };
+    }
   },
 
   // 사용자 수정

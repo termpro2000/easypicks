@@ -160,8 +160,10 @@ const UserManagement: React.FC<UserManagementProps> = ({ onNavigateBack }) => {
   const handleCreatePartner = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      console.log('UserManagement: 파트너사 등록 시작');
+      
       // 파트너사 데이터 생성 (삭제된 필드 제외)
-      await userAPI.createUser({
+      const response = await userAPI.createUser({
         username: partnerFormData.username,
         password: partnerFormData.password,
         name: partnerFormData.name,
@@ -174,13 +176,19 @@ const UserManagement: React.FC<UserManagementProps> = ({ onNavigateBack }) => {
         default_sender_zipcode: partnerFormData.default_sender_zipcode || undefined
       });
       
-      showNotification('success', '파트너사가 성공적으로 등록되었습니다.');
-      setShowPartnerModal(false);
-      resetPartnerForm();
-      fetchUsers();
+      console.log('UserManagement: API 응답:', response);
+      
+      if (response && response.success) {
+        showNotification('success', '파트너사가 성공적으로 등록되었습니다.');
+        setShowPartnerModal(false);
+        resetPartnerForm();
+        fetchUsers();
+      } else {
+        showNotification('error', response?.message || '파트너사 등록에 실패했습니다.');
+      }
     } catch (error: any) {
       console.error('파트너사 등록 실패:', error);
-      showNotification('error', error.response?.data?.message || '파트너사 등록에 실패했습니다.');
+      showNotification('error', '파트너사 등록 중 오류가 발생했습니다.');
     }
   };
 

@@ -300,6 +300,20 @@ app.post('/api/users', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     console.log('🔐 비밀번호 해싱 완료');
     
+    // undefined를 null로 변환
+    const safeEmail = email || null;
+    const safePhone = phone || null;
+    const safeCompany = company || null;
+    const safeDefaultSenderAddress = default_sender_address || null;
+    const safeDefaultSenderDetailAddress = default_sender_detail_address || null;
+    const safeDefaultSenderZipcode = default_sender_zipcode || null;
+    
+    console.log('📝 SQL 파라미터:', {
+      username, hashedPassword: '***', name, 
+      safeEmail, safePhone, safeCompany, role,
+      safeDefaultSenderAddress, safeDefaultSenderDetailAddress, safeDefaultSenderZipcode
+    });
+    
     // 사용자 생성
     const [result] = await pool.execute(`
       INSERT INTO users (
@@ -308,8 +322,8 @@ app.post('/api/users', async (req, res) => {
         is_active, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW(), NOW())
     `, [
-      username, hashedPassword, name, email, phone, company, role,
-      default_sender_address, default_sender_detail_address, default_sender_zipcode
+      username, hashedPassword, name, safeEmail, safePhone, safeCompany, role,
+      safeDefaultSenderAddress, safeDefaultSenderDetailAddress, safeDefaultSenderZipcode
     ]);
     
     console.log('✅ 사용자 생성 성공:', { id: result.insertId, username });

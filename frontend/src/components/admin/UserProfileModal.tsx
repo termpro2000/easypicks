@@ -199,8 +199,8 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
         setPasswordError(response.message || '비밀번호 변경에 실패했습니다.');
       }
     } catch (err: any) {
-      console.error('비밀번호 변경 오류:', err);
-      setPasswordError(err.response?.data?.message || '비밀번호 변경 중 오류가 발생했습니다.');
+      console.error('비밀번호 변경 예외:', err);
+      setPasswordError('시스템 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
     } finally {
       setIsSaving(false);
     }
