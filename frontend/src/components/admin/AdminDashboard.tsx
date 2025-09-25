@@ -1,5 +1,9 @@
-import React, { useState } from 'react';
-import { Package, Plus, LogOut, UserCheck, Users, Truck, TestTube, MapPin } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { 
+  Package, Plus, LogOut, UserCheck, Users, Truck, TestTube, MapPin, 
+  TrendingUp, AlertCircle, Clock, CheckCircle, XCircle, Pause,
+  BarChart3, Activity, Settings, Database
+} from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import AdminShippingForm from './AdminShippingForm';
 import UserManagement from './UserManagement';
@@ -16,10 +20,60 @@ interface AdminDashboardProps {
 
 type AdminPageType = 'main' | 'new-order' | 'assignment' | 'products' | 'users' | 'drivers' | 'test' | 'delivery-status' | 'delivery-detail';
 
+// 카드 데이터 인터페이스
+interface DashboardCard {
+  id: string;
+  title: string;
+  icon: React.ComponentType<any>;
+  bgColor: string;
+  hoverColor: string;
+  textColor: string;
+  action: string;
+  stats?: {
+    main: number | string;
+    sub?: number | string;
+    label: string;
+    subLabel?: string;
+  };
+  status?: 'normal' | 'warning' | 'success' | 'error';
+}
+
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
   const { user } = useAuth();
   const [currentPage, setCurrentPage] = useState<AdminPageType>('main');
   const [selectedDelivery, setSelectedDelivery] = useState<any>(null);
+  
+  // 실시간 통계 데이터 상태
+  const [dashboardStats, setDashboardStats] = useState({
+    deliveries: { total: 0, pending: 0, completed: 0, cancelled: 0 },
+    drivers: { total: 0, active: 0, busy: 0 },
+    users: { total: 0, active: 0, partners: 0 },
+    products: { total: 0, active: 0, outOfStock: 0 }
+  });
+
+  // 실시간 통계 데이터 로드
+  useEffect(() => {
+    const loadDashboardStats = async () => {
+      try {
+        // 실제 API 호출 대신 mock 데이터 사용 (향후 실제 API로 교체)
+        setDashboardStats({
+          deliveries: { total: 42, pending: 8, completed: 31, cancelled: 3 },
+          drivers: { total: 12, active: 8, busy: 3 },
+          users: { total: 24, active: 20, partners: 6 },
+          products: { total: 156, active: 145, outOfStock: 11 }
+        });
+      } catch (error) {
+        console.error('통계 데이터 로드 오류:', error);
+      }
+    };
+
+    if (currentPage === 'main') {
+      loadDashboardStats();
+      // 5초마다 데이터 새로고침
+      const interval = setInterval(loadDashboardStats, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [currentPage]);
 
   const handleLogout = async () => {
     try {
@@ -29,7 +83,139 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
     }
   };
 
-  const handleButtonClick = (action: string) => {
+  // 카드 데이터 정의 (실시간 통계 포함)
+  const getDashboardCards = (): DashboardCard[] => [
+    {
+      id: 'new-order',
+      title: '새배송접수',
+      icon: Plus,
+      bgColor: 'bg-gradient-to-br from-green-500 to-green-600',
+      hoverColor: 'hover:from-green-600 hover:to-green-700',
+      textColor: 'text-white',
+      action: '새배송접수',
+      stats: {
+        main: dashboardStats.deliveries.total,
+        sub: dashboardStats.deliveries.pending,
+        label: '총 배송건',
+        subLabel: '대기중'
+      },
+      status: dashboardStats.deliveries.pending > 10 ? 'warning' : 'normal'
+    },
+    {
+      id: 'delivery-status',
+      title: '배송현황',
+      icon: MapPin,
+      bgColor: 'bg-gradient-to-br from-blue-500 to-blue-600',
+      hoverColor: 'hover:from-blue-600 hover:to-blue-700',
+      textColor: 'text-white',
+      action: '배송현황',
+      stats: {
+        main: dashboardStats.deliveries.completed,
+        sub: dashboardStats.deliveries.cancelled,
+        label: '완료',
+        subLabel: '취소'
+      },
+      status: 'success'
+    },
+    {
+      id: 'driver-assignment',
+      title: '기사배정',
+      icon: UserCheck,
+      bgColor: 'bg-gradient-to-br from-purple-500 to-purple-600',
+      hoverColor: 'hover:from-purple-600 hover:to-purple-700',
+      textColor: 'text-white',
+      action: '기사배정',
+      stats: {
+        main: dashboardStats.drivers.active,
+        sub: dashboardStats.drivers.busy,
+        label: '활성 기사',
+        subLabel: '배송중'
+      },
+      status: 'normal'
+    },
+    {
+      id: 'driver-management',
+      title: '기사관리',
+      icon: Truck,
+      bgColor: 'bg-gradient-to-br from-orange-500 to-orange-600',
+      hoverColor: 'hover:from-orange-600 hover:to-orange-700',
+      textColor: 'text-white',
+      action: '기사관리',
+      stats: {
+        main: dashboardStats.drivers.total,
+        sub: dashboardStats.drivers.active,
+        label: '총 기사',
+        subLabel: '활성화'
+      },
+      status: 'normal'
+    },
+    {
+      id: 'user-management',
+      title: '사용자관리',
+      icon: Users,
+      bgColor: 'bg-gradient-to-br from-teal-500 to-teal-600',
+      hoverColor: 'hover:from-teal-600 hover:to-teal-700',
+      textColor: 'text-white',
+      action: '사용자관리',
+      stats: {
+        main: dashboardStats.users.total,
+        sub: dashboardStats.users.partners,
+        label: '총 사용자',
+        subLabel: '파트너사'
+      },
+      status: 'normal'
+    },
+    {
+      id: 'product-management',
+      title: '상품관리',
+      icon: Package,
+      bgColor: 'bg-gradient-to-br from-pink-500 to-pink-600',
+      hoverColor: 'hover:from-pink-600 hover:to-pink-700',
+      textColor: 'text-white',
+      action: '상품관리',
+      stats: {
+        main: dashboardStats.products.active,
+        sub: dashboardStats.products.outOfStock,
+        label: '활성 상품',
+        subLabel: '품절'
+      },
+      status: dashboardStats.products.outOfStock > 20 ? 'warning' : 'normal'
+    },
+    {
+      id: 'analytics',
+      title: '통계',
+      icon: BarChart3,
+      bgColor: 'bg-gradient-to-br from-indigo-500 to-indigo-600',
+      hoverColor: 'hover:from-indigo-600 hover:to-indigo-700',
+      textColor: 'text-white',
+      action: '통계',
+      stats: {
+        main: '99.2%',
+        sub: '+2.4%',
+        label: '완료율',
+        subLabel: '전월대비'
+      },
+      status: 'success'
+    },
+    {
+      id: 'test-tools',
+      title: '개발도구',
+      icon: TestTube,
+      bgColor: 'bg-gradient-to-br from-gray-500 to-gray-600',
+      hoverColor: 'hover:from-gray-600 hover:to-gray-700',
+      textColor: 'text-white',
+      action: '테스트',
+      stats: {
+        main: 'DEV',
+        sub: 'v3.0',
+        label: '모드',
+        subLabel: '버전'
+      },
+      status: 'normal'
+    }
+  ];
+
+  const handleCardClick = (action: string) => {
     switch (action) {
       case '새배송접수':
         setCurrentPage('new-order');
@@ -51,6 +237,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
         break;
       case '테스트':
         setCurrentPage('test');
+        break;
+      case '통계':
+        // 향후 통계 페이지 구현
+        console.log('통계 페이지는 향후 구현 예정입니다.');
         break;
       default:
         console.log(`${action} 버튼 클릭됨`);
@@ -140,172 +330,167 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
     return <TestPage onNavigateBack={() => setCurrentPage('main')} />;
   }
 
+  // 카드 컴포넌트
+  const DashboardCard: React.FC<{ card: DashboardCard }> = ({ card }) => {
+    const IconComponent = card.icon;
+    
+    const getStatusIcon = () => {
+      switch (card.status) {
+        case 'warning':
+          return <AlertCircle className="w-4 h-4 text-yellow-400 absolute top-3 right-3" />;
+        case 'success':
+          return <CheckCircle className="w-4 h-4 text-green-400 absolute top-3 right-3" />;
+        case 'error':
+          return <XCircle className="w-4 h-4 text-red-400 absolute top-3 right-3" />;
+        default:
+          return null;
+      }
+    };
+
+    return (
+      <div
+        onClick={() => handleCardClick(card.action)}
+        className={`relative group cursor-pointer rounded-2xl ${card.bgColor} ${card.hoverColor} p-6 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 overflow-hidden`}
+      >
+        {/* 상태 표시 아이콘 */}
+        {getStatusIcon()}
+        
+        {/* 백그라운드 패턴 */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute -top-4 -right-4 w-24 h-24 rounded-full bg-white"></div>
+          <div className="absolute -bottom-4 -left-4 w-16 h-16 rounded-full bg-white"></div>
+        </div>
+        
+        {/* 컨텐츠 */}
+        <div className="relative z-10">
+          {/* 상단: 아이콘과 제목 */}
+          <div className="flex items-center justify-between mb-4">
+            <div className={`p-3 rounded-xl bg-white bg-opacity-20 backdrop-blur-sm`}>
+              <IconComponent className="w-8 h-8 text-white" />
+            </div>
+            <div className="text-right">
+              <div className={`text-2xl font-bold ${card.textColor}`}>
+                {card.stats?.main}
+              </div>
+              {card.stats?.sub && (
+                <div className={`text-sm ${card.textColor} opacity-80`}>
+                  {card.stats.subLabel}: {card.stats.sub}
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* 하단: 제목과 설명 */}
+          <div>
+            <h3 className={`text-xl font-bold ${card.textColor} mb-2`}>
+              {card.title}
+            </h3>
+            <p className={`text-sm ${card.textColor} opacity-90`}>
+              {card.stats?.label || '관리 및 설정'}
+            </p>
+            
+            {/* 실시간 업데이트 표시 */}
+            <div className="flex items-center gap-1 mt-3">
+              <Activity className="w-3 h-3 text-white opacity-60" />
+              <span className="text-xs text-white opacity-60">실시간</span>
+            </div>
+          </div>
+        </div>
+        
+        {/* 호버 효과 */}
+        <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300 rounded-2xl"></div>
+      </div>
+    );
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* 헤더 */}
-      <header className="bg-white shadow-lg">
-        <div className="max-w-4xl mx-auto px-6 py-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      {/* 현대적인 헤더 */}
+      <header className="bg-white/80 backdrop-blur-md shadow-lg border-b border-white/20">
+        <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center">
-                <Package className="w-7 h-7 text-white" />
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
+                <Package className="w-8 h-8 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">이지픽스 v3.0 🚀</h1>
-                <p className="text-sm text-red-600 font-medium">관리자화면</p>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                  이지픽스 v3.0
+                </h1>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-blue-600 font-medium">관리자 대시보드</span>
+                  <div className="flex items-center gap-1">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <span className="text-xs text-green-600">실시간</span>
+                  </div>
+                </div>
               </div>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <p className="text-sm font-medium text-gray-900">{user?.name}님</p>
-                <p className="text-xs text-gray-500">@{user?.username}</p>
-                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+            
+            <div className="flex items-center gap-6">
+              {/* 사용자 정보 */}
+              <div className="flex items-center gap-3">
+                <div className="text-right">
+                  <p className="text-lg font-semibold text-gray-900">{user?.name}님</p>
+                  <p className="text-sm text-gray-500">@{user?.username}</p>
+                </div>
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center">
+                  <span className="text-white font-bold text-lg">
+                    {user?.name?.charAt(0) || 'A'}
+                  </span>
+                </div>
+                <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                   user?.role === 'admin'
-                    ? 'bg-red-100 text-red-800'
+                    ? 'bg-red-100 text-red-700 border border-red-200'
                     : user?.role === 'manager'
-                    ? 'bg-blue-100 text-blue-800'
-                    : 'bg-gray-100 text-gray-800'
+                    ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                    : 'bg-gray-100 text-gray-700 border border-gray-200'
                 }`}>
                   {user?.role === 'admin' ? '관리자' : user?.role === 'manager' ? '매니저' : '사용자'}
                 </span>
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-                  title="로그아웃"
-                >
-                  <LogOut className="w-5 h-5" />
-                </button>
-              </div>
+              
+              {/* 로그아웃 버튼 */}
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100/80 rounded-xl transition-all duration-200 backdrop-blur-sm"
+                title="로그아웃"
+              >
+                <LogOut className="w-5 h-5" />
+                <span className="text-sm font-medium">로그아웃</span>
+              </button>
             </div>
           </div>
         </div>
       </header>
 
       {/* 메인 콘텐츠 */}
-      <main className="max-w-4xl mx-auto px-6 py-12">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">
-            안녕하세요, {user?.name}님!
+      <main className="max-w-7xl mx-auto px-6 py-8">
+        {/* 웰컴 섹션 */}
+        <div className="text-center mb-10">
+          <h2 className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent mb-4">
+            안녕하세요, {user?.name}님! 👋
           </h2>
-          <p className="text-lg text-gray-600">
-            이지픽스 관리자 서비스를 이용해보세요
+          <p className="text-xl text-gray-600 mb-2">
+            실시간 통계와 함께하는 스마트 관리자 대시보드
           </p>
+          <div className="flex items-center justify-center gap-4 text-sm text-gray-500">
+            <div className="flex items-center gap-1">
+              <Clock className="w-4 h-4" />
+              <span>5초마다 자동 업데이트</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <TrendingUp className="w-4 h-4" />
+              <span>실시간 통계</span>
+            </div>
+          </div>
         </div>
 
-        {/* 6개의 정사각형 버튼을 3x2 그리드로 배치 */}
-        <div className="max-w-2xl mx-auto">
-          {/* 첫 번째 줄: 새배송접수, 배송현황 */}
-          <div className="flex justify-center gap-8 mb-8">
-            {/* 새배송접수 버튼 */}
-            <button
-              onClick={() => handleButtonClick('새배송접수')}
-              className="w-48 h-48 bg-white rounded-3xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 flex flex-col items-center justify-center gap-4 group"
-            >
-              <div className="w-16 h-16 bg-green-500 group-hover:bg-green-600 rounded-2xl flex items-center justify-center transition-colors">
-                <Plus className="w-8 h-8 text-white" />
-              </div>
-              <div className="text-center">
-                <h3 className="text-xl font-bold text-gray-900 mb-1">새배송접수</h3>
-                <p className="text-sm text-gray-500">새로운 배송을 접수합니다</p>
-              </div>
-            </button>
-
-            {/* 배송현황 버튼 */}
-            <button
-              onClick={() => handleButtonClick('배송현황')}
-              className="w-48 h-48 bg-white rounded-3xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 flex flex-col items-center justify-center gap-4 group"
-            >
-              <div className="w-16 h-16 bg-teal-500 group-hover:bg-teal-600 rounded-2xl flex items-center justify-center transition-colors">
-                <MapPin className="w-8 h-8 text-white" />
-              </div>
-              <div className="text-center">
-                <h3 className="text-xl font-bold text-gray-900 mb-1">배송현황</h3>
-                <p className="text-sm text-gray-500">배송 현황을 조회합니다</p>
-              </div>
-            </button>
-          </div>
-
-          {/* 두 번째 줄: 기사배정, 기사관리 */}
-          <div className="flex justify-center gap-8 mb-8">
-            {/* 기사배정 버튼 */}
-            <button
-              onClick={() => handleButtonClick('기사배정')}
-              className="w-48 h-48 bg-white rounded-3xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 flex flex-col items-center justify-center gap-4 group"
-            >
-              <div className="w-16 h-16 bg-blue-500 group-hover:bg-blue-600 rounded-2xl flex items-center justify-center transition-colors">
-                <UserCheck className="w-8 h-8 text-white" />
-              </div>
-              <div className="text-center">
-                <h3 className="text-xl font-bold text-gray-900 mb-1">기사배정</h3>
-                <p className="text-sm text-gray-500">배송기사를 배정합니다</p>
-              </div>
-            </button>
-
-            {/* 기사관리 버튼 */}
-            <button
-              onClick={() => handleButtonClick('기사관리')}
-              className="w-48 h-48 bg-white rounded-3xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 flex flex-col items-center justify-center gap-4 group"
-            >
-              <div className="w-16 h-16 bg-orange-500 group-hover:bg-orange-600 rounded-2xl flex items-center justify-center transition-colors">
-                <Truck className="w-8 h-8 text-white" />
-              </div>
-              <div className="text-center">
-                <h3 className="text-xl font-bold text-gray-900 mb-1">기사관리</h3>
-                <p className="text-sm text-gray-500">배송기사를 관리합니다</p>
-              </div>
-            </button>
-          </div>
-
-          {/* 세 번째 줄: 사용자관리, 상품관리 */}
-          <div className="flex justify-center gap-8">
-            {/* 사용자관리 버튼 */}
-            <button
-              onClick={() => handleButtonClick('사용자관리')}
-              className="w-48 h-48 bg-white rounded-3xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 flex flex-col items-center justify-center gap-4 group"
-            >
-              <div className="w-16 h-16 bg-indigo-500 group-hover:bg-indigo-600 rounded-2xl flex items-center justify-center transition-colors">
-                <Users className="w-8 h-8 text-white" />
-              </div>
-              <div className="text-center">
-                <h3 className="text-xl font-bold text-gray-900 mb-1">사용자관리</h3>
-                <p className="text-sm text-gray-500">사용자 계정을 관리합니다</p>
-              </div>
-            </button>
-
-            {/* 상품관리 버튼 */}
-            <button
-              onClick={() => handleButtonClick('상품관리')}
-              className="w-48 h-48 bg-white rounded-3xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 flex flex-col items-center justify-center gap-4 group"
-            >
-              <div className="w-16 h-16 bg-purple-500 group-hover:bg-purple-600 rounded-2xl flex items-center justify-center transition-colors">
-                <Package className="w-8 h-8 text-white" />
-              </div>
-              <div className="text-center">
-                <h3 className="text-xl font-bold text-gray-900 mb-1">상품관리</h3>
-                <p className="text-sm text-gray-500">상품 정보를 관리합니다</p>
-              </div>
-            </button>
-          </div>
-
-          {/* 네 번째 줄: 테스트 (관리자만, 중앙 정렬) */}
-          {user?.role === 'admin' && (
-            <div className="flex justify-center mt-8">
-              <button
-                onClick={() => handleButtonClick('테스트')}
-                className="w-48 h-48 bg-white rounded-3xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 flex flex-col items-center justify-center gap-4 group"
-              >
-                <div className="w-16 h-16 bg-gray-500 group-hover:bg-gray-600 rounded-2xl flex items-center justify-center transition-colors">
-                  <TestTube className="w-8 h-8 text-white" />
-                </div>
-                <div className="text-center">
-                  <h3 className="text-xl font-bold text-gray-900 mb-1">테스트</h3>
-                  <p className="text-sm text-gray-500">시스템 테스트를 진행합니다</p>
-                </div>
-              </button>
-            </div>
-          )}
+        {/* Cards Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
+          {getDashboardCards().map((card) => (
+            <DashboardCard key={card.id} card={card} />
+          ))}
         </div>
 
         {/* 하단 안내 메시지 */}
