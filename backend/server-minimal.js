@@ -1525,8 +1525,14 @@ app.post('/api/auth/login', async (req, res) => {
       userType: userType
     };
     
-    // 개발용 간단한 토큰 (실제로는 JWT 라이브러리 사용)
-    const token = `token-${user.id}-${Date.now()}`;
+    // 실제 JWT 토큰 생성
+    const jwt = require('jsonwebtoken');
+    const jwtSecret = process.env.JWT_SECRET || 'your-secret-key-change-this-in-production-2023';
+    const token = jwt.sign(
+      tokenPayload,
+      jwtSecret,
+      { expiresIn: '30d' } // 30일 유효
+    );
     
     res.json({
       success: true,
