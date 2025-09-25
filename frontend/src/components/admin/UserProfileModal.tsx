@@ -134,9 +134,25 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
       const response = await userAPI.updateUser(userId, editedUser);
       
       if (response && response.success) {
+        // 1. 로컬 상태 업데이트
         setUser({ ...editedUser });
         setSuccessMessage('사용자 정보가 성공적으로 업데이트되었습니다.');
         setIsEditing(false);
+        
+        // 2. 서버에서 최신 데이터를 다시 가져오기
+        try {
+          const updatedUserResponse = await userAPI.getUser(userId);
+          if (updatedUserResponse && updatedUserResponse.user) {
+            const refreshedUser = updatedUserResponse.user;
+            setUser(refreshedUser);
+            setEditedUser({ ...refreshedUser });
+            console.log('UserProfileModal: 최신 사용자 데이터를 성공적으로 불러왔습니다:', refreshedUser);
+          }
+        } catch (refreshError) {
+          console.warn('UserProfileModal: 최신 데이터 로드 실패, 로컬 데이터 사용:', refreshError);
+        }
+        
+        // 3. 부모 컴포넌트에 업데이트 알림
         onUserUpdated?.();
       } else {
         setError(response?.message || '업데이트에 실패했습니다.');

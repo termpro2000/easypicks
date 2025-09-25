@@ -4,6 +4,7 @@ import {
   BarChart3, Activity, Settings, Database, Eye, MapPin, FileText
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
+import { userAPI } from '../../services/api';
 import AdminShippingForm from '../admin/AdminShippingForm';
 import UserProfileModal from '../admin/UserProfileModal';
 import Dashboard from './Dashboard';
@@ -33,7 +34,7 @@ interface DashboardCard {
 }
 
 const UserDashboard: React.FC<UserDashboardProps> = ({ onLogout }) => {
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const [currentPage, setCurrentPage] = useState<UserPageType>('main');
   const [showUserProfile, setShowUserProfile] = useState(false);
   
@@ -476,11 +477,32 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ onLogout }) => {
           isOpen={showUserProfile}
           onClose={() => setShowUserProfile(false)}
           currentUser={user}
-          onUserUpdated={() => {
-            // 사용자 정보 업데이트 시 필요한 처리
-            console.log('사용자 정보가 업데이트되었습니다.');
-            // 필요시 사용자 정보 새로고침
-            window.location.reload();
+          onUserUpdated={async () => {
+            console.log('UserDashboard: 사용자 정보 업데이트 콜백 호출됨');
+            
+            // 서버에서 최신 사용자 정보를 가져와서 전역 상태 업데이트
+            if (user?.id) {
+              try {
+                const updatedUserResponse = await userAPI.getUser(user.id.toString());
+                if (updatedUserResponse && updatedUserResponse.user) {
+                  console.log('UserDashboard: 최신 사용자 데이터로 전역 상태 업데이트:', updatedUserResponse.user);
+                  setUser(updatedUserResponse.user);
+                } else {
+                  console.warn('UserDashboard: 사용자 데이터 업데이트 실패 - 응답이 없음');
+                }
+              } catch (error) {
+                console.error('UserDashboard: 사용자 데이터 새로고침 실패:', error);
+                // 에러 발생 시에도 최소한 로컬 스토리지에서 토큰을 다시 확인
+                const token = localStorage.getItem('token');
+                if (token) {
+                  console.log('UserDashboard: 토큰은 유효함, 계속 진행');
+                } else {
+                  console.error('UserDashboard: 토큰도 없음, 로그아웃 필요할 수 있음');
+                }
+              }
+            } else {
+              console.warn('UserDashboard: 사용자 ID가 없어서 데이터 새로고침 불가');
+            }
           }}
         />
       )}
