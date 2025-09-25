@@ -140,10 +140,11 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
         setIsEditing(false);
         
         // 2. 서버에서 최신 데이터를 다시 가져오기
+        let refreshedUser = null;
         try {
           const updatedUserResponse = await userAPI.getUser(userId);
           if (updatedUserResponse && updatedUserResponse.user) {
-            const refreshedUser = updatedUserResponse.user;
+            refreshedUser = updatedUserResponse.user;
             setUser(refreshedUser);
             setEditedUser({ ...refreshedUser });
             console.log('UserProfileModal: 최신 사용자 데이터를 성공적으로 불러왔습니다:', refreshedUser);
