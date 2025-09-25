@@ -386,9 +386,11 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ onLogout }) => {
                     ? 'bg-red-100 text-red-700 border border-red-200'
                     : user?.role === 'manager'
                     ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                    : 'bg-green-100 text-green-700 border border-green-200'
+                    : user?.role === 'driver'
+                    ? 'bg-green-100 text-green-700 border border-green-200'
+                    : 'bg-gray-100 text-gray-700 border border-gray-200'
                 }`}>
-                  {user?.role === 'admin' ? '관리자' : user?.role === 'manager' ? '매니저' : '사용자'}
+                  {user?.role === 'admin' ? '관리자' : user?.role === 'manager' ? '매니저' : user?.role === 'driver' ? '기사' : user?.role === 'user' ? '파트너사' : '사용자'}
                 </span>
               </div>
               

@@ -10,7 +10,7 @@ interface User {
   email?: string;
   phone?: string;
   company?: string;
-  role: 'admin' | 'manager' | 'user';
+  role: 'admin' | 'manager' | 'user' | 'driver';
   is_active: boolean;
   last_login?: string;
   created_at: string;
@@ -254,7 +254,8 @@ const UserManagement: React.FC<UserManagementProps> = ({ onNavigateBack }) => {
     const config = {
       admin: { color: 'bg-red-100 text-red-800', text: '관리자' },
       manager: { color: 'bg-blue-100 text-blue-800', text: '매니저' },
-      user: { color: 'bg-gray-100 text-gray-800', text: '파트너사' }
+      user: { color: 'bg-gray-100 text-gray-800', text: '파트너사' },
+      driver: { color: 'bg-green-100 text-green-800', text: '기사' }
     };
     
     const { color, text } = config[role as keyof typeof config] || config.user;
