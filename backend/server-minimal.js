@@ -3713,6 +3713,30 @@ app.use('/api/auth', authRoutes);
 const userRoutes = require('./routes/users');
 app.use('/api/users', userRoutes);
 
+// 디버그 엔드포인트: 테이블 컬럼 조회
+app.get('/api/debug/columns/:table', async (req, res) => {
+  try {
+    const { table } = req.params;
+    const [columns] = await pool.execute(`
+      SELECT COLUMN_NAME, DATA_TYPE, IS_NULLABLE, COLUMN_DEFAULT
+      FROM INFORMATION_SCHEMA.COLUMNS 
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?
+      ORDER BY ORDINAL_POSITION
+    `, [table]);
+    
+    res.json({
+      success: true,
+      table: table,
+      columns: columns
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // 서버 시작
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
