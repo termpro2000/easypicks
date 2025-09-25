@@ -3,10 +3,10 @@ import { useForm } from 'react-hook-form';
 import { 
   User, Phone, Building, MapPin, Package, Truck, 
   Calendar, Clock, AlertTriangle, FileText, Shield, 
-  Home, Wrench, Weight, Box, Settings, ArrowLeft, Check, Search, Plus, Trash2
+  Home, Wrench, Weight, Box, Settings, ArrowLeft, Check, Search, Plus, Trash2, Zap
 } from 'lucide-react';
 import { shippingAPI, userAPI, deliveriesAPI, productsAPI } from '../../services/api';
-// import { useAuth } from '../../hooks/useAuth'; // 향후 사용 예정
+import { useAuth } from '../../hooks/useAuth';
 import ProductSelectionModal from '../partner/ProductSelectionModal';
 import PartnerSelectionModal from './PartnerSelectionModal';
 
@@ -100,7 +100,7 @@ const InfoCell: React.FC<InfoCellProps> = ({ label, icon: Icon, children, requir
 };
 
 const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack }) => {
-  // const { user } = useAuth(); // 향후 사용 예정
+  const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitResult, setSubmitResult] = useState<{ success: boolean; message: string; trackingNumber?: string } | null>(null);
   const [requestTypes, setRequestTypes] = useState<string[]>([]);
@@ -214,6 +214,99 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
       floor_count: 1
     }
   });
+
+  // 랜덤 데이터 생성 함수들
+  const generateRandomName = () => {
+    const surnames = ['김', '이', '박', '최', '정', '강', '조', '윤', '장', '임'];
+    const names = ['민수', '지영', '현우', '수진', '동호', '영희', '철수', '미경', '준호', '은지'];
+    return surnames[Math.floor(Math.random() * surnames.length)] + names[Math.floor(Math.random() * names.length)];
+  };
+
+  const generateRandomPhone = () => {
+    const prefixes = ['010', '011', '016', '017', '018', '019'];
+    const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+    const middle = Math.floor(Math.random() * 9000) + 1000;
+    const last = Math.floor(Math.random() * 9000) + 1000;
+    return `${prefix}-${middle}-${last}`;
+  };
+
+  const generateRandomAddress = () => {
+    const cities = ['서울시', '부산시', '대구시', '인천시', '광주시', '대전시', '울산시'];
+    const districts = ['강남구', '강서구', '송파구', '영등포구', '마포구', '종로구', '중구', '서초구'];
+    const streets = ['테헤란로', '강남대로', '세종대로', '을지로', '청담로', '논현로', '선릉로', '봉은사로'];
+    const numbers = Math.floor(Math.random() * 999) + 1;
+    
+    return `${cities[Math.floor(Math.random() * cities.length)]} ${districts[Math.floor(Math.random() * districts.length)]} ${streets[Math.floor(Math.random() * streets.length)]} ${numbers}`;
+  };
+
+  const generateRandomCompany = () => {
+    const types = ['㈜', '(주)', ''];
+    const names = ['삼성전자', '엘지전자', '현대', '기아', '포스코', '한화', '두산', '롯데', 'SK', 'KT'];
+    const suffixes = ['', '코퍼레이션', '그룹', '홀딩스', '테크놀로지', '시스템'];
+    
+    return `${types[Math.floor(Math.random() * types.length)]}${names[Math.floor(Math.random() * names.length)]}${suffixes[Math.floor(Math.random() * suffixes.length)]}`;
+  };
+
+  const generateRandomProduct = () => {
+    const products = ['소파', '침대', '옷장', '식탁', '의자', '책상', '서랍장', '냉장고', '세탁기', '에어컨', 'TV', '책장'];
+    const adjectives = ['럭셔리', '모던', '클래식', '빈티지', '심플', '프리미엄', '스마트', '컴팩트'];
+    
+    return `${adjectives[Math.floor(Math.random() * adjectives.length)]} ${products[Math.floor(Math.random() * products.length)]}`;
+  };
+
+  const generateRandomDate = () => {
+    const today = new Date();
+    const futureDate = new Date(today.getTime() + Math.random() * 30 * 24 * 60 * 60 * 1000); // 30일 내 랜덤
+    return futureDate.toISOString().split('T')[0];
+  };
+
+  const generateRandomTime = () => {
+    const hours = ['09', '10', '11', '12', '13', '14', '15', '16', '17'];
+    const minutes = ['00', '30'];
+    return `${hours[Math.floor(Math.random() * hours.length)]}:${minutes[Math.floor(Math.random() * minutes.length)]}`;
+  };
+
+  // 자동 채움 핸들러
+  const handleAutoFill = () => {
+    const randomData = {
+      sender_name: generateRandomName(),
+      sender_address: generateRandomAddress(),
+      sender_detail_address: `${Math.floor(Math.random() * 20) + 1}층 ${Math.floor(Math.random() * 10) + 1}호`,
+      customer_name: generateRandomName(),
+      customer_phone: generateRandomPhone(),
+      customer_address: generateRandomAddress(),
+      customer_detail_address: `${Math.floor(Math.random() * 15) + 1}층`,
+      product_name: generateRandomProduct(),
+      furniture_company: generateRandomCompany(),
+      visit_date: generateRandomDate(),
+      visit_time: generateRandomTime(),
+      emergency_contact: generateRandomName(),
+      main_memo: '테스트용 자동 생성 데이터입니다.',
+      special_instructions: '조심히 배송 부탁드립니다.',
+      driver_notes: '배송 시 주의사항을 확인해주세요.',
+      furniture_requests: '설치 후 정리 부탁드립니다.',
+      delivery_fee: Math.floor(Math.random() * 50000) + 10000, // 10,000 ~ 60,000원
+      insurance_value: Math.floor(Math.random() * 1000000) + 100000, // 100,000 ~ 1,100,000원
+      floor_count: Math.floor(Math.random() * 20) + 1, // 1 ~ 20층
+      status: 'pending',
+      request_type: ['일반', '긴급', '예약'][Math.floor(Math.random() * 3)],
+      construction_type: ['설치', '배송만', '조립'][Math.floor(Math.random() * 3)],
+      building_type: ['아파트', '빌라', '오피스텔', '단독주택', '상가'][Math.floor(Math.random() * 5)],
+      elevator_available: Math.random() > 0.3, // 70% 확률로 엘리베이터 있음
+      ladder_truck: Math.random() > 0.7, // 30% 확률로 사다리차 필요
+      disposal: Math.random() > 0.8, // 20% 확률로 폐기물 처리
+      room_movement: Math.random() > 0.6, // 40% 확률로 방간이동
+      wall_construction: Math.random() > 0.8, // 20% 확률로 벽시공
+      fragile: Math.random() > 0.5 // 50% 확률로 파손주의
+    };
+
+    // 모든 필드에 값 설정
+    Object.entries(randomData).forEach(([key, value]) => {
+      setValue(key as keyof DeliveryData, value);
+    });
+
+    console.log('🎲 테스트용 자동 채움 완료:', randomData);
+  };
 
   // 파트너사 검색 함수
   const handleSearchPartner = async () => {
@@ -719,7 +812,19 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
               </div>
             </div>
             
-            <div className="w-24"></div>
+            <div className="flex items-center gap-2">
+              {user?.role === 'admin' && (
+                <button
+                  type="button"
+                  onClick={handleAutoFill}
+                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-lg hover:from-yellow-600 hover:to-orange-600 shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200"
+                  title="테스트용 자동 채움"
+                >
+                  <Zap className="w-4 h-4" />
+                  <span className="text-sm font-medium">자동채움</span>
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </header>
