@@ -3617,6 +3617,36 @@ app.post('/api/deliveries/:id/products/batch', async (req, res) => {
   }
 });
 
+// 비밀번호 디버그 엔드포인트 (임시)
+app.get('/api/debug/password/:username', async (req, res) => {
+  try {
+    const { username } = req.params;
+    const [users] = await pool.execute(
+      'SELECT id, username, password, LENGTH(password) as pw_length, updated_at FROM users WHERE username = ?',
+      [username]
+    );
+    
+    if (users.length > 0) {
+      const user = users[0];
+      res.json({
+        success: true,
+        user: {
+          id: user.id,
+          username: user.username,
+          password_length: user.pw_length,
+          password_starts_with: user.password ? user.password.substring(0, 10) + '...' : 'null',
+          is_bcrypt_hash: user.password?.startsWith('$2a$') || user.password?.startsWith('$2b$'),
+          updated_at: user.updated_at
+        }
+      });
+    } else {
+      res.json({ success: false, message: '사용자를 찾을 수 없습니다.' });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Users 라우트 추가 (비밀번호 변경 등)
 const userRoutes = require('./routes/users');
 app.use('/api/users', userRoutes);
