@@ -1483,12 +1483,26 @@ app.post('/api/auth/login', async (req, res) => {
     
     console.log('🔍 비밀번호 검증:', { 
       provided: password, 
-      stored: user.password, 
-      match: user.password === password 
+      storedLength: user.password?.length,
+      isHashed: user.password?.startsWith('$2a$') || user.password?.startsWith('$2b$')
     });
     
-    // 간단한 비밀번호 검증 (테스트용)
-    if (user.password !== password) {
+    // bcrypt를 사용한 비밀번호 검증 (해싱된 비밀번호와 평문 모두 지원)
+    const bcrypt = require('bcryptjs');
+    let isValidPassword = false;
+    
+    // 해싱된 비밀번호인지 확인 (bcrypt 해시는 $2a$ 또는 $2b$로 시작)
+    if (user.password && (user.password.startsWith('$2a$') || user.password.startsWith('$2b$'))) {
+      // 해싱된 비밀번호와 비교
+      isValidPassword = await bcrypt.compare(password, user.password);
+      console.log('🔒 bcrypt 해시 비교 결과:', isValidPassword);
+    } else {
+      // 평문 비밀번호와 비교 (기존 계정 호환성)
+      isValidPassword = user.password === password;
+      console.log('📝 평문 비교 결과:', isValidPassword);
+    }
+    
+    if (!isValidPassword) {
       return res.status(401).json({
         error: 'Unauthorized',
         message: '잘못된 사용자명 또는 비밀번호입니다.',
