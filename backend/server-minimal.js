@@ -265,11 +265,14 @@ app.get('/api/users/:id', async (req, res) => {
 app.post('/api/users', async (req, res) => {
   try {
     console.log('👤 새 사용자 생성 요청');
+    console.log('📋 요청 본문:', req.body);
     
     const {
       username, password, name, email, phone, company, role = 'user',
       default_sender_address, default_sender_detail_address, default_sender_zipcode
     } = req.body;
+    
+    console.log('📝 추출된 필드:', { username, name, email, phone, company, role });
     
     // 필수 필드 검증
     if (!username || !password || !name) {
@@ -292,6 +295,11 @@ app.post('/api/users', async (req, res) => {
       });
     }
     
+    // 비밀번호 해싱
+    console.log('🔐 비밀번호 해싱 중...');
+    const hashedPassword = await bcrypt.hash(password, 10);
+    console.log('🔐 비밀번호 해싱 완료');
+    
     // 사용자 생성
     const [result] = await pool.execute(`
       INSERT INTO users (
@@ -300,7 +308,7 @@ app.post('/api/users', async (req, res) => {
         is_active, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW(), NOW())
     `, [
-      username, password, name, email, phone, company, role,
+      username, hashedPassword, name, email, phone, company, role,
       default_sender_address, default_sender_detail_address, default_sender_zipcode
     ]);
     
