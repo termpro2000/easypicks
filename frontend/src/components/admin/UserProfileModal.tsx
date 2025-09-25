@@ -8,11 +8,7 @@ interface UserProfile extends AuthUser {
   email?: string;
   department?: string;
   position?: string;
-  address?: string;
   default_sender_address?: string;
-  emergency_contact?: string;
-  emergency_phone?: string;
-  notes?: string;
   is_active?: boolean;
   created_at?: string;
   updated_at?: string;
@@ -94,11 +90,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
               email: userData.email || '',
               department: userData.department || '',
               position: userData.position || '',
-              address: userData.address || '',
               default_sender_address: userData.default_sender_address || '',
-              emergency_contact: userData.emergency_contact || '',
-              emergency_phone: userData.emergency_phone || '',
-              notes: userData.notes || '',
               is_active: userData.is_active !== false,
               created_at: userData.created_at || '',
               updated_at: userData.updated_at || '',
@@ -653,43 +645,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                       )}
                     </div>
 
-                    {/* Emergency Contact */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        비상연락처
-                      </label>
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          value={editedUser.emergency_contact || ''}
-                          onChange={(e) => handleInputChange('emergency_contact', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
-                      ) : (
-                        <p className="px-3 py-2 bg-gray-50 rounded-lg text-gray-900">
-                          {user.emergency_contact || '-'}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Emergency Phone */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        비상연락처 전화번호
-                      </label>
-                      {isEditing ? (
-                        <input
-                          type="tel"
-                          value={editedUser.emergency_phone || ''}
-                          onChange={(e) => handleInputChange('emergency_phone', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
-                      ) : (
-                        <p className="px-3 py-2 bg-gray-50 rounded-lg text-gray-900">
-                          {user.emergency_phone || '-'}
-                        </p>
-                      )}
-                    </div>
+                    {/* Emergency Contact and Phone fields removed - not in database */}
                   </div>
                 </div>
               </div>
@@ -810,33 +766,14 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                   </div>
                 </div>
 
-                {/* Additional Information */}
+                {/* System Information */}
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                     <Shield className="w-5 h-5" />
-                    추가 정보
+                    시스템 정보
                   </h3>
                   
-                  <div className="space-y-4">
-                    {/* Notes */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        메모
-                      </label>
-                      {isEditing ? (
-                        <textarea
-                          value={editedUser.notes || ''}
-                          onChange={(e) => handleInputChange('notes', e.target.value)}
-                          rows={3}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                          placeholder="사용자 관련 메모를 입력하세요..."
-                        />
-                      ) : (
-                        <p className="px-3 py-2 bg-gray-50 rounded-lg text-gray-900 whitespace-pre-wrap">
-                          {user.notes || '-'}
-                        </p>
-                      )}
-                    </div>
+                  <div className="space-y-4">{/* Notes field removed - not in database */}
 
                     {/* System Information (Read-only) */}
                     <div className="pt-4 border-t border-gray-200">
