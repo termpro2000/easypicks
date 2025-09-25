@@ -477,23 +477,28 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ onLogout }) => {
           isOpen={showUserProfile}
           onClose={() => setShowUserProfile(false)}
           currentUser={user}
-          onUserUpdated={async () => {
+          onUserUpdated={async (updatedUser) => {
             console.log('UserDashboard: 사용자 정보 업데이트 콜백 호출됨');
             
-            // authAPI.me()를 사용해서 현재 사용자 정보를 다시 가져오기
-            try {
-              console.log('UserDashboard: authAPI.me()로 최신 사용자 정보 가져오는 중...');
-              const updatedUserResponse = await authAPI.me();
-              if (updatedUserResponse && updatedUserResponse.user) {
-                console.log('UserDashboard: 최신 사용자 데이터로 전역 상태 업데이트:', updatedUserResponse.user);
-                setUser(updatedUserResponse.user);
-              } else {
-                console.warn('UserDashboard: authAPI.me() 응답이 없음');
+            if (updatedUser) {
+              // 모달에서 전달받은 업데이트된 사용자 정보로 바로 업데이트
+              console.log('UserDashboard: 모달에서 전달받은 사용자 데이터로 업데이트:', updatedUser);
+              setUser(updatedUser as any); // AuthUser 타입으로 캐스팅
+            } else {
+              // 백업: authAPI.me() 사용
+              try {
+                console.log('UserDashboard: authAPI.me()로 백업 처리 중...');
+                const updatedUserResponse = await authAPI.me();
+                if (updatedUserResponse && updatedUserResponse.user) {
+                  console.log('UserDashboard: authAPI.me()로 전역 상태 업데이트:', updatedUserResponse.user);
+                  setUser(updatedUserResponse.user);
+                } else {
+                  console.warn('UserDashboard: authAPI.me() 응답이 없음');
+                }
+              } catch (error) {
+                console.error('UserDashboard: authAPI.me() 호출 실패:', error);
+                console.log('UserDashboard: 현재 사용자 상태를 유지합니다.');
               }
-            } catch (error) {
-              console.error('UserDashboard: authAPI.me() 호출 실패:', error);
-              // 백업으로 현재 user 상태 유지
-              console.log('UserDashboard: 현재 사용자 상태를 유지합니다.');
             }
           }}
         />

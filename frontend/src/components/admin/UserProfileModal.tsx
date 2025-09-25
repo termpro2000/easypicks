@@ -23,7 +23,7 @@ interface UserProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
   currentUser: AuthUser;
-  onUserUpdated?: () => void;
+  onUserUpdated?: (updatedUser?: UserProfile) => void;
 }
 
 const UserProfileModal: React.FC<UserProfileModalProps> = ({ 
@@ -152,8 +152,10 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
           console.warn('UserProfileModal: 최신 데이터 로드 실패, 로컬 데이터 사용:', refreshError);
         }
         
-        // 3. 부모 컴포넌트에 업데이트 알림
-        onUserUpdated?.();
+        // 3. 부모 컴포넌트에 업데이트된 사용자 정보 전달
+        if (onUserUpdated) {
+          onUserUpdated(refreshedUser || editedUser);
+        }
       } else {
         setError(response?.message || '업데이트에 실패했습니다.');
       }
