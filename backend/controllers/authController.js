@@ -203,8 +203,10 @@ async function me(req, res) {
     let userId = null;
     
     // JWT 토큰에서 사용자 ID 가져오기
+    console.log('[Auth ME] req.user:', req.user);
     if (req.user && req.user.id) {
       userId = req.user.id;
+      console.log(`[Auth ME] JWT 토큰에서 추출한 사용자 ID: ${userId}`);
     }
 
     if (!userId) {
@@ -214,12 +216,13 @@ async function me(req, res) {
       });
     }
 
-    // 데이터베이스에서 최신 사용자 정보 조회
+    // 데이터베이스에서 최신 사용자 정보 조회 (모든 필드 포함)
     const [users] = await executeWithRetry(() =>
       pool.execute(`
         SELECT 
-          id, username, name, phone, company, role, 
-          created_at, updated_at
+          id, username, name, email, phone, company, department, position, role, 
+          is_active, last_login, created_at, updated_at,
+          default_sender_address, default_sender_detail_address, default_sender_zipcode
         FROM users 
         WHERE id = ? AND is_active = true
       `, [userId])
@@ -233,9 +236,15 @@ async function me(req, res) {
     }
 
     const user = users[0];
+    
+    console.log(`[Auth ME] 사용자 정보 조회 성공: ${user.username} (ID: ${user.id})`);
 
     res.json({
-      user: user,
+      success: true,
+      user: {
+        ...user,
+        is_active: Boolean(user.is_active)
+      },
       authenticated: true
     });
 
