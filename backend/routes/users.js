@@ -283,6 +283,29 @@ router.put('/:id', authenticateToken, requireRole(['admin']), async (req, res) =
       default_sender_zipcode
     } = req.body;
     
+    // 컬럼이 없는 경우 자동으로 추가
+    try {
+      const [existingColumns] = await pool.execute(`
+        SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users'
+        AND COLUMN_NAME IN ('department', 'position')
+      `);
+      
+      const existingColumnNames = existingColumns.map(col => col.COLUMN_NAME);
+      
+      if (!existingColumnNames.includes('department')) {
+        await pool.execute(`ALTER TABLE users ADD COLUMN department VARCHAR(100) NULL`);
+        console.log('[Users API] department 컬럼 자동 추가 완료');
+      }
+      
+      if (!existingColumnNames.includes('position')) {
+        await pool.execute(`ALTER TABLE users ADD COLUMN position VARCHAR(100) NULL`);
+        console.log('[Users API] position 컬럼 자동 추가 완료');
+      }
+    } catch (columnError) {
+      console.warn('[Users API] 컬럼 추가 실패 (무시하고 계속):', columnError.message);
+    }
+    
     console.log(`[Users API] 사용자 수정 요청: ID ${id}`);
     console.log(`[Users API] 요청 본문:`, req.body);
     console.log(`[Users API] password 값:`, password, typeof password);
