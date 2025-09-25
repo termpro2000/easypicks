@@ -5,6 +5,7 @@ import { useNotification } from './hooks/useNotification';
 import AuthPage from './components/auth/AuthPage';
 import ShippingOrderForm from './components/shipping/ShippingOrderForm';
 import Dashboard from './components/dashboard/Dashboard';
+import UserDashboard from './components/dashboard/UserDashboard';
 import AdminDashboard from './components/admin/AdminDashboard';
 import UserManagement from './components/admin/UserManagement';
 import TrackingPage from './components/tracking/TrackingPage';
@@ -116,16 +117,11 @@ const AppContent: React.FC = () => {
         />
       );
     } else {
-      // user 역할은 수정된 Dashboard(UserDashboard) 사용
+      // user 역할은 새로운 UserDashboard 사용
       return (
-        <div className="min-h-screen bg-gray-100">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <Dashboard 
-              key={Date.now()} 
-              onOrderStatusChange={notifyOrderStatusChange}
-            />
-          </div>
-        </div>
+        <UserDashboard 
+          onLogout={handleLogout}
+        />
       );
     }
   }

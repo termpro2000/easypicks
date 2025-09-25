@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Package, TrendingUp, Clock, CheckCircle, AlertCircle, Eye, Search, Filter, RefreshCw, Pause, Play, Truck, Download, FileSpreadsheet, FileText, Plus } from 'lucide-react';
+import { 
+  Package, TrendingUp, Clock, CheckCircle, AlertCircle, Eye, Search, Filter, RefreshCw, Pause, Play, Truck, Download, FileSpreadsheet, FileText, Plus,
+  BarChart3, Activity, Settings, Database, LogOut, XCircle
+} from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { api, shippingAPI } from '../../services/api';
 import type { ShippingOrder } from '../../types';
