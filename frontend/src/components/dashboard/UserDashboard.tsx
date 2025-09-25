@@ -77,9 +77,9 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ onLogout }) => {
       id: 'new-shipping',
       title: '새배송접수',
       icon: Plus,
-      bgColor: 'bg-gradient-to-br from-amber-200 to-amber-300',
-      hoverColor: 'hover:from-amber-300 hover:to-amber-400',
-      textColor: 'text-amber-800',
+      bgColor: 'bg-gradient-to-br from-blue-50 to-blue-100',
+      hoverColor: 'hover:from-blue-100 hover:to-blue-200',
+      textColor: 'text-blue-900',
       action: '새배송접수',
       stats: {
         main: dashboardStats.deliveries.total,
@@ -93,9 +93,9 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ onLogout }) => {
       id: 'delivery-status',
       title: '배송현황',
       icon: MapPin,
-      bgColor: 'bg-gradient-to-br from-stone-200 to-stone-300',
-      hoverColor: 'hover:from-stone-300 hover:to-stone-400',
-      textColor: 'text-stone-800',
+      bgColor: 'bg-gradient-to-br from-slate-50 to-slate-100',
+      hoverColor: 'hover:from-slate-100 hover:to-slate-200',
+      textColor: 'text-slate-800',
       action: '배송현황',
       stats: {
         main: dashboardStats.deliveries.completed,
@@ -109,9 +109,9 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ onLogout }) => {
       id: 'dashboard-view',
       title: '주문관리',
       icon: Package,
-      bgColor: 'bg-gradient-to-br from-yellow-200 to-yellow-300',
-      hoverColor: 'hover:from-yellow-300 hover:to-yellow-400',
-      textColor: 'text-yellow-800',
+      bgColor: 'bg-gradient-to-br from-rose-50 to-rose-100',
+      hoverColor: 'hover:from-rose-100 hover:to-rose-200',
+      textColor: 'text-rose-900',
       action: '주문관리',
       stats: {
         main: dashboardStats.orders.processing,
@@ -125,9 +125,9 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ onLogout }) => {
       id: 'analytics',
       title: '통계보기',
       icon: BarChart3,
-      bgColor: 'bg-gradient-to-br from-stone-300 to-stone-400',
-      hoverColor: 'hover:from-stone-400 hover:to-stone-500',
-      textColor: 'text-stone-800',
+      bgColor: 'bg-gradient-to-br from-indigo-50 to-indigo-100',
+      hoverColor: 'hover:from-indigo-100 hover:to-indigo-200',
+      textColor: 'text-indigo-900',
       action: '통계보기',
       stats: {
         main: '97.5%',
@@ -141,9 +141,9 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ onLogout }) => {
       id: 'reports',
       title: '리포트',
       icon: FileText,
-      bgColor: 'bg-gradient-to-br from-orange-200 to-orange-300',
-      hoverColor: 'hover:from-orange-300 hover:to-orange-400',
-      textColor: 'text-orange-800',
+      bgColor: 'bg-gradient-to-br from-orange-50 to-orange-100',
+      hoverColor: 'hover:from-orange-100 hover:to-orange-200',
+      textColor: 'text-orange-900',
       action: '리포트',
       stats: {
         main: dashboardStats.orders.delivered,
@@ -157,9 +157,9 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ onLogout }) => {
       id: 'settings',
       title: '설정',
       icon: Settings,
-      bgColor: 'bg-gradient-to-br from-neutral-200 to-neutral-300',
-      hoverColor: 'hover:from-neutral-300 hover:to-neutral-400',
-      textColor: 'text-neutral-800',
+      bgColor: 'bg-gradient-to-br from-gray-50 to-gray-100',
+      hoverColor: 'hover:from-gray-100 hover:to-gray-200',
+      textColor: 'text-gray-800',
       action: '설정',
       stats: {
         main: 'v3.0',
@@ -307,8 +307,8 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ onLogout }) => {
         <div className="relative z-10">
           {/* 상단: 아이콘과 제목 */}
           <div className="flex items-center justify-between mb-4">
-            <div className={`p-3 rounded-xl bg-white bg-opacity-30 backdrop-blur-sm`}>
-              <IconComponent className={`w-8 h-8 ${card.textColor.replace('text-', 'text-').replace('-800', '-700')}`} />
+            <div className={`p-3 rounded-xl bg-white bg-opacity-50 backdrop-blur-sm`}>
+              <IconComponent className={`w-8 h-8 ${card.textColor.replace('-900', '-700').replace('-800', '-600')}`} />
             </div>
             <div className="text-right">
               <div className={`text-2xl font-bold ${card.textColor}`}>
