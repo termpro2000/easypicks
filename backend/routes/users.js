@@ -311,8 +311,12 @@ router.put('/:id', authenticateToken, requireRole(['admin']), async (req, res) =
       updateValues.push(username);
     }
     if (password !== undefined) {
+      // 비밀번호 해싱
+      const bcrypt = require('bcryptjs');
+      const hashedPassword = await bcrypt.hash(password, 10);
       updateFields.push('password = ?');
-      updateValues.push(password); // 실제 환경에서는 해싱 필요
+      updateValues.push(hashedPassword);
+      console.log(`[Users API] 비밀번호 해싱 완료: ${password.length}자 -> 해시`);
     }
     if (name !== undefined) {
       updateFields.push('name = ?');
