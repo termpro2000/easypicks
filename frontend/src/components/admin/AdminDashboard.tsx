@@ -542,7 +542,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
         <UserProfileModal
           isOpen={showUserProfile}
           onClose={() => setShowUserProfile(false)}
+          user={user}
           currentUser={user}
+          setToken={setToken}
+          setAuthUser={setUser}
           onUserUpdated={() => {
             // 사용자 정보 업데이트 시 필요한 처리
             console.log('사용자 정보가 업데이트되었습니다.');

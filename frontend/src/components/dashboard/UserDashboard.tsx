@@ -476,7 +476,10 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ onLogout }) => {
         <UserProfileModal
           isOpen={showUserProfile}
           onClose={() => setShowUserProfile(false)}
+          user={user}
           currentUser={user}
+          setToken={setToken}
+          setAuthUser={setUser}
           onUserUpdated={async (updatedUser) => {
             console.log('UserDashboard: 사용자 정보 업데이트 콜백 호출됨');
             
