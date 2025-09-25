@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, User, Mail, Phone, Building, MapPin, Calendar, Shield, Edit3, Key, Eye, EyeOff } from 'lucide-react';
-import { userAPI } from '../../services/api';
+import { userAPI, authAPI } from '../../services/api';
+import { useAuth } from '../../hooks/useAuth';
 import type { User as AuthUser } from '../../types';
 
 interface UserProfile extends AuthUser {
@@ -31,6 +32,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
   currentUser, 
   onUserUpdated 
 }) => {
+  const { setUser: setAuthUser, setToken } = useAuth(); // 인증 상태 관리를 위한 hook
   const [user, setUser] = useState<UserProfile | null>(null);
   const [editedUser, setEditedUser] = useState<UserProfile | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -173,15 +175,36 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
       });
       
       if (response.success) {
-        setSuccessMessage('비밀번호 변경이 요청되었습니다. 새 비밀번호로 다시 로그인해주세요.');
-        setShowPasswordSection(false);
-        setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-        setShowPasswords({ current: false, new: false, confirm: false });
+        setSuccessMessage('비밀번호가 성공적으로 변경되었습니다. 자동으로 재로그인 중...');
         
-        // 추가 안내 메시지
-        setTimeout(() => {
-          setSuccessMessage('비밀번호 변경 완료. 시스템에서 자동 로그아웃 후 새 비밀번호로 로그인하세요.');
-        }, 2000);
+        try {
+          // 새 비밀번호로 자동 재로그인
+          const loginResponse = await authAPI.login({
+            username: user!.username!,
+            password: passwordData.newPassword
+          });
+          
+          if (loginResponse.success && loginResponse.token) {
+            // 새 JWT 토큰으로 인증 상태 업데이트
+            setToken(loginResponse.token);
+            setAuthUser(loginResponse.user);
+            
+            setSuccessMessage('비밀번호가 변경되고 자동으로 재로그인되었습니다! 🎉');
+            setShowPasswordSection(false);
+            setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+            setShowPasswords({ current: false, new: false, confirm: false });
+            
+            // 성공 메시지 표시 후 모달 자동 닫기
+            setTimeout(() => {
+              onClose();
+            }, 2000);
+          } else {
+            setPasswordError('비밀번호는 변경되었지만 자동 로그인에 실패했습니다. 수동으로 다시 로그인해주세요.');
+          }
+        } catch (loginError) {
+          console.error('자동 재로그인 실패:', loginError);
+          setPasswordError('비밀번호는 변경되었지만 자동 로그인에 실패했습니다. 수동으로 다시 로그인해주세요.');
+        }
       } else {
         setPasswordError(response.message || '비밀번호 변경에 실패했습니다.');
       }
