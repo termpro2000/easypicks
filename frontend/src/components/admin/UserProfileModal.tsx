@@ -756,6 +756,47 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                         </p>
                       )}
                     </div>
+
+                    {/* Default Sender Detail Address */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        기본 발송지 상세주소
+                      </label>
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          value={editedUser.default_sender_detail_address || ''}
+                          onChange={(e) => handleInputChange('default_sender_detail_address', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="상세주소를 입력하세요"
+                        />
+                      ) : (
+                        <p className="px-3 py-2 bg-gray-50 rounded-lg text-gray-900">
+                          {user.default_sender_detail_address || '-'}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Default Sender Zipcode */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        기본 발송지 우편번호
+                      </label>
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          value={editedUser.default_sender_zipcode || ''}
+                          onChange={(e) => handleInputChange('default_sender_zipcode', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="우편번호를 입력하세요"
+                          maxLength={6}
+                        />
+                      ) : (
+                        <p className="px-3 py-2 bg-gray-50 rounded-lg text-gray-900">
+                          {user.default_sender_zipcode || '-'}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
 
