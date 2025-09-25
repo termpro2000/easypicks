@@ -57,7 +57,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
   // Load user profile data from currentUser prop
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && currentUser) {
       console.log('UserProfileModal - isOpen:', isOpen);
       console.log('UserProfileModal - currentUser:', currentUser);
       
@@ -125,19 +125,26 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
     setSuccessMessage(null);
 
     try {
-      const response = await userAPI.updateUser(user.id!.toString(), editedUser);
+      // 안전한 사용자 ID 처리
+      const userId = user.id?.toString() || currentUser.id?.toString();
+      if (!userId) {
+        throw new Error('사용자 ID를 찾을 수 없습니다.');
+      }
+
+      const response = await userAPI.updateUser(userId, editedUser);
       
-      if (response.success) {
+      if (response && response.success) {
         setUser({ ...editedUser });
         setSuccessMessage('사용자 정보가 성공적으로 업데이트되었습니다.');
         setIsEditing(false);
         onUserUpdated?.();
       } else {
-        setError(response.message || '업데이트에 실패했습니다.');
+        setError(response?.message || '업데이트에 실패했습니다.');
       }
     } catch (err: any) {
       console.error('사용자 업데이트 오류:', err);
-      setError(err.response?.data?.message || '사용자 정보 업데이트 중 오류가 발생했습니다.');
+      const errorMessage = err.response?.data?.message || err.message || '사용자 정보 업데이트 중 오류가 발생했습니다.';
+      setError(errorMessage);
     } finally {
       setIsSaving(false);
     }
@@ -169,8 +176,15 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
     try {
       console.log('UserProfileModal: 비밀번호 변경 시작');
+      
+      // 안전한 사용자 ID 처리
+      const userId = user.id?.toString() || currentUser.id?.toString();
+      if (!userId) {
+        throw new Error('사용자 ID를 찾을 수 없습니다.');
+      }
+
       const response = await userAPI.changePassword({
-        userId: user.id!.toString(),
+        userId: userId,
         currentPassword: passwordData.currentPassword,
         newPassword: passwordData.newPassword
       });
@@ -196,7 +210,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
           window.location.href = '/login';
         }, 2000);
       } else {
-        setPasswordError(response.message || '비밀번호 변경에 실패했습니다.');
+        setPasswordError(response?.message || '비밀번호 변경에 실패했습니다.');
       }
     } catch (err: any) {
       console.error('비밀번호 변경 예외:', err);
