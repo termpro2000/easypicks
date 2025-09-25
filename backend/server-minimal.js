@@ -1626,18 +1626,7 @@ app.post('/api/auth/logout', (req, res) => {
   });
 });
 
-app.get('/api/auth/me', (req, res) => {
-  // 간단한 인증 체크 (실제로는 JWT 토큰 검증)
-  res.json({
-    success: true,
-    user: {
-      id: 1,
-      username: 'testuser',
-      role: 'admin',
-      name: '테스트 사용자'
-    }
-  });
-});
+// auth/me 엔드포인트는 routes/auth.js에서 처리 (하드코딩 제거)
 
 // 사용자명 중복 확인
 app.get('/api/auth/check-username/:username', async (req, res) => {
@@ -3715,6 +3704,10 @@ app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`, req.body);
   next();
 });
+
+// Auth 라우트 추가 (JWT 인증 등)
+const authRoutes = require('./routes/auth');
+app.use('/api/auth', authRoutes);
 
 // Users 라우트 추가 (비밀번호 변경 등)
 const userRoutes = require('./routes/users');
