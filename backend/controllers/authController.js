@@ -521,6 +521,7 @@ async function updateProfile(req, res) {
       company,
       department,
       position,
+      address,
       default_sender_address,
       default_sender_detail_address,
       default_sender_zipcode
@@ -553,6 +554,10 @@ async function updateProfile(req, res) {
     if (position !== undefined) {
       updateFields.push('position = ?');
       updateValues.push(position);
+    }
+    if (address !== undefined) {
+      updateFields.push('address = ?');
+      updateValues.push(address);
     }
     if (default_sender_address !== undefined) {
       updateFields.push('default_sender_address = ?');

@@ -504,23 +504,16 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                   </h3>
                   
                   <div className="space-y-4">
-                    {/* Username */}
+                    {/* Username - Read Only */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         사용자 ID
                       </label>
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          value={editedUser.username || ''}
-                          onChange={(e) => handleInputChange('username', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          required
-                        />
-                      ) : (
-                        <p className="px-3 py-2 bg-gray-50 rounded-lg text-gray-900">
-                          {user.username || '-'}
-                        </p>
+                      <p className="px-3 py-2 bg-gray-100 rounded-lg text-gray-700 cursor-not-allowed">
+                        {user.username || '-'}
+                      </p>
+                      {isEditing && (
+                        <p className="text-xs text-gray-500 mt-1">사용자 ID는 변경할 수 없습니다.</p>
                       )}
                     </div>
 
