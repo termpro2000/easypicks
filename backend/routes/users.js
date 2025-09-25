@@ -36,6 +36,8 @@ router.get('/', authenticateToken, requireRole(['admin']), async (req, res) => {
           email,
           phone,
           company,
+          department,
+          position,
           role,
           is_active,
           last_login,
@@ -103,6 +105,8 @@ router.get('/:id', authenticateToken, requireRole(['admin']), async (req, res) =
           email,
           phone,
           company,
+          department,
+          position,
           role,
           is_active,
           last_login,
@@ -270,6 +274,8 @@ router.put('/:id', authenticateToken, requireRole(['admin']), async (req, res) =
       email,
       phone,
       company,
+      department,
+      position,
       role,
       is_active,
       default_sender_address,
@@ -338,6 +344,14 @@ router.put('/:id', authenticateToken, requireRole(['admin']), async (req, res) =
     if (company !== undefined) {
       updateFields.push('company = ?');
       updateValues.push(company);
+    }
+    if (department !== undefined) {
+      updateFields.push('department = ?');
+      updateValues.push(department);
+    }
+    if (position !== undefined) {
+      updateFields.push('position = ?');
+      updateValues.push(position);
     }
     if (role !== undefined) {
       // 허용된 role 값들 확인 (DRIVER 포함)
