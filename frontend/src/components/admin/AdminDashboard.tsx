@@ -137,17 +137,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
     },
     {
       id: 'user-dashboard',
-      title: '사용자대시보드',
+      title: '사용자관리',
       icon: Users,
       bgColor: 'bg-gradient-to-br from-gray-50 to-gray-100',
       hoverColor: 'hover:from-gray-100 hover:to-gray-200',
       textColor: 'text-gray-800',
-      action: '사용자대시보드',
+      action: '사용자관리',
       stats: {
-        main: dashboardStats.users.total,
-        sub: dashboardStats.users.partners,
-        label: '총 사용자',
-        subLabel: '파트너사'
+        main: dashboardStats.users.partners,
+        sub: dashboardStats.drivers.total,
+        label: '파트너사',
+        subLabel: '기사'
       },
       status: 'normal'
     },
@@ -219,7 +219,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
       case '상품관리':
         setCurrentPage('products');
         break;
-      case '사용자대시보드':
+      case '사용자관리':
         setCurrentPage('user-dashboard');
         break;
       case '배송현황':
