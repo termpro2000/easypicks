@@ -15,27 +15,32 @@ function authenticateToken(req, res, next) {
       });
     }
 
-    // 개발 환경에서 test-token 허용
-    if (token === 'test-token') {
+    // 개발 환경에서 test-token 허용 (더 엄격한 체크)
+    if (token === 'test-token' && process.env.NODE_ENV === 'development') {
+      console.log('[Auth Middleware] test-token 사용됨');
       req.user = {
         id: 1,
-        username: 'test-user',
+        username: 'testuser',
         role: 'admin',
-        name: 'Test User'
+        name: '테스트 사용자'
       };
       return next();
     }
 
     const jwtSecret = process.env.JWT_SECRET || 'easypicks-jwt-secret-2024';
     
+    console.log(`[Auth Middleware] JWT 토큰 검증 시작: ${token.substring(0, 30)}...`);
+    
     jwt.verify(token, jwtSecret, (err, user) => {
       if (err) {
+        console.error('[Auth Middleware] JWT 검증 실패:', err.message);
         return res.status(403).json({
           error: 'Forbidden',
           message: '유효하지 않은 토큰입니다.'
         });
       }
       
+      console.log('[Auth Middleware] JWT 검증 성공:', { id: user.id, username: user.username, role: user.role });
       req.user = user;
       next();
     });
