@@ -9,8 +9,7 @@ interface UserProfileModalProps {
   user: UserType;
   currentUser: UserType;
   onUserUpdated?: (user: UserType) => void;
-  setToken: (token: string | null) => void;
-  setAuthUser: (user: UserType | null) => void;
+  onLogout?: () => void;
 }
 
 const UserProfileModal: React.FC<UserProfileModalProps> = ({
@@ -19,8 +18,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
   user: initialUser,
   currentUser,
   onUserUpdated,
-  setToken,
-  setAuthUser
+  onLogout
 }) => {
   const [user, setUser] = useState<UserType>(initialUser);
   const [editedUser, setEditedUser] = useState<UserType>({ ...initialUser });
@@ -191,8 +189,9 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
         setSuccessMessage('비밀번호가 성공적으로 변경되었습니다. 다시 로그인해주세요.');
         
         // 비밀번호 변경 성공 후 로그아웃 처리
-        setToken(null);
-        setAuthUser(null);
+        if (onLogout) {
+          onLogout();
+        }
         
         // 폼 초기화
         setShowPasswordSection(false);

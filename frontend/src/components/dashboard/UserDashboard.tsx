@@ -34,7 +34,7 @@ interface DashboardCard {
 }
 
 const UserDashboard: React.FC<UserDashboardProps> = ({ onLogout }) => {
-  const { user, setUser } = useAuth();
+  const { user, setUser, logout } = useAuth();
   const [currentPage, setCurrentPage] = useState<UserPageType>('main');
   const [showUserProfile, setShowUserProfile] = useState(false);
   
@@ -478,8 +478,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ onLogout }) => {
           onClose={() => setShowUserProfile(false)}
           user={user}
           currentUser={user}
-          setToken={setToken}
-          setAuthUser={setUser}
+          onLogout={logout}
           onUserUpdated={async (updatedUser) => {
             console.log('UserDashboard: 사용자 정보 업데이트 콜백 호출됨');
             

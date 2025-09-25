@@ -42,7 +42,7 @@ interface DashboardCard {
 }
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [currentPage, setCurrentPage] = useState<AdminPageType>('main');
   const [selectedDelivery, setSelectedDelivery] = useState<any>(null);
   const [showUserProfile, setShowUserProfile] = useState(false);
@@ -544,8 +544,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
           onClose={() => setShowUserProfile(false)}
           user={user}
           currentUser={user}
-          setToken={setToken}
-          setAuthUser={setUser}
+          onLogout={logout}
           onUserUpdated={() => {
             // 사용자 정보 업데이트 시 필요한 처리
             console.log('사용자 정보가 업데이트되었습니다.');
