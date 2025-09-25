@@ -727,9 +727,9 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
       <main className="max-w-7xl mx-auto px-6 py-8">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* 사용자 선택 섹션 - 관리자용 고유 기능 */}
-          <div className="bg-red-50 rounded-xl shadow-lg border-2 border-red-200 p-6">
-            <h2 className="text-xl font-bold text-red-800 mb-6 flex items-center gap-2">
-              <User className="w-6 h-6 text-red-600" />
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl shadow-lg border-2 border-blue-200 p-6">
+            <h2 className="text-xl font-bold text-blue-800 mb-6 flex items-center gap-2">
+              <User className="w-6 h-6 text-blue-600" />
               파트너사 선택 (관리자 전용)
             </h2>
             
@@ -741,24 +741,16 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
                     <input
                       type="text"
                       value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onChange={(e) => {
+                        setSearchQuery(e.target.value);
+                        if (e.target.value.trim()) {
+                          handleSearchPartner();
+                        }
+                      }}
                       onKeyPress={(e) => e.key === 'Enter' && handleSearchPartner()}
                       className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="파트너사명 또는 업체명으로 검색"
                     />
-                    <button
-                      type="button"
-                      onClick={handleSearchPartner}
-                      disabled={isSearching}
-                      className="px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:bg-blue-300 flex items-center gap-1"
-                    >
-                      {isSearching ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      ) : (
-                        <Search className="w-4 h-4" />
-                      )}
-                      조회
-                    </button>
                     <button
                       type="button"
                       onClick={() => setIsPartnerModalOpen(true)}
