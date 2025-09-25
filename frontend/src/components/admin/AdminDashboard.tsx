@@ -7,6 +7,7 @@ import {
 import { useAuth } from '../../hooks/useAuth';
 import AdminShippingForm from './AdminShippingForm';
 import UserManagement from './UserManagement';
+import UserDashboardForm from './UserDashboardForm';
 import TestPage from '../test/TestPage';
 import ProductManagement from '../products/ProductManagement';
 import DriverAssignment from '../assignment/DriverAssignment';
@@ -18,7 +19,7 @@ interface AdminDashboardProps {
   onLogout: () => void;
 }
 
-type AdminPageType = 'main' | 'new-order' | 'assignment' | 'products' | 'users' | 'drivers' | 'test' | 'delivery-status' | 'delivery-detail';
+type AdminPageType = 'main' | 'new-order' | 'assignment' | 'products' | 'users' | 'drivers' | 'test' | 'delivery-status' | 'delivery-detail' | 'user-dashboard';
 
 // 카드 데이터 인터페이스
 interface DashboardCard {
@@ -135,29 +136,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
       status: 'normal'
     },
     {
-      id: 'driver-management',
-      title: '기사관리',
-      icon: Truck,
-      bgColor: 'bg-gradient-to-br from-orange-50 to-orange-100',
-      hoverColor: 'hover:from-orange-100 hover:to-orange-200',
-      textColor: 'text-orange-900',
-      action: '기사관리',
-      stats: {
-        main: dashboardStats.drivers.total,
-        sub: dashboardStats.drivers.active,
-        label: '총 기사',
-        subLabel: '활성화'
-      },
-      status: 'normal'
-    },
-    {
-      id: 'user-management',
-      title: '사용자관리',
+      id: 'user-dashboard',
+      title: '사용자대시보드',
       icon: Users,
       bgColor: 'bg-gradient-to-br from-gray-50 to-gray-100',
       hoverColor: 'hover:from-gray-100 hover:to-gray-200',
       textColor: 'text-gray-800',
-      action: '사용자관리',
+      action: '사용자대시보드',
       stats: {
         main: dashboardStats.users.total,
         sub: dashboardStats.users.partners,
@@ -234,11 +219,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
       case '상품관리':
         setCurrentPage('products');
         break;
-      case '사용자관리':
-        setCurrentPage('users');
-        break;
-      case '기사관리':
-        setCurrentPage('drivers');
+      case '사용자대시보드':
+        setCurrentPage('user-dashboard');
         break;
       case '배송현황':
         setCurrentPage('delivery-status');
@@ -282,11 +264,26 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
     );
   }
 
-  // 사용자관리 페이지 표시
+  // 사용자대시보드 페이지 표시
+  if (currentPage === 'user-dashboard') {
+    return (
+      <UserDashboardForm
+        onNavigateBack={() => setCurrentPage('main')}
+        onNavigateToPartners={() => setCurrentPage('users')}
+        onNavigateToDrivers={() => setCurrentPage('drivers')}
+        onNavigateToManagers={() => {
+          // 향후 매니저 관리 페이지 구현
+          console.log('매니저 관리 페이지는 향후 구현 예정입니다.');
+        }}
+      />
+    );
+  }
+
+  // 사용자관리 페이지 표시 (파트너사관리에서 접근)
   if (currentPage === 'users') {
     return (
       <UserManagement 
-        onNavigateBack={() => setCurrentPage('main')}
+        onNavigateBack={() => setCurrentPage('user-dashboard')}
       />
     );
   }
@@ -297,10 +294,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
         <div className="p-6 flex">
           <button
-            onClick={() => setCurrentPage('main')}
+            onClick={() => setCurrentPage('user-dashboard')}
             className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors mb-4"
           >
-            ← 관리자화면으로 돌아가기
+            ← 사용자대시보드로 돌아가기
           </button>
         </div>
         <div className="px-6 pb-6">
