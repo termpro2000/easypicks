@@ -104,7 +104,7 @@ async function login(req, res) {
     try {
       [users] = await executeWithRetry(() =>
         pool.execute(
-          'SELECT id, username, password, name, phone, company, role, is_active, created_at FROM users WHERE username = ?',
+          'SELECT id, username, password, name, email, phone, company, department, position, role, is_active, last_login, created_at, updated_at, default_sender_address, default_sender_detail_address, default_sender_zipcode FROM users WHERE username = ?',
           [loginUsername]
         )
       );
@@ -150,10 +150,19 @@ async function login(req, res) {
       id: user.id,
       username: user.username,
       name: user.name,
+      email: user.email,
       phone: user.phone,
       company: user.company,
+      department: user.department,
+      position: user.position,
       role: user.role,
-      created_at: user.created_at
+      is_active: Boolean(user.is_active),
+      last_login: user.last_login,
+      created_at: user.created_at,
+      updated_at: user.updated_at,
+      default_sender_address: user.default_sender_address,
+      default_sender_detail_address: user.default_sender_detail_address,
+      default_sender_zipcode: user.default_sender_zipcode
     };
 
     const jwtSecret = process.env.JWT_SECRET || 'easypicks-jwt-secret-2024';
@@ -166,6 +175,7 @@ async function login(req, res) {
     );
 
     res.json({
+      success: true,
       message: '로그인 성공',
       user: userPayload,
       token: token
