@@ -258,6 +258,9 @@ router.post('/', authenticateToken, requireRole(['admin']), async (req, res) => 
 
 // 사용자 수정
 router.put('/:id', authenticateToken, requireRole(['admin']), async (req, res) => {
+  console.log(`=== PUT /api/users/${req.params.id} 시작 ===`);
+  console.log('Request body:', req.body);
+  console.log('Request headers:', req.headers);
   try {
     const { id } = req.params;
     const {
@@ -275,6 +278,8 @@ router.put('/:id', authenticateToken, requireRole(['admin']), async (req, res) =
     } = req.body;
     
     console.log(`[Users API] 사용자 수정 요청: ID ${id}`);
+    console.log(`[Users API] 요청 본문:`, req.body);
+    console.log(`[Users API] password 값:`, password, typeof password);
     
     // 사용자 존재 확인
     const [existingUsers] = await executeWithRetry(() =>
@@ -373,16 +378,39 @@ router.put('/:id', authenticateToken, requireRole(['admin']), async (req, res) =
       });
     }
     
+    // 업데이트 전 데이터 확인
+    const [beforeData] = await executeWithRetry(() =>
+      pool.execute('SELECT id, username, password, LENGTH(password) as pw_length, updated_at FROM users WHERE id = ?', [id])
+    );
+    console.log(`[Users API] 업데이트 전 데이터:`, beforeData[0]);
+    
     // 사용자 업데이트
+    console.log(`[Users API] 실행할 쿼리:`, `UPDATE users SET ${updateFields.join(', ')} WHERE id = ?`);
+    console.log(`[Users API] 쿼리 파라미터:`, updateValues);
+    
     const [result] = await executeWithRetry(() =>
       pool.execute(`
         UPDATE users SET ${updateFields.join(', ')} WHERE id = ?
       `, updateValues)
     );
     
-    console.log(`[Users API] 사용자 수정 완료: ID ${id}, 영향받은 행: ${result.affectedRows}`);
-    console.log(`[Users API] 업데이트 쿼리:`, `UPDATE users SET ${updateFields.join(', ')} WHERE id = ?`);
-    console.log(`[Users API] 업데이트 값:`, updateValues);
+    console.log(`[Users API] SQL UPDATE 실행 결과:`, {
+      affectedRows: result.affectedRows,
+      changedRows: result.changedRows,
+      insertId: result.insertId,
+      info: result.info,
+      warningCount: result.warningCount
+    });
+    
+    // 업데이트 후 데이터 확인
+    const [afterData] = await executeWithRetry(() =>
+      pool.execute('SELECT id, username, password, LENGTH(password) as pw_length, updated_at FROM users WHERE id = ?', [id])
+    );
+    console.log(`[Users API] 업데이트 후 데이터:`, afterData[0]);
+    console.log(`[Users API] 데이터 변경 여부:`, {
+      passwordChanged: beforeData[0].password !== afterData[0].password,
+      updatedAtChanged: beforeData[0].updated_at !== afterData[0].updated_at
+    });
     
     res.json({
       success: true,

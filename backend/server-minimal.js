@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
 const app = express();
@@ -342,10 +343,13 @@ app.put('/api/users/:id', async (req, res) => {
     }
     
     const {
-      username, name, email, phone, company, role,
+      username, password, name, email, phone, company, role,
       default_sender_address, default_sender_detail_address, default_sender_zipcode,
       is_active
     } = req.body;
+    
+    console.log('📝 요청 본문:', req.body);
+    console.log('🔐 비밀번호 필드:', password);
     
     // 사용자명 중복 확인 (자신 제외)
     if (username) {
@@ -367,6 +371,14 @@ app.put('/api/users/:id', async (req, res) => {
     const values = [];
     
     if (username !== undefined) { updates.push('username = ?'); values.push(username); }
+    if (password !== undefined) { 
+      console.log('🔐 비밀번호 업데이트 시작:', password);
+      // 비밀번호 해싱
+      const hashedPassword = await bcrypt.hash(password, 10);
+      console.log('🔐 비밀번호 해싱 완료:', password, '->', hashedPassword.substring(0, 20) + '...');
+      updates.push('password = ?'); 
+      values.push(hashedPassword); 
+    }
     if (name !== undefined) { updates.push('name = ?'); values.push(name); }
     if (email !== undefined) { updates.push('email = ?'); values.push(email); }
     if (phone !== undefined) { updates.push('phone = ?'); values.push(phone); }
@@ -387,11 +399,40 @@ app.put('/api/users/:id', async (req, res) => {
     updates.push('updated_at = NOW()');
     values.push(id);
     
+    // 업데이트 전 상태 조회
+    const [beforeUpdate] = await pool.execute(
+      'SELECT id, username, password, LENGTH(password) as pw_length, updated_at FROM users WHERE id = ?',
+      [id]
+    );
+    console.log('⏰ 업데이트 전 상태:', beforeUpdate[0]);
+    
+    console.log('📝 실행할 쿼리:', `UPDATE users SET ${updates.join(', ')} WHERE id = ?`);
+    console.log('📝 쿼리 값:', values);
+    
     const [result] = await pool.execute(`
       UPDATE users SET ${updates.join(', ')} WHERE id = ?
     `, values);
     
-    console.log('✅ 사용자 정보 수정 성공:', { id, affectedRows: result.affectedRows });
+    console.log('✅ SQL UPDATE 실행 결과:', {
+      affectedRows: result.affectedRows,
+      changedRows: result.changedRows,
+      insertId: result.insertId,
+      info: result.info,
+      warningCount: result.warningCount
+    });
+    
+    // 업데이트 후 상태 조회
+    const [afterUpdate] = await pool.execute(
+      'SELECT id, username, password, LENGTH(password) as pw_length, updated_at FROM users WHERE id = ?',
+      [id]
+    );
+    console.log('⏰ 업데이트 후 상태:', afterUpdate[0]);
+    console.log('🔄 변경 여부:', {
+      passwordChanged: beforeUpdate[0].password !== afterUpdate[0].password,
+      pwLengthBefore: beforeUpdate[0].pw_length,
+      pwLengthAfter: afterUpdate[0].pw_length,
+      updatedAtChanged: beforeUpdate[0].updated_at !== afterUpdate[0].updated_at
+    });
     
     res.json({
       success: true,
@@ -3645,6 +3686,12 @@ app.get('/api/debug/password/:username', async (req, res) => {
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
+});
+
+// 요청 로깅 미들웨어
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`, req.body);
+  next();
 });
 
 // Users 라우트 추가 (비밀번호 변경 등)
