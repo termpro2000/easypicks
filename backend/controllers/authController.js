@@ -104,7 +104,7 @@ async function login(req, res) {
     try {
       [users] = await executeWithRetry(() =>
         pool.execute(
-          'SELECT id, username, password, name, email, phone, company, department, position, role, is_active, last_login, created_at, updated_at, default_sender_address, default_sender_detail_address, default_sender_zipcode FROM users WHERE username = ?',
+          'SELECT id, username, password, name, email, phone, role, is_active, last_login, created_at, updated_at FROM users WHERE username = ?',
           [loginUsername]
         )
       );
@@ -152,17 +152,11 @@ async function login(req, res) {
       name: user.name,
       email: user.email,
       phone: user.phone,
-      company: user.company,
-      department: user.department,
-      position: user.position,
       role: user.role,
       is_active: Boolean(user.is_active),
       last_login: user.last_login,
       created_at: user.created_at,
-      updated_at: user.updated_at,
-      default_sender_address: user.default_sender_address,
-      default_sender_detail_address: user.default_sender_detail_address,
-      default_sender_zipcode: user.default_sender_zipcode
+      updated_at: user.updated_at
     };
 
     const jwtSecret = process.env.JWT_SECRET || 'easypicks-jwt-secret-2024';
@@ -232,9 +226,8 @@ async function me(req, res) {
     const [users] = await executeWithRetry(() =>
       pool.execute(`
         SELECT 
-          id, username, name, email, phone, company, department, position, role, 
-          is_active, last_login, created_at, updated_at,
-          default_sender_address, default_sender_detail_address, default_sender_zipcode
+          id, username, name, email, phone, role, 
+          is_active, last_login, created_at, updated_at
         FROM users 
         WHERE id = ? AND is_active = true
       `, [userId])
@@ -295,8 +288,8 @@ async function profile(req, res) {
     const [users] = await executeWithRetry(() =>
       pool.execute(`
         SELECT 
-          id, username, name, phone, company, role, 
-          created_at, updated_at
+          id, username, name, email, phone, role, 
+          is_active, last_login, created_at, updated_at
         FROM users 
         WHERE id = ? AND is_active = true
       `, [userId])
