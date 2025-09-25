@@ -55,7 +55,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
   });
   const [passwordError, setPasswordError] = useState<string | null>(null);
 
-  // Load user profile data from currentUser prop
+  // Load user profile data - fetch from server when modal opens
   useEffect(() => {
     if (isOpen && currentUser) {
       console.log('UserProfileModal - isOpen:', isOpen);
@@ -70,33 +70,56 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
       setShowPasswords({ current: false, new: false, confirm: false });
       
-      if (currentUser) {
-        // Use the currentUser directly and extend it with additional UserProfile fields
-        console.log('UserProfileModal - Setting user data:', currentUser);
-        const extendedUser: UserProfile = {
-          ...currentUser,
-          email: (currentUser as any).email || '',
-          department: (currentUser as any).department || '',
-          position: (currentUser as any).position || '',
-          address: (currentUser as any).address || '',
-          default_sender_address: (currentUser as any).default_sender_address || '',
-          emergency_contact: (currentUser as any).emergency_contact || '',
-          emergency_phone: (currentUser as any).emergency_phone || '',
-          notes: (currentUser as any).notes || '',
-          is_active: (currentUser as any).is_active !== false,
-          created_at: (currentUser as any).created_at || '',
-          updated_at: (currentUser as any).updated_at || '',
-          last_login: (currentUser as any).last_login || ''
-        };
-        setUser(extendedUser);
-        setEditedUser({ ...extendedUser });
-        setIsLoading(false);
-        console.log('UserProfileModal - User data loaded successfully');
-      } else {
-        setError('사용자 정보를 불러올 수 없습니다. 로그인 상태를 확인해주세요.');
-        setIsLoading(false);
-        console.error('UserProfileModal - No currentUser provided');
-      }
+      // Fetch latest user data from server instead of using prop
+      const fetchUserData = async () => {
+        try {
+          console.log('UserProfileModal - Fetching latest user data from server...');
+          
+          // Try authAPI.me() first (for current user)
+          let userData = null;
+          try {
+            const authResponse = await authAPI.me();
+            if (authResponse && authResponse.user) {
+              userData = authResponse.user;
+              console.log('UserProfileModal - Got data from authAPI.me:', userData);
+            }
+          } catch (authError) {
+            console.log('UserProfileModal - authAPI.me() failed, using currentUser:', authError.message);
+            userData = currentUser;
+          }
+          
+          if (userData) {
+            const extendedUser: UserProfile = {
+              ...userData,
+              email: userData.email || '',
+              department: userData.department || '',
+              position: userData.position || '',
+              address: userData.address || '',
+              default_sender_address: userData.default_sender_address || '',
+              emergency_contact: userData.emergency_contact || '',
+              emergency_phone: userData.emergency_phone || '',
+              notes: userData.notes || '',
+              is_active: userData.is_active !== false,
+              created_at: userData.created_at || '',
+              updated_at: userData.updated_at || '',
+              last_login: userData.last_login || ''
+            };
+            
+            setUser(extendedUser);
+            setEditedUser({ ...extendedUser });
+            console.log('UserProfileModal - User data loaded successfully:', extendedUser);
+          } else {
+            setError('사용자 정보를 불러올 수 없습니다.');
+          }
+        } catch (error) {
+          console.error('UserProfileModal - Failed to fetch user data:', error);
+          setError('사용자 정보를 불러오는 중 오류가 발생했습니다.');
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      
+      fetchUserData();
     } else {
       // Reset states when closing
       setUser(null);
