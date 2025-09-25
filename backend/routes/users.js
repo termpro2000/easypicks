@@ -35,17 +35,11 @@ router.get('/', authenticateToken, requireRole(['admin']), async (req, res) => {
           name,
           email,
           phone,
-          company,
-          department,
-          position,
           role,
           is_active,
           last_login,
           created_at,
-          updated_at,
-          default_sender_address,
-          default_sender_detail_address,
-          default_sender_zipcode
+          updated_at
         FROM users 
         ${whereClause}
         ORDER BY created_at DESC
@@ -104,17 +98,11 @@ router.get('/:id', authenticateToken, requireRole(['admin']), async (req, res) =
           name,
           email,
           phone,
-          company,
-          department,
-          position,
           role,
           is_active,
           last_login,
           created_at,
-          updated_at,
-          default_sender_address,
-          default_sender_detail_address,
-          default_sender_zipcode
+          updated_at
         FROM users 
         WHERE id = ?
       `, [id])
@@ -273,38 +261,9 @@ router.put('/:id', authenticateToken, requireRole(['admin']), async (req, res) =
       name,
       email,
       phone,
-      company,
-      department,
-      position,
       role,
-      is_active,
-      default_sender_address,
-      default_sender_detail_address,
-      default_sender_zipcode
+      is_active
     } = req.body;
-    
-    // 컬럼이 없는 경우 자동으로 추가
-    try {
-      const [existingColumns] = await pool.execute(`
-        SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
-        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users'
-        AND COLUMN_NAME IN ('department', 'position')
-      `);
-      
-      const existingColumnNames = existingColumns.map(col => col.COLUMN_NAME);
-      
-      if (!existingColumnNames.includes('department')) {
-        await pool.execute(`ALTER TABLE users ADD COLUMN department VARCHAR(100) NULL`);
-        console.log('[Users API] department 컬럼 자동 추가 완료');
-      }
-      
-      if (!existingColumnNames.includes('position')) {
-        await pool.execute(`ALTER TABLE users ADD COLUMN position VARCHAR(100) NULL`);
-        console.log('[Users API] position 컬럼 자동 추가 완료');
-      }
-    } catch (columnError) {
-      console.warn('[Users API] 컬럼 추가 실패 (무시하고 계속):', columnError.message);
-    }
     
     console.log(`[Users API] 사용자 수정 요청: ID ${id}`);
     console.log(`[Users API] 요청 본문:`, req.body);
@@ -364,21 +323,9 @@ router.put('/:id', authenticateToken, requireRole(['admin']), async (req, res) =
       updateFields.push('phone = ?');
       updateValues.push(phone);
     }
-    if (company !== undefined) {
-      updateFields.push('company = ?');
-      updateValues.push(company);
-    }
-    if (department !== undefined) {
-      updateFields.push('department = ?');
-      updateValues.push(department);
-    }
-    if (position !== undefined) {
-      updateFields.push('position = ?');
-      updateValues.push(position);
-    }
     if (role !== undefined) {
-      // 허용된 role 값들 확인 (DRIVER 포함)
-      const allowedRoles = ['admin', 'manager', 'user', 'driver'];
+      // 허용된 role 값들 확인
+      const allowedRoles = ['admin', 'user', 'driver'];
       if (!allowedRoles.includes(role)) {
         return res.status(400).json({
           success: false,
@@ -391,18 +338,6 @@ router.put('/:id', authenticateToken, requireRole(['admin']), async (req, res) =
     if (is_active !== undefined) {
       updateFields.push('is_active = ?');
       updateValues.push(is_active);
-    }
-    if (default_sender_address !== undefined) {
-      updateFields.push('default_sender_address = ?');
-      updateValues.push(default_sender_address);
-    }
-    if (default_sender_detail_address !== undefined) {
-      updateFields.push('default_sender_detail_address = ?');
-      updateValues.push(default_sender_detail_address);
-    }
-    if (default_sender_zipcode !== undefined) {
-      updateFields.push('default_sender_zipcode = ?');
-      updateValues.push(default_sender_zipcode);
     }
     
     updateFields.push('updated_at = NOW()');

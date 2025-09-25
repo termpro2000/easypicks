@@ -518,16 +518,11 @@ async function updateProfile(req, res) {
       name,
       email,
       phone,
-      company,
-      department,
-      position,
-      address,
-      default_sender_address,
-      default_sender_detail_address,
-      default_sender_zipcode
+      role,
+      is_active
     } = req.body;
 
-    // 업데이트할 필드 구성 (password와 role은 제외)
+    // 업데이트할 필드 구성 (기본 필드만)
     const updateFields = [];
     const updateValues = [];
 
@@ -543,33 +538,13 @@ async function updateProfile(req, res) {
       updateFields.push('phone = ?');
       updateValues.push(phone);
     }
-    if (company !== undefined) {
-      updateFields.push('company = ?');
-      updateValues.push(company);
+    if (role !== undefined) {
+      updateFields.push('role = ?');
+      updateValues.push(role);
     }
-    if (department !== undefined) {
-      updateFields.push('department = ?');
-      updateValues.push(department);
-    }
-    if (position !== undefined) {
-      updateFields.push('position = ?');
-      updateValues.push(position);
-    }
-    if (address !== undefined) {
-      updateFields.push('address = ?');
-      updateValues.push(address);
-    }
-    if (default_sender_address !== undefined) {
-      updateFields.push('default_sender_address = ?');
-      updateValues.push(default_sender_address);
-    }
-    if (default_sender_detail_address !== undefined) {
-      updateFields.push('default_sender_detail_address = ?');
-      updateValues.push(default_sender_detail_address);
-    }
-    if (default_sender_zipcode !== undefined) {
-      updateFields.push('default_sender_zipcode = ?');
-      updateValues.push(default_sender_zipcode);
+    if (is_active !== undefined) {
+      updateFields.push('is_active = ?');
+      updateValues.push(is_active);
     }
 
     updateFields.push('updated_at = NOW()');
@@ -584,7 +559,7 @@ async function updateProfile(req, res) {
 
     // 업데이트 전 데이터 확인
     const [beforeData] = await executeWithRetry(() =>
-      pool.execute('SELECT id, name, company, department, position, updated_at FROM users WHERE id = ?', [userId])
+      pool.execute('SELECT id, name, email, phone, role, is_active, updated_at FROM users WHERE id = ?', [userId])
     );
     console.log(`[Auth updateProfile] 업데이트 전 데이터:`, beforeData[0]);
 
@@ -607,7 +582,7 @@ async function updateProfile(req, res) {
 
     // 업데이트 후 데이터 확인
     const [afterData] = await executeWithRetry(() =>
-      pool.execute('SELECT id, name, company, department, position, updated_at FROM users WHERE id = ?', [userId])
+      pool.execute('SELECT id, name, email, phone, role, is_active, updated_at FROM users WHERE id = ?', [userId])
     );
     console.log(`[Auth updateProfile] 업데이트 후 데이터:`, afterData[0]);
 
