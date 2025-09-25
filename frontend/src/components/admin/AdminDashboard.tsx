@@ -13,6 +13,7 @@ import TestPage from '../test/TestPage';
 import ProductManagement from '../products/ProductManagement';
 import DriverAssignment from '../assignment/DriverAssignment';
 import DriverManagement from '../drivers/DriverManagement';
+import ManagerManagement from './ManagerManagement';
 import DeliveryStatus from '../delivery/DeliveryStatus';
 import DeliveryDetail from '../delivery/DeliveryDetail';
 
@@ -20,7 +21,7 @@ interface AdminDashboardProps {
   onLogout: () => void;
 }
 
-type AdminPageType = 'main' | 'new-order' | 'assignment' | 'products' | 'users' | 'drivers' | 'test' | 'delivery-status' | 'delivery-detail' | 'user-dashboard';
+type AdminPageType = 'main' | 'new-order' | 'assignment' | 'products' | 'users' | 'drivers' | 'managers' | 'test' | 'delivery-status' | 'delivery-detail' | 'user-dashboard';
 
 // 카드 데이터 인터페이스
 interface DashboardCard {
@@ -273,10 +274,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
         onNavigateBack={() => setCurrentPage('main')}
         onNavigateToPartners={() => setCurrentPage('users')}
         onNavigateToDrivers={() => setCurrentPage('drivers')}
-        onNavigateToManagers={() => {
-          // 향후 매니저 관리 페이지 구현
-          console.log('매니저 관리 페이지는 향후 구현 예정입니다.');
-        }}
+        onNavigateToManagers={() => setCurrentPage('managers')}
       />
     );
   }
@@ -306,6 +304,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
           <DriverManagement />
         </div>
       </div>
+    );
+  }
+
+  // 매니저관리 페이지 표시
+  if (currentPage === 'managers') {
+    return (
+      <ManagerManagement 
+        onNavigateBack={() => setCurrentPage('user-dashboard')}
+      />
     );
   }
 
