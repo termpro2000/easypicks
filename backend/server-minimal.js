@@ -3773,6 +3773,94 @@ app.post('/api/debug/update-user', async (req, res) => {
   }
 });
 
+// 디버그: 테스트 사용자 생성 엔드포인트
+app.post('/api/debug/create-test-users', async (req, res) => {
+  try {
+    console.log('🧪 [DEBUG] 테스트 사용자 생성 요청');
+    
+    // 기존 데이터 확인
+    const [existingUsers] = await pool.execute('SELECT COUNT(*) as count FROM users');
+    console.log('📊 기존 사용자 수:', existingUsers[0].count);
+    
+    // 테스트 사용자들 삽입
+    const testUsers = [
+      { username: 'admin', password: 'admin123', name: '관리자', role: 'admin' },
+      { username: 'mirae', password: '123456', name: '미래파트너', role: 'user' },
+      { username: 'manager', password: '123456', name: '매니저', role: 'user' },
+      { username: 'p1', password: '123456', name: '파트너1', role: 'user' },
+      { username: 'd1', password: '123456', name: '기사1', role: 'driver' }
+    ];
+    
+    const results = [];
+    
+    for (const user of testUsers) {
+      try {
+        // 중복 확인
+        const [existing] = await pool.execute('SELECT id FROM users WHERE username = ?', [user.username]);
+        
+        if (existing.length === 0) {
+          // 사용자 생성
+          const [result] = await pool.execute(`
+            INSERT INTO users (username, password, name, role, is_active, created_at, updated_at) 
+            VALUES (?, ?, ?, ?, true, NOW(), NOW())
+          `, [user.username, user.password, user.name, user.role]);
+          
+          results.push({
+            username: user.username,
+            status: 'created',
+            id: result.insertId
+          });
+          console.log(`✅ 사용자 생성: ${user.username} (ID: ${result.insertId})`);
+        } else {
+          results.push({
+            username: user.username,
+            status: 'exists',
+            id: existing[0].id
+          });
+          console.log(`ℹ️ 사용자 이미 존재: ${user.username} (ID: ${existing[0].id})`);
+        }
+      } catch (userError) {
+        results.push({
+          username: user.username,
+          status: 'error',
+          error: userError.message
+        });
+        console.error(`❌ 사용자 생성 실패: ${user.username} - ${userError.message}`);
+      }
+    }
+    
+    // 최종 사용자 수 확인
+    const [finalUsers] = await pool.execute('SELECT COUNT(*) as count FROM users');
+    const [roleStats] = await pool.execute(`
+      SELECT role, COUNT(*) as count 
+      FROM users 
+      GROUP BY role 
+      ORDER BY role
+    `);
+    
+    res.json({
+      success: true,
+      message: '테스트 사용자 생성 완료',
+      results,
+      stats: {
+        totalUsers: finalUsers[0].count,
+        byRole: roleStats.reduce((acc, stat) => {
+          acc[stat.role] = stat.count;
+          return acc;
+        }, {})
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ [DEBUG] 테스트 사용자 생성 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: '테스트 사용자 생성 중 오류가 발생했습니다.'
+    });
+  }
+});
+
 // 서버 시작
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
