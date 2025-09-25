@@ -6,6 +6,7 @@ import {
 import { useAuth } from '../../hooks/useAuth';
 import { userAPI, authAPI } from '../../services/api';
 import AdminShippingForm from '../admin/AdminShippingForm';
+import ShippingOrderForm from '../shipping/ShippingOrderForm';
 import UserProfileModal from '../admin/UserProfileModal';
 import Dashboard from './Dashboard';
 
@@ -202,12 +203,40 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ onLogout }) => {
 
   // 서브 페이지 렌더링
   if (currentPage === 'new-shipping') {
-    return (
-      <AdminShippingForm 
-        onNavigateBack={() => setCurrentPage('main')}
-        onSuccess={() => setCurrentPage('main')}
-      />
-    );
+    // user 역할일 때는 ShippingOrderForm 사용, 나머지는 AdminShippingForm 사용
+    if (user?.role === 'user') {
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+          <header className="bg-white/80 backdrop-blur-md shadow-lg border-b border-white/20 mb-6">
+            <div className="max-w-7xl mx-auto px-6 py-4">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={() => setCurrentPage('main')}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    ← 대시보드로 돌아가기
+                  </button>
+                  <h1 className="text-2xl font-bold text-gray-900">새 배송접수</h1>
+                </div>
+              </div>
+            </div>
+          </header>
+          <div className="max-w-7xl mx-auto px-6">
+            <ShippingOrderForm 
+              onSuccess={() => setCurrentPage('main')}
+            />
+          </div>
+        </div>
+      );
+    } else {
+      return (
+        <AdminShippingForm 
+          onNavigateBack={() => setCurrentPage('main')}
+          onSuccess={() => setCurrentPage('main')}
+        />
+      );
+    }
   }
 
   if (currentPage === 'dashboard-view') {
