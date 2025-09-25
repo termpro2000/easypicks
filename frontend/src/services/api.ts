@@ -144,6 +144,24 @@ export const authAPI = {
   me: async (): Promise<{ user: User; authenticated: boolean }> => {
     const response = await apiClient.get('/auth/me');
     return response.data;
+  },
+
+  // 사용자 자신의 프로필 업데이트 (일반 사용자용)
+  updateProfile: async (data: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    company?: string;
+    department?: string;
+    position?: string;
+    default_sender_address?: string;
+    default_sender_detail_address?: string;
+    default_sender_zipcode?: string;
+  }) => {
+    console.log('[AuthAPI.updateProfile]', '프로필 업데이트 요청:', data);
+    const response = await apiClient.put('/auth/profile', data);
+    console.log('[AuthAPI.updateProfile]', '서버 응답:', response.data);
+    return response.data;
   }
 };
 

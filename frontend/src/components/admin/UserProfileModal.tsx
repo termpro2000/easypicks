@@ -154,7 +154,16 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
         throw new Error('사용자 ID를 찾을 수 없습니다.');
       }
 
-      const response = await userAPI.updateUser(userId, editedUser);
+      // 사용자의 role에 따라 다른 API 사용
+      let response;
+      if (user.role === 'admin') {
+        // 관리자는 userAPI.updateUser 사용 (다른 사용자도 수정 가능)
+        response = await userAPI.updateUser(userId, editedUser);
+      } else {
+        // 일반 사용자는 authAPI.updateProfile 사용 (자신의 프로필만 수정 가능)
+        console.log('UserProfileModal: 일반 사용자 프로필 업데이트 API 사용');
+        response = await authAPI.updateProfile(editedUser);
+      }
       
       if (response && response.success) {
         // 1. 로컬 상태 업데이트
