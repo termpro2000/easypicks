@@ -90,9 +90,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
       id: 'new-order',
       title: '새배송접수',
       icon: Plus,
-      bgColor: 'bg-gradient-to-br from-green-500 to-green-600',
-      hoverColor: 'hover:from-green-600 hover:to-green-700',
-      textColor: 'text-white',
+      bgColor: 'bg-gradient-to-br from-amber-200 to-amber-300',
+      hoverColor: 'hover:from-amber-300 hover:to-amber-400',
+      textColor: 'text-amber-800',
       action: '새배송접수',
       stats: {
         main: dashboardStats.deliveries.total,
@@ -106,9 +106,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
       id: 'delivery-status',
       title: '배송현황',
       icon: MapPin,
-      bgColor: 'bg-gradient-to-br from-blue-500 to-blue-600',
-      hoverColor: 'hover:from-blue-600 hover:to-blue-700',
-      textColor: 'text-white',
+      bgColor: 'bg-gradient-to-br from-stone-200 to-stone-300',
+      hoverColor: 'hover:from-stone-300 hover:to-stone-400',
+      textColor: 'text-stone-800',
       action: '배송현황',
       stats: {
         main: dashboardStats.deliveries.completed,
@@ -122,9 +122,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
       id: 'driver-assignment',
       title: '기사배정',
       icon: UserCheck,
-      bgColor: 'bg-gradient-to-br from-purple-500 to-purple-600',
-      hoverColor: 'hover:from-purple-600 hover:to-purple-700',
-      textColor: 'text-white',
+      bgColor: 'bg-gradient-to-br from-yellow-200 to-yellow-300',
+      hoverColor: 'hover:from-yellow-300 hover:to-yellow-400',
+      textColor: 'text-yellow-800',
       action: '기사배정',
       stats: {
         main: dashboardStats.drivers.active,
@@ -138,9 +138,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
       id: 'driver-management',
       title: '기사관리',
       icon: Truck,
-      bgColor: 'bg-gradient-to-br from-orange-500 to-orange-600',
-      hoverColor: 'hover:from-orange-600 hover:to-orange-700',
-      textColor: 'text-white',
+      bgColor: 'bg-gradient-to-br from-orange-200 to-orange-300',
+      hoverColor: 'hover:from-orange-300 hover:to-orange-400',
+      textColor: 'text-orange-800',
       action: '기사관리',
       stats: {
         main: dashboardStats.drivers.total,
@@ -154,9 +154,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
       id: 'user-management',
       title: '사용자관리',
       icon: Users,
-      bgColor: 'bg-gradient-to-br from-teal-500 to-teal-600',
-      hoverColor: 'hover:from-teal-600 hover:to-teal-700',
-      textColor: 'text-white',
+      bgColor: 'bg-gradient-to-br from-neutral-200 to-neutral-300',
+      hoverColor: 'hover:from-neutral-300 hover:to-neutral-400',
+      textColor: 'text-neutral-800',
       action: '사용자관리',
       stats: {
         main: dashboardStats.users.total,
@@ -170,9 +170,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
       id: 'product-management',
       title: '상품관리',
       icon: Package,
-      bgColor: 'bg-gradient-to-br from-pink-500 to-pink-600',
-      hoverColor: 'hover:from-pink-600 hover:to-pink-700',
-      textColor: 'text-white',
+      bgColor: 'bg-gradient-to-br from-rose-200 to-rose-300',
+      hoverColor: 'hover:from-rose-300 hover:to-rose-400',
+      textColor: 'text-rose-800',
       action: '상품관리',
       stats: {
         main: dashboardStats.products.active,
@@ -186,9 +186,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
       id: 'analytics',
       title: '통계',
       icon: BarChart3,
-      bgColor: 'bg-gradient-to-br from-stone-400 to-stone-500',
-      hoverColor: 'hover:from-stone-500 hover:to-stone-600',
-      textColor: 'text-white',
+      bgColor: 'bg-gradient-to-br from-stone-300 to-stone-400',
+      hoverColor: 'hover:from-stone-400 hover:to-stone-500',
+      textColor: 'text-stone-800',
       action: '통계',
       stats: {
         main: '99.2%',
@@ -206,9 +206,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
         id: 'test-tools',
         title: '개발도구',
         icon: TestTube,
-        bgColor: 'bg-gradient-to-br from-gray-500 to-gray-600',
-        hoverColor: 'hover:from-gray-600 hover:to-gray-700',
-        textColor: 'text-white',
+        bgColor: 'bg-gradient-to-br from-gray-300 to-gray-400',
+        hoverColor: 'hover:from-gray-400 hover:to-gray-500',
+        textColor: 'text-gray-800',
         action: '테스트',
         stats: {
           main: 'DEV',
@@ -373,8 +373,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
         <div className="relative z-10">
           {/* 상단: 아이콘과 제목 */}
           <div className="flex items-center justify-between mb-4">
-            <div className={`p-3 rounded-xl bg-white bg-opacity-20 backdrop-blur-sm`}>
-              <IconComponent className="w-8 h-8 text-white" />
+            <div className={`p-3 rounded-xl bg-white bg-opacity-30 backdrop-blur-sm`}>
+              <IconComponent className={`w-8 h-8 ${card.textColor.replace('text-', 'text-').replace('-800', '-700')}`} />
             </div>
             <div className="text-right">
               <div className={`text-2xl font-bold ${card.textColor}`}>
@@ -399,8 +399,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
             
             {/* 실시간 업데이트 표시 */}
             <div className="flex items-center gap-1 mt-3">
-              <Activity className="w-3 h-3 text-white opacity-60" />
-              <span className="text-xs text-white opacity-60">실시간</span>
+              <Activity className={`w-3 h-3 ${card.textColor} opacity-60`} />
+              <span className={`text-xs ${card.textColor} opacity-60`}>실시간</span>
             </div>
           </div>
         </div>
