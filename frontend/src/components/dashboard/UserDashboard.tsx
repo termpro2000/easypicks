@@ -125,8 +125,8 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ onLogout }) => {
       id: 'analytics',
       title: '통계보기',
       icon: BarChart3,
-      bgColor: 'bg-gradient-to-br from-indigo-500 to-indigo-600',
-      hoverColor: 'hover:from-indigo-600 hover:to-indigo-700',
+      bgColor: 'bg-gradient-to-br from-stone-400 to-stone-500',
+      hoverColor: 'hover:from-stone-500 hover:to-stone-600',
       textColor: 'text-white',
       action: '통계보기',
       stats: {

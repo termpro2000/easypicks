@@ -84,7 +84,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
   };
 
   // 카드 데이터 정의 (실시간 통계 포함)
-  const getDashboardCards = (): DashboardCard[] => [
+  const getDashboardCards = (): DashboardCard[] => {
+    const baseCards: DashboardCard[] = [
     {
       id: 'new-order',
       title: '새배송접수',
@@ -185,8 +186,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
       id: 'analytics',
       title: '통계',
       icon: BarChart3,
-      bgColor: 'bg-gradient-to-br from-indigo-500 to-indigo-600',
-      hoverColor: 'hover:from-indigo-600 hover:to-indigo-700',
+      bgColor: 'bg-gradient-to-br from-stone-400 to-stone-500',
+      hoverColor: 'hover:from-stone-500 hover:to-stone-600',
       textColor: 'text-white',
       action: '통계',
       stats: {
@@ -196,24 +197,31 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
         subLabel: '전월대비'
       },
       status: 'success'
-    },
-    {
-      id: 'test-tools',
-      title: '개발도구',
-      icon: TestTube,
-      bgColor: 'bg-gradient-to-br from-gray-500 to-gray-600',
-      hoverColor: 'hover:from-gray-600 hover:to-gray-700',
-      textColor: 'text-white',
-      action: '테스트',
-      stats: {
-        main: 'DEV',
-        sub: 'v3.0',
-        label: '모드',
-        subLabel: '버전'
-      },
-      status: 'normal'
     }
-  ];
+    ];
+
+    // 관리자만 개발도구 카드 추가
+    if (user?.role === 'admin') {
+      baseCards.push({
+        id: 'test-tools',
+        title: '개발도구',
+        icon: TestTube,
+        bgColor: 'bg-gradient-to-br from-gray-500 to-gray-600',
+        hoverColor: 'hover:from-gray-600 hover:to-gray-700',
+        textColor: 'text-white',
+        action: '테스트',
+        stats: {
+          main: 'DEV',
+          sub: 'v3.0',
+          label: '모드',
+          subLabel: '버전'
+        },
+        status: 'normal'
+      });
+    }
+
+    return baseCards;
+  };
 
   const handleCardClick = (action: string) => {
     switch (action) {
