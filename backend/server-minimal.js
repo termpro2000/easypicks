@@ -3611,6 +3611,9 @@ app.post('/api/deliveries/:id/products/batch', async (req, res) => {
   }
 });
 
+// Users 라우트 추가 (비밀번호 변경 등)
+const userRoutes = require('./routes/users');
+app.use('/api/users', userRoutes);
 
 // 서버 시작
 app.listen(PORT, () => {
