@@ -618,6 +618,12 @@ export const userAPI = {
     return response.data;
   },
 
+  // 사용자 ID로 조회 (별칭)
+  getUserById: async (id: string) => {
+    const response = await apiClient.get(`/users/${id}`);
+    return response.data;
+  },
+
   // 사용자 생성
   createUser: async (data: {
     username: string;
@@ -636,7 +642,7 @@ export const userAPI = {
   },
 
   // 사용자 수정
-  updateUser: async (id: number, data: any) => {
+  updateUser: async (id: string, data: any) => {
     const response = await apiClient.put(`/users/${id}`, data);
     return response.data;
   },

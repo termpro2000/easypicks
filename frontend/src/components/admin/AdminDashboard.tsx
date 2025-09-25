@@ -8,6 +8,7 @@ import { useAuth } from '../../hooks/useAuth';
 import AdminShippingForm from './AdminShippingForm';
 import UserManagement from './UserManagement';
 import UserDashboardForm from './UserDashboardForm';
+import UserProfileModal from './UserProfileModal';
 import TestPage from '../test/TestPage';
 import ProductManagement from '../products/ProductManagement';
 import DriverAssignment from '../assignment/DriverAssignment';
@@ -43,6 +44,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
   const { user } = useAuth();
   const [currentPage, setCurrentPage] = useState<AdminPageType>('main');
   const [selectedDelivery, setSelectedDelivery] = useState<any>(null);
+  const [showUserProfile, setShowUserProfile] = useState(false);
   
   // 실시간 통계 데이터 상태
   const [dashboardStats, setDashboardStats] = useState({
@@ -444,17 +446,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                     {user?.name?.charAt(0) || 'A'}
                   </span>
                 </div>
-                <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                  user?.role === 'admin'
-                    ? 'bg-red-100 text-red-700 border border-red-200'
-                    : user?.role === 'manager'
-                    ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                    : user?.role === 'driver'
-                    ? 'bg-green-100 text-green-700 border border-green-200'
-                    : 'bg-gray-100 text-gray-700 border border-gray-200'
-                }`}>
+                <button
+                  onClick={() => setShowUserProfile(true)}
+                  className={`px-3 py-1 rounded-full text-sm font-medium transition-all duration-200 cursor-pointer hover:shadow-md transform hover:scale-105 ${
+                    user?.role === 'admin'
+                      ? 'bg-red-100 text-red-700 border border-red-200 hover:bg-red-200'
+                      : user?.role === 'manager'
+                      ? 'bg-blue-100 text-blue-700 border border-blue-200 hover:bg-blue-200'
+                      : user?.role === 'driver'
+                      ? 'bg-green-100 text-green-700 border border-green-200 hover:bg-green-200'
+                      : 'bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200'
+                  }`}
+                  title="프로필 보기/편집"
+                >
                   {user?.role === 'admin' ? '관리자' : user?.role === 'manager' ? '매니저' : user?.role === 'driver' ? '기사' : user?.role === 'user' ? '파트너사' : '사용자'}
-                </span>
+                </button>
               </div>
               
               {/* 로그아웃 버튼 */}
@@ -519,6 +525,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
           </div>
         </div>
       </footer>
+
+      {/* User Profile Modal */}
+      {showUserProfile && user?.id && (
+        <UserProfileModal
+          isOpen={showUserProfile}
+          onClose={() => setShowUserProfile(false)}
+          userId={user.id}
+          onUserUpdated={() => {
+            // 사용자 정보 업데이트 시 필요한 처리
+            console.log('사용자 정보가 업데이트되었습니다.');
+          }}
+        />
+      )}
     </div>
   );
 };
