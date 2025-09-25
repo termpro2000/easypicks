@@ -261,9 +261,10 @@ process.on('unhandledRejection', (reason, promise) => {
   // Railway 환경에서는 즉시 종료하지 않음
 });
 
-console.log('🔄 서버 시작 준비 중...');
+console.log('🔄 서버 시작 준비 중... (v2.1)');
 console.log('📦 Environment:', process.env.NODE_ENV || 'development');
 console.log('🔌 포트:', PORT);
+console.log('👤 Users API: department/position 필드 지원 활성화됨');
 
 server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
