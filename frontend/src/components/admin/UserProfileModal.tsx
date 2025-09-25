@@ -175,36 +175,23 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
       });
       
       if (response.success) {
-        setSuccessMessage('비밀번호가 성공적으로 변경되었습니다. 자동으로 재로그인 중...');
+        setSuccessMessage('비밀번호가 성공적으로 변경되었습니다. 다시 로그인해주세요.');
         
-        try {
-          // 새 비밀번호로 자동 재로그인
-          const loginResponse = await authAPI.login({
-            username: user!.username!,
-            password: passwordData.newPassword
-          });
-          
-          if (loginResponse.success && loginResponse.token) {
-            // 새 JWT 토큰으로 인증 상태 업데이트
-            setToken(loginResponse.token);
-            setAuthUser(loginResponse.user);
-            
-            setSuccessMessage('비밀번호가 변경되고 자동으로 재로그인되었습니다! 🎉');
-            setShowPasswordSection(false);
-            setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-            setShowPasswords({ current: false, new: false, confirm: false });
-            
-            // 성공 메시지 표시 후 모달 자동 닫기
-            setTimeout(() => {
-              onClose();
-            }, 2000);
-          } else {
-            setPasswordError('비밀번호는 변경되었지만 자동 로그인에 실패했습니다. 수동으로 다시 로그인해주세요.');
-          }
-        } catch (loginError) {
-          console.error('자동 재로그인 실패:', loginError);
-          setPasswordError('비밀번호는 변경되었지만 자동 로그인에 실패했습니다. 수동으로 다시 로그인해주세요.');
-        }
+        // 비밀번호 변경 성공 후 로그아웃 처리
+        setToken(null);
+        setAuthUser(null);
+        
+        // 폼 초기화
+        setShowPasswordSection(false);
+        setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+        setShowPasswords({ current: false, new: false, confirm: false });
+        
+        // 2초 후 모달 닫기 (로그인 화면으로 이동)
+        setTimeout(() => {
+          onClose();
+          // 로그인 화면으로 리디렉션 (window.location.href 또는 router 사용)
+          window.location.href = '/login';
+        }, 2000);
       } else {
         setPasswordError(response.message || '비밀번호 변경에 실패했습니다.');
       }
