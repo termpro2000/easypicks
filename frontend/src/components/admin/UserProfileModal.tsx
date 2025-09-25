@@ -173,10 +173,15 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
       });
       
       if (response.success) {
-        setSuccessMessage('비밀번호가 성공적으로 변경되었습니다.');
+        setSuccessMessage('비밀번호 변경이 요청되었습니다. 새 비밀번호로 다시 로그인해주세요.');
         setShowPasswordSection(false);
         setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
         setShowPasswords({ current: false, new: false, confirm: false });
+        
+        // 추가 안내 메시지
+        setTimeout(() => {
+          setSuccessMessage('비밀번호 변경 완료. 시스템에서 자동 로그아웃 후 새 비밀번호로 로그인하세요.');
+        }, 2000);
       } else {
         setPasswordError(response.message || '비밀번호 변경에 실패했습니다.');
       }
