@@ -34,7 +34,7 @@ interface DashboardCard {
 }
 
 const UserDashboard: React.FC<UserDashboardProps> = ({ onLogout }) => {
-  const { user, setUser, logout } = useAuth();
+  const { user, logout } = useAuth();
   const [currentPage, setCurrentPage] = useState<UserPageType>('main');
   const [showUserProfile, setShowUserProfile] = useState(false);
   
@@ -479,29 +479,10 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ onLogout }) => {
           user={user}
           currentUser={user}
           onLogout={logout}
-          onUserUpdated={async (updatedUser) => {
-            console.log('UserDashboard: 사용자 정보 업데이트 콜백 호출됨');
-            
-            if (updatedUser) {
-              // 모달에서 전달받은 업데이트된 사용자 정보로 바로 업데이트
-              console.log('UserDashboard: 모달에서 전달받은 사용자 데이터로 업데이트:', updatedUser);
-              setUser(updatedUser as any); // AuthUser 타입으로 캐스팅
-            } else {
-              // 백업: authAPI.me() 사용
-              try {
-                console.log('UserDashboard: authAPI.me()로 백업 처리 중...');
-                const updatedUserResponse = await authAPI.me();
-                if (updatedUserResponse && updatedUserResponse.user) {
-                  console.log('UserDashboard: authAPI.me()로 전역 상태 업데이트:', updatedUserResponse.user);
-                  setUser(updatedUserResponse.user);
-                } else {
-                  console.warn('UserDashboard: authAPI.me() 응답이 없음');
-                }
-              } catch (error) {
-                console.error('UserDashboard: authAPI.me() 호출 실패:', error);
-                console.log('UserDashboard: 현재 사용자 상태를 유지합니다.');
-              }
-            }
+          onUserUpdated={(updatedUser) => {
+            console.log('UserDashboard: 사용자 정보 업데이트 완료:', updatedUser);
+            // 사용자 정보가 업데이트되었으므로 페이지 새로고침
+            window.location.reload();
           }}
         />
       )}

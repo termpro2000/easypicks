@@ -117,7 +117,15 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
         // 2. 서버에서 최신 데이터를 다시 가져오기
         let refreshedUser = null;
         try {
-          const updatedUserResponse = await userAPI.getUser(userId);
+          let updatedUserResponse;
+          if (user.role === 'admin') {
+            // 관리자는 userAPI.getUser 사용
+            updatedUserResponse = await userAPI.getUser(userId);
+          } else {
+            // 일반 사용자는 authAPI.me 사용
+            updatedUserResponse = await authAPI.me();
+          }
+          
           if (updatedUserResponse && updatedUserResponse.user) {
             refreshedUser = updatedUserResponse.user;
             setUser(refreshedUser);
