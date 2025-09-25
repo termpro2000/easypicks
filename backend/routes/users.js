@@ -370,17 +370,20 @@ router.put('/:id', authenticateToken, requireRole(['admin']), async (req, res) =
     }
     
     // 사용자 업데이트
-    await executeWithRetry(() =>
+    const [result] = await executeWithRetry(() =>
       pool.execute(`
         UPDATE users SET ${updateFields.join(', ')} WHERE id = ?
       `, updateValues)
     );
     
-    console.log(`[Users API] 사용자 수정 완료: ID ${id}`);
+    console.log(`[Users API] 사용자 수정 완료: ID ${id}, 영향받은 행: ${result.affectedRows}`);
+    console.log(`[Users API] 업데이트 쿼리:`, `UPDATE users SET ${updateFields.join(', ')} WHERE id = ?`);
+    console.log(`[Users API] 업데이트 값:`, updateValues);
     
     res.json({
       success: true,
-      message: '사용자가 성공적으로 수정되었습니다.'
+      message: '사용자 정보가 성공적으로 수정되었습니다.',
+      affectedRows: result.affectedRows
     });
     
   } catch (error) {
