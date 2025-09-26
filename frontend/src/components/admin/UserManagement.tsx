@@ -38,6 +38,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onNavigateBack }) => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchInput, setSearchInput] = useState('');
+  const [roleFilter, setRoleFilter] = useState('');
   const [showPartnerModal, setShowPartnerModal] = useState(false);
   
   
