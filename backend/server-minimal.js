@@ -522,34 +522,67 @@ app.get('/api/test/partners', async (req, res) => {
     
     const [partners] = await pool.execute(`
       SELECT 
-        id,
-        username,
-        name,
-        email,
-        phone,
-        company,
-        role,
-        is_active,
-        default_sender_address,
-        default_sender_detail_address,
-        default_sender_zipcode,
-        created_at,
-        updated_at
-      FROM users 
-      WHERE role IN ('user', 'manager', 'admin')
-      ORDER BY created_at DESC
+        u.id,
+        u.username,
+        u.name,
+        u.email,
+        u.phone,
+        u.role,
+        u.is_active,
+        u.last_login,
+        u.created_at,
+        u.updated_at,
+        ud.detail as user_detail
+      FROM users u
+      LEFT JOIN user_detail ud ON u.id = ud.user_id
+      WHERE u.role IN ('user', 'admin')
+      ORDER BY u.created_at DESC
     `);
     
     console.log(`✅ [Test API] 파트너사 목록 조회 완료: ${partners.length}개`);
     
+    const partnersWithDetails = partners.map(partner => {
+      let detail = {};
+      try {
+        if (partner.user_detail) {
+          detail = typeof partner.user_detail === 'string' 
+            ? JSON.parse(partner.user_detail) 
+            : partner.user_detail;
+        }
+      } catch (parseError) {
+        console.warn(`[Test API] JSON 파싱 오류 (user_id: ${partner.id}):`, parseError);
+      }
+
+      return {
+        id: partner.id,
+        username: partner.username,
+        name: partner.name,
+        email: partner.email,
+        phone: partner.phone,
+        role: partner.role,
+        is_active: partner.is_active,
+        last_login: partner.last_login,
+        created_at: partner.created_at,
+        updated_at: partner.updated_at,
+        // 추가 상세 정보 (user_detail에서 추출)
+        default_sender_name: detail.sender_name || partner.name,
+        default_sender_company: detail.sender_company || '',
+        default_sender_address: detail.sender_address || '',
+        default_sender_detail_address: detail.sender_detail_address || '',
+        default_sender_phone: detail.emergency_contact_phone || partner.phone,
+        emergency_contact_name: detail.emergency_contact_name || '',
+        emergency_contact_phone: detail.emergency_contact_phone || '',
+        // 관리자의 경우
+        address: detail.address || '',
+        detail_address: detail.detail_address || '',
+        zipcode: detail.zipcode || '',
+        memo: detail.memo || ''
+      };
+    });
+    
     res.json({
       success: true,
-      partners: partners.map(partner => ({
-        ...partner,
-        default_sender_name: partner.name,
-        default_sender_company: partner.company,
-        default_sender_phone: partner.phone
-      }))
+      partners: partnersWithDetails
     });
     
   } catch (error) {
