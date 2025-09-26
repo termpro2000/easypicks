@@ -1164,14 +1164,23 @@ Storage Bucket: ${firebaseConfig?.storageBucket || '없음'}
         return;
       }
       
-      // 추적번호 가져오기
-      const trackingNumber = delivery.trackingNumber || delivery.tracking_number || delivery.id;
-      if (!trackingNumber) {
-        Alert.alert('오류', '추적번호를 찾을 수 없습니다.');
+      // 배송 ID 가져오기 (다른 API 호출과 동일한 패턴 사용)
+      const deliveryId = delivery.id;
+      const trackingNumber = delivery.trackingNumber || delivery.tracking_number;
+      
+      console.log('방문시간 수정 - 배송 정보:', {
+        deliveryId,
+        trackingNumber,
+        deliveryObject: delivery
+      });
+      
+      if (!deliveryId) {
+        Alert.alert('오류', '배송 ID를 찾을 수 없습니다.');
         return;
       }
       
-      const response = await api.put(`/deliveries/${trackingNumber}`, {
+      // 다른 API와 동일한 패턴으로 수정: delivery.id 사용
+      const response = await api.put(`/deliveries/${deliveryId}`, {
         visit_time: formattedTime
       });
       
@@ -1185,7 +1194,7 @@ Storage Bucket: ${firebaseConfig?.storageBucket || '없음'}
         
         // AsyncStorage에 업데이트된 상태 저장 (실시간 업데이트용)
         const updatedDeliveryStatus = {
-          trackingNumber: trackingNumber,
+          trackingNumber: trackingNumber || deliveryId,
           visitTime: formattedTime,
           timestamp: new Date().toISOString()
         };
@@ -1196,12 +1205,36 @@ Storage Bucket: ${firebaseConfig?.storageBucket || '없음'}
       }
     } catch (error) {
       console.error('방문시간 수정 오류:', error);
+      console.error('오류 상세 정보:', {
+        message: error.message,
+        stack: error.stack,
+        deliveryId,
+        trackingNumber,
+        formattedTime,
+        endpoint: `/deliveries/${deliveryId}`
+      });
+      
       let errorMessage = '방문시간 수정 중 오류가 발생했습니다.';
       
       if (error.response) {
         console.log('오류 응답 상태:', error.response.status);
         console.log('오류 응답 데이터:', error.response.data);
+        console.log('요청 URL:', error.config?.url);
+        console.log('요청 방법:', error.config?.method);
+        console.log('요청 데이터:', error.config?.data);
         errorMessage = error.response.data?.message || errorMessage;
+        
+        // 404 오류인 경우 더 자세한 정보 표시
+        if (error.response.status === 404) {
+          Alert.alert('디버깅 정보', 
+            `404 오류 발생\n` +
+            `배송 ID: ${deliveryId}\n` +
+            `추적번호: ${trackingNumber}\n` +
+            `URL: ${error.config?.url}\n` +
+            `응답: ${JSON.stringify(error.response.data)}`
+          );
+          return;
+        }
       } else if (error.request) {
         console.log('네트워크 오류:', error.request);
         errorMessage = '네트워크 연결을 확인해주세요.';
