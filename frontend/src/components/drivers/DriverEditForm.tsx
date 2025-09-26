@@ -1,18 +1,16 @@
-import React, { useState } from 'react';
-import { ArrowLeft, Save, Eye, EyeOff } from 'lucide-react';
-import { driversAPI } from '../../services/api';
+import React, { useState, useEffect } from 'react';
+import { User, X, Edit3, Save, Eye, EyeOff, Key, Shield, Calendar, Check, AlertCircle, Building, Phone, MapPin, Truck, Mail, Home, FileText, ArrowLeft } from 'lucide-react';
+import { userAPI, authAPI, userDetailAPI } from '../../services/api';
 
 interface Driver {
   id: number;
-  driver_id?: number;
-  username?: string;
+  username: string;
   name: string;
   phone?: string;
   email?: string;
-  vehicle_type?: string;
-  vehicle_number?: string;
-  license_number?: string;
+  role?: string;
   is_active?: boolean;
+  last_login?: string;
   created_at: string;
   updated_at: string;
 }
@@ -23,320 +21,500 @@ interface DriverEditFormProps {
   onSuccess: () => void;
 }
 
-const DriverEditForm: React.FC<DriverEditFormProps> = ({ driver, onNavigateBack, onSuccess }) => {
-  const [formData, setFormData] = useState({
-    username: driver.username || '',
-    password: '',
-    name: driver.name || '',
-    phone: driver.phone || '',
-    email: driver.email || '',
-    vehicle_type: driver.vehicle_type || '',
-    vehicle_number: driver.vehicle_number || '',
-    license_number: driver.license_number || '',
-    is_active: driver.is_active !== false
-  });
+const DriverEditForm: React.FC<DriverEditFormProps> = ({
+  driver: initialDriver,
+  onNavigateBack,
+  onSuccess
+}) => {
+  const [driver, setDriver] = useState<Driver>(initialDriver);
+  const [editedDriver, setEditedDriver] = useState<Driver>({ ...initialDriver });
+  const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  // User detail 상태
+  const [userDetail, setUserDetail] = useState<any>(null);
+  const [editedUserDetail, setEditedUserDetail] = useState<any>({});
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
+  // Role별 색상 톤 시스템 (2025 트렌드) - driver만 표시
+  const getRoleColorScheme = (role: string) => {
+    if (role !== 'DRIVER' && role !== 'driver') {
+      return null; // driver가 아니면 null 반환
+    }
     
-    if (type === 'checkbox') {
-      const target = e.target as HTMLInputElement;
-      setFormData(prev => ({
-        ...prev,
-        [name]: target.checked
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
+    return {
+      primary: '#f97316',
+      secondary: '#ea580c',
+      background: '#fff7ed',
+      border: '#fdba74',
+      text: '#9a3412',
+      icon: '#ea580c',
+      badge: 'bg-orange-100 text-orange-800'
+    };
+  };
+
+  const colorScheme = getRoleColorScheme(driver?.role || 'driver');
+  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+
+  // Password change states
+  const [showPasswordSection, setShowPasswordSection] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // role이 driver가 아니면 컴포넌트를 렌더링하지 않음
+  if (!colorScheme) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="bg-white p-8 rounded-lg shadow-lg">
+          <h2 className="text-xl font-bold text-gray-800 mb-4">접근 권한 없음</h2>
+          <p className="text-gray-600 mb-4">이 기능은 기사 역할의 사용자만 사용할 수 있습니다.</p>
+          <button 
+            onClick={onNavigateBack}
+            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+          >
+            돌아가기
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  useEffect(() => {
+    if (driver?.id) {
+      loadUserDetail();
+    }
+  }, [driver?.id]);
+
+  const loadUserDetail = async () => {
+    try {
+      setIsLoadingDetail(true);
+      const response = await userDetailAPI.getUserDetail(driver.id);
+      setUserDetail(response.detail);
+      setEditedUserDetail({ ...response.detail });
+    } catch (error) {
+      console.log('User detail을 불러올 수 없습니다:', error);
+      setUserDetail({});
+      setEditedUserDetail({});
+    } finally {
+      setIsLoadingDetail(false);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    setSuccess('');
+  const handleEdit = () => {
+    setIsEditing(true);
+    setError(null);
+    setSuccessMessage(null);
+  };
 
+  const handleCancel = () => {
+    setEditedDriver({ ...driver });
+    setEditedUserDetail({ ...userDetail });
+    setIsEditing(false);
+    setError(null);
+    setSuccessMessage(null);
+    setShowPasswordSection(false);
+    setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  };
+
+  const handleSave = async () => {
     try {
-      // 비밀번호가 비어있으면 제외
-      const updateData: any = { ...formData };
-      if (!updateData.password) {
-        delete updateData.password;
+      setIsSaving(true);
+      setError(null);
+
+      // 기본 사용자 정보 업데이트
+      const response = await userAPI.updateUser(driver.id, editedDriver);
+      
+      // User detail 업데이트 (있는 경우만)
+      if (editedUserDetail && Object.keys(editedUserDetail).length > 0) {
+        try {
+          await userDetailAPI.updateUserDetail(driver.id, editedUserDetail);
+        } catch (detailError) {
+          console.log('User detail 업데이트 실패:', detailError);
+        }
       }
 
-      await driversAPI.updateDriver(driver.id, updateData);
-      setSuccess('기사 정보가 성공적으로 수정되었습니다.');
+      // 비밀번호 변경 (요청된 경우)
+      if (showPasswordSection && passwordData.newPassword) {
+        if (passwordData.newPassword !== passwordData.confirmPassword) {
+          setError('새 비밀번호가 일치하지 않습니다.');
+          return;
+        }
+        
+        await authAPI.changePassword({
+          currentPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword
+        });
+      }
+
+      setDriver(editedDriver);
+      setUserDetail(editedUserDetail);
+      setIsEditing(false);
+      setSuccessMessage('기사 정보가 성공적으로 업데이트되었습니다.');
+      setShowPasswordSection(false);
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
       
+      // 상위 컴포넌트에 성공 알림
       setTimeout(() => {
         onSuccess();
       }, 1500);
+      
     } catch (error: any) {
-      console.error('기사 수정 실패:', error);
-      setError(error.response?.data?.message || '기사 수정에 실패했습니다.');
+      console.error('기사 정보 업데이트 실패:', error);
+      setError(error.response?.data?.message || '기사 정보 업데이트에 실패했습니다.');
     } finally {
-      setLoading(false);
+      setIsSaving(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="p-6">
-        <button
-          onClick={onNavigateBack}
-          className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors mb-4"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          기사 목록으로 돌아가기
-        </button>
-      </div>
-
-      <div className="px-6 pb-6">
-        <div className="bg-white rounded-lg shadow-sm border p-6">
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">기사 정보 수정</h1>
-            <p className="text-gray-600">기사의 정보를 수정합니다.</p>
+    <div className="min-h-screen bg-gradient-to-br from-gray-100 via-gray-200 to-gray-100 p-8">
+      {/* 헤더 */}
+      <div className="bg-white/80 backdrop-blur-xl rounded-3xl border border-gray-200 p-8 mb-8 shadow-2xl">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-6">
+            <button
+              onClick={onNavigateBack}
+              className="p-3 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
+            >
+              <ArrowLeft className="w-6 h-6 text-gray-600" />
+            </button>
+            <div className="relative">
+              <div 
+                className="w-20 h-20 rounded-3xl flex items-center justify-center shadow-2xl"
+                style={{ backgroundColor: colorScheme.primary }}
+              >
+                <Truck className="w-10 h-10 text-white" />
+              </div>
+              <div 
+                className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center"
+                style={{ backgroundColor: colorScheme.secondary }}
+              >
+                <Edit3 className="w-3 h-3 text-white" />
+              </div>
+            </div>
+            <div>
+              <h1 className="text-4xl font-bold text-gray-800 mb-2">
+                기사 정보 수정
+              </h1>
+              <p className="text-gray-600 text-lg">{driver.name} 기사의 정보를 수정합니다</p>
+            </div>
           </div>
-
-          {error && (
-            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-600">{error}</p>
-            </div>
-          )}
-
-          {success && (
-            <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-              <p className="text-green-600">{success}</p>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* 기본 정보 섹션 */}
-            <div className="border-b border-gray-200 pb-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">기본 정보</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
-                    사용자명 *
-                  </label>
-                  <input
-                    type="text"
-                    id="username"
-                    name="username"
-                    value={formData.username}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="사용자명을 입력하세요"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                    기사명 *
-                  </label>
-                  <input
-                    type="text"
-                    id="name"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="기사명을 입력하세요"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                    비밀번호 (변경 시에만 입력)
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      id="password"
-                      name="password"
-                      value={formData.password}
-                      onChange={handleChange}
-                      className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="새 비밀번호 (선택사항)"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4 text-gray-400" />
-                      ) : (
-                        <Eye className="h-4 w-4 text-gray-400" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="is_active" className="block text-sm font-medium text-gray-700 mb-2">
-                    활성 상태
-                  </label>
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="is_active"
-                      name="is_active"
-                      checked={formData.is_active}
-                      onChange={handleChange}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    />
-                    <label htmlFor="is_active" className="ml-2 text-sm text-gray-900">
-                      활성 기사
-                    </label>
-                  </div>
-                </div>
+          
+          {!isEditing ? (
+            <button
+              onClick={handleEdit}
+              className="group relative px-8 py-4 text-white rounded-2xl shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105 overflow-hidden"
+              style={{ backgroundColor: colorScheme.primary }}
+            >
+              <div className="relative flex items-center gap-3">
+                <Edit3 className="w-6 h-6 group-hover:rotate-12 transition-transform duration-300" />
+                <span className="font-bold text-lg">정보 수정</span>
               </div>
-            </div>
-
-            {/* 연락처 정보 섹션 */}
-            <div className="border-b border-gray-200 pb-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">연락처 정보</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-                    전화번호
-                  </label>
-                  <input
-                    type="tel"
-                    id="phone"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="010-1234-5678"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                    이메일
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="example@example.com"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* 차량 정보 섹션 */}
-            <div className="pb-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">차량 정보</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label htmlFor="vehicle_type" className="block text-sm font-medium text-gray-700 mb-2">
-                    차량 유형
-                  </label>
-                  <select
-                    id="vehicle_type"
-                    name="vehicle_type"
-                    value={formData.vehicle_type}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">차량 유형 선택</option>
-                    <option value="승합차">승합차</option>
-                    <option value="화물차">화물차</option>
-                    <option value="트럭">트럭</option>
-                    <option value="밴">밴</option>
-                    <option value="기타">기타</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label htmlFor="vehicle_number" className="block text-sm font-medium text-gray-700 mb-2">
-                    차량번호
-                  </label>
-                  <input
-                    type="text"
-                    id="vehicle_number"
-                    name="vehicle_number"
-                    value={formData.vehicle_number}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="12가1234"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="license_number" className="block text-sm font-medium text-gray-700 mb-2">
-                    면허번호
-                  </label>
-                  <input
-                    type="text"
-                    id="license_number"
-                    name="license_number"
-                    value={formData.license_number}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="면허번호를 입력하세요"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* 버튼 섹션 */}
-            <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">
+            </button>
+          ) : (
+            <div className="flex gap-4">
               <button
-                type="button"
-                onClick={onNavigateBack}
-                className="px-6 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                onClick={handleCancel}
+                className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-colors"
               >
                 취소
               </button>
               <button
-                type="submit"
-                disabled={loading}
-                className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                onClick={handleSave}
+                disabled={isSaving}
+                className="group relative px-8 py-4 text-white rounded-2xl shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105 overflow-hidden"
+                style={{ backgroundColor: colorScheme.primary }}
               >
-                {loading ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                ) : (
-                  <Save className="w-4 h-4" />
-                )}
-                {loading ? '수정 중...' : '수정 완료'}
+                <div className="relative flex items-center gap-3">
+                  {isSaving ? (
+                    <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Save className="w-6 h-6" />
+                  )}
+                  <span className="font-bold text-lg">{isSaving ? '저장 중...' : '저장'}</span>
+                </div>
               </button>
             </div>
-          </form>
+          )}
+        </div>
+      </div>
 
-          {/* 시스템 정보 표시 */}
-          <div className="mt-8 pt-6 border-t border-gray-200">
-            <h3 className="text-sm font-medium text-gray-900 mb-2">시스템 정보</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
-              <div>
-                <span className="font-medium">기사 ID:</span> {driver.id}
+      {/* 알림 메시지 */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6 flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+          <div>
+            <h4 className="font-semibold text-red-800">오류 발생</h4>
+            <p className="text-red-700">{error}</p>
+          </div>
+        </div>
+      )}
+
+      {successMessage && (
+        <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6 flex items-start gap-3">
+          <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+          <div>
+            <h4 className="font-semibold text-green-800">성공</h4>
+            <p className="text-green-700">{successMessage}</p>
+          </div>
+        </div>
+      )}
+
+      {/* 프로필 정보 */}
+      <div className="bg-white/80 backdrop-blur-xl rounded-3xl border border-gray-200 shadow-2xl overflow-hidden">
+        <div 
+          className="px-8 py-6 border-b border-gray-200"
+          style={{ backgroundColor: colorScheme.background }}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div 
+                className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg"
+                style={{ backgroundColor: colorScheme.primary }}
+              >
+                <User className="w-8 h-8 text-white" />
               </div>
               <div>
-                <span className="font-medium">생성일:</span> {new Date(driver.created_at).toLocaleDateString()}
-              </div>
-              <div>
-                <span className="font-medium">수정일:</span> {new Date(driver.updated_at).toLocaleDateString()}
+                <h2 className="text-2xl font-bold" style={{ color: colorScheme.text }}>
+                  기사 프로필
+                </h2>
+                <p className="text-gray-600">기본 정보 및 계정 설정</p>
               </div>
             </div>
+            <span className={`px-4 py-2 rounded-full text-sm font-semibold ${colorScheme.badge}`}>
+              {driver.role || 'DRIVER'}
+            </span>
           </div>
         </div>
 
-        {/* 파일명 표시 */}
-        <div className="text-xs text-gray-400 text-center mt-4">
+        <div className="p-8 space-y-6">
+          {/* 기본 정보 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                <User className="w-4 h-4" style={{ color: colorScheme.icon }} />
+                이름
+              </label>
+              {isEditing ? (
+                <input
+                  type="text"
+                  value={editedDriver.name || ''}
+                  onChange={(e) => setEditedDriver({ ...editedDriver, name: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:border-blue-400 transition-all"
+                  style={{ 
+                    focusRingColor: colorScheme.secondary,
+                    '--tw-ring-color': colorScheme.secondary 
+                  } as any}
+                />
+              ) : (
+                <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-800 font-medium">
+                  {driver.name}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                <Shield className="w-4 h-4" style={{ color: colorScheme.icon }} />
+                사용자명
+              </label>
+              {isEditing ? (
+                <input
+                  type="text"
+                  value={editedDriver.username || ''}
+                  onChange={(e) => setEditedDriver({ ...editedDriver, username: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:border-blue-400 transition-all"
+                  style={{ 
+                    focusRingColor: colorScheme.secondary,
+                    '--tw-ring-color': colorScheme.secondary 
+                  } as any}
+                />
+              ) : (
+                <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-800 font-medium">
+                  {driver.username}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                <Phone className="w-4 h-4" style={{ color: colorScheme.icon }} />
+                전화번호
+              </label>
+              {isEditing ? (
+                <input
+                  type="tel"
+                  value={editedDriver.phone || ''}
+                  onChange={(e) => setEditedDriver({ ...editedDriver, phone: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:border-blue-400 transition-all"
+                  placeholder="010-0000-0000"
+                  style={{ 
+                    focusRingColor: colorScheme.secondary,
+                    '--tw-ring-color': colorScheme.secondary 
+                  } as any}
+                />
+              ) : (
+                <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-800 font-medium">
+                  {driver.phone || '미등록'}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                <Mail className="w-4 h-4" style={{ color: colorScheme.icon }} />
+                이메일
+              </label>
+              {isEditing ? (
+                <input
+                  type="email"
+                  value={editedDriver.email || ''}
+                  onChange={(e) => setEditedDriver({ ...editedDriver, email: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:border-blue-400 transition-all"
+                  placeholder="example@email.com"
+                  style={{ 
+                    focusRingColor: colorScheme.secondary,
+                    '--tw-ring-color': colorScheme.secondary 
+                  } as any}
+                />
+              ) : (
+                <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-800 font-medium">
+                  {driver.email || '미등록'}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 계정 상태 */}
+          <div className="pt-6 border-t border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <Shield className="w-5 h-5" style={{ color: colorScheme.icon }} />
+              계정 상태
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="text-sm font-semibold text-gray-700 mb-2 block">활성 상태</label>
+                <div className="flex items-center gap-3">
+                  <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                    driver.is_active !== false ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+                  }`}>
+                    {driver.is_active !== false ? '활성' : '비활성'}
+                  </span>
+                </div>
+              </div>
+              
+              {driver.last_login && (
+                <div>
+                  <label className="text-sm font-semibold text-gray-700 mb-2 block">최근 로그인</label>
+                  <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-800 font-medium">
+                    {new Date(driver.last_login).toLocaleString('ko-KR')}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 비밀번호 변경 (편집 모드에서만) */}
+          {isEditing && (
+            <div className="pt-6 border-t border-gray-200">
+              <button
+                onClick={() => setShowPasswordSection(!showPasswordSection)}
+                className="flex items-center gap-2 text-lg font-semibold text-gray-800 mb-4 hover:text-orange-600 transition-colors"
+              >
+                <Key className="w-5 h-5" style={{ color: colorScheme.icon }} />
+                비밀번호 변경
+                {showPasswordSection ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+              
+              {showPasswordSection && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="text-sm font-semibold text-gray-700 mb-2 block">현재 비밀번호</label>
+                    <div className="relative">
+                      <input
+                        type={showCurrentPassword ? "text" : "password"}
+                        value={passwordData.currentPassword}
+                        onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:border-blue-400 transition-all pr-12"
+                        style={{ 
+                          focusRingColor: colorScheme.secondary,
+                          '--tw-ring-color': colorScheme.secondary 
+                        } as any}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      >
+                        {showCurrentPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="text-sm font-semibold text-gray-700 mb-2 block">새 비밀번호</label>
+                    <div className="relative">
+                      <input
+                        type={showNewPassword ? "text" : "password"}
+                        value={passwordData.newPassword}
+                        onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:border-blue-400 transition-all pr-12"
+                        style={{ 
+                          focusRingColor: colorScheme.secondary,
+                          '--tw-ring-color': colorScheme.secondary 
+                        } as any}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      >
+                        {showNewPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="text-sm font-semibold text-gray-700 mb-2 block">비밀번호 확인</label>
+                    <div className="relative">
+                      <input
+                        type={showConfirmPassword ? "text" : "password"}
+                        value={passwordData.confirmPassword}
+                        onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:border-blue-400 transition-all pr-12"
+                        style={{ 
+                          focusRingColor: colorScheme.secondary,
+                          '--tw-ring-color': colorScheme.secondary 
+                        } as any}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      >
+                        {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 파일명 표시 */}
+      <div className="mt-8 text-center">
+        <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/60 backdrop-blur-sm rounded-full border border-gray-200 text-sm text-gray-600">
+          <FileText className="w-4 h-4" />
           DriverEditForm.tsx
         </div>
       </div>
