@@ -86,6 +86,10 @@ const DeliveryDetailScreen = ({ route, navigation }) => {
   const [customerRequestedCompletion, setCustomerRequestedCompletion] = useState(false); // 고객요청에 의한 배송완료처리
   const [furnitureCompanyRequestedCompletion, setFurnitureCompanyRequestedCompletion] = useState(false); // 가구사요청에 의한 배송완료처리
   const [completionAudioFile, setCompletionAudioFile] = useState(null); // 배송완료 증빙 녹음파일
+  
+  // 방문시간 편집 관련 상태
+  const [isVisitTimeModalVisible, setIsVisitTimeModalVisible] = useState(false); // 방문시간 편집 모달 표시 상태
+  const [editingVisitTime, setEditingVisitTime] = useState(delivery.visitTime || ''); // 편집 중인 방문시간
   const canvasRef = useRef(null);
 
 
@@ -1145,6 +1149,63 @@ Storage Bucket: ${firebaseConfig?.storageBucket || '없음'}
     }
   };
 
+  // 방문시간 수정 처리
+  const handleUpdateVisitTime = async () => {
+    try {
+      console.log('방문시간 수정 시작:', editingVisitTime);
+      
+      if (!editingVisitTime.trim()) {
+        Alert.alert('알림', '방문시간을 입력해주세요.');
+        return;
+      }
+      
+      // 추적번호 가져오기
+      const trackingNumber = delivery.trackingNumber || delivery.tracking_number || delivery.id;
+      if (!trackingNumber) {
+        Alert.alert('오류', '추적번호를 찾을 수 없습니다.');
+        return;
+      }
+      
+      const response = await api.put(`/deliveries/${trackingNumber}`, {
+        visit_time: editingVisitTime.trim()
+      });
+      
+      if (response.data.success) {
+        // 성공 시 로컬 delivery 객체 업데이트
+        delivery.visitTime = editingVisitTime.trim();
+        delivery.visit_time = editingVisitTime.trim();
+        
+        Alert.alert('성공', '방문시간이 성공적으로 수정되었습니다.');
+        setIsVisitTimeModalVisible(false);
+        
+        // AsyncStorage에 업데이트된 상태 저장 (실시간 업데이트용)
+        const updatedDeliveryStatus = {
+          trackingNumber: trackingNumber,
+          visitTime: editingVisitTime.trim(),
+          timestamp: new Date().toISOString()
+        };
+        await AsyncStorage.setItem('updatedDeliveryStatus', JSON.stringify(updatedDeliveryStatus));
+        
+      } else {
+        Alert.alert('오류', response.data.message || '방문시간 수정에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('방문시간 수정 오류:', error);
+      let errorMessage = '방문시간 수정 중 오류가 발생했습니다.';
+      
+      if (error.response) {
+        console.log('오류 응답 상태:', error.response.status);
+        console.log('오류 응답 데이터:', error.response.data);
+        errorMessage = error.response.data?.message || errorMessage;
+      } else if (error.request) {
+        console.log('네트워크 오류:', error.request);
+        errorMessage = '네트워크 연결을 확인해주세요.';
+      }
+      
+      Alert.alert('오류', errorMessage);
+    }
+  };
+
   // 녹음파일 선택 처리
   const handleSelectAudioFile = async () => {
     try {
@@ -1793,6 +1854,29 @@ Storage Bucket: ${firebaseConfig?.storageBucket || '없음'}
     );
   };
 
+  // 방문시간 편집 가능한 DetailItem 컴포넌트
+  const VisitTimeDetailItem = ({ label, value }) => {
+    const displayValue = value || '-';
+    
+    return (
+      <View style={styles.detailItem}>
+        <Text style={styles.detailLabel}>{label}</Text>
+        <View style={styles.visitTimeRow}>
+          <Text style={styles.detailValue}>{displayValue}</Text>
+          <TouchableOpacity 
+            style={styles.editTimeButton}
+            onPress={() => {
+              setEditingVisitTime(value || '');
+              setIsVisitTimeModalVisible(true);
+            }}
+          >
+            <Text style={styles.editTimeButtonText}>✏️ 수정</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
   const PhoneDetailItem = ({ label, value }) => {
     const handlePhoneCall = () => {
       if (value && value !== '-') {
@@ -1924,7 +2008,7 @@ Storage Bucket: ${firebaseConfig?.storageBucket || '없음'}
             <DetailItem label="의뢰상태" value={getStatusText(delivery.status)} />
             <DetailItem label="시공유형" value={delivery.constructionType} />
             <DetailItem label="방문일" value={delivery.visitDate} />
-            <DetailItem label="방문시간" value={delivery.visitTime} />
+            <VisitTimeDetailItem label="방문시간" value={delivery.visitTime} />
             <DetailItem label="가구사" value={delivery.furnitureCompany} />
             <DetailItem label="주요메모" value={delivery.mainMemo} />
             <DetailItem label="비상연락망" value={delivery.emergencyContact} />
@@ -1952,7 +2036,7 @@ Storage Bucket: ${firebaseConfig?.storageBucket || '없음'}
             <Text style={styles.sectionTitle}>배송 정보</Text>
             <DetailItem label="배송상태" value={getStatusText(delivery.status)} />
             <DetailItem label="방문일" value={delivery.visitDate} />
-            <DetailItem label="방문시간" value={delivery.visitTime} />
+            <VisitTimeDetailItem label="방문시간" value={delivery.visitTime} />
             <DetailItem label="배정시간" value={delivery.assignmentTime} />
             <DetailItem label="가구회사" value={delivery.furnitureCompany} />
             <DetailItem label="비상연락망" value={delivery.emergencyContact} />
@@ -2549,6 +2633,55 @@ Storage Bucket: ${firebaseConfig?.storageBucket || '없음'}
               </TouchableOpacity>
               <TouchableOpacity style={styles.postponeConfirmButton} onPress={confirmPostponeDelivery}>
                 <Text style={styles.postponeConfirmButtonText}>연기하기</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* 방문시간 수정 모달 */}
+      <Modal
+        visible={isVisitTimeModalVisible}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => setIsVisitTimeModalVisible(false)}
+      >
+        <View style={styles.visitTimeModalContainer}>
+          <View style={styles.visitTimeModalHeader}>
+            <TouchableOpacity onPress={() => setIsVisitTimeModalVisible(false)}>
+              <Text style={styles.visitTimeModalCloseButton}>✕ 닫기</Text>
+            </TouchableOpacity>
+            <Text style={styles.visitTimeModalTitle}>방문시간 수정</Text>
+            <View style={styles.visitTimeModalHeaderSpacer} />
+          </View>
+
+          <View style={styles.visitTimeModalContent}>
+            <View style={styles.visitTimeFormSection}>
+              <Text style={styles.visitTimeFormLabel}>방문시간</Text>
+              <TextInput
+                style={styles.visitTimeInput}
+                placeholder="예: 14:30, 오후 2시 30분"
+                value={editingVisitTime}
+                onChangeText={setEditingVisitTime}
+                autoFocus={true}
+              />
+              <Text style={styles.visitTimeHint}>
+                시간 형식: HH:MM (예: 14:30) 또는 자연어 (예: 오후 2시 30분)
+              </Text>
+            </View>
+
+            <View style={styles.visitTimeFormActions}>
+              <TouchableOpacity
+                style={styles.visitTimeCancelButton}
+                onPress={() => setIsVisitTimeModalVisible(false)}
+              >
+                <Text style={styles.visitTimeCancelButtonText}>취소</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.visitTimeSaveButton}
+                onPress={handleUpdateVisitTime}
+              >
+                <Text style={styles.visitTimeSaveButtonText}>저장</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -4007,6 +4140,123 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 12,
     fontWeight: 'bold',
+  },
+  
+  // 방문시간 편집 관련 스타일
+  visitTimeRow: {
+    flex: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  editTimeButton: {
+    backgroundColor: '#2196F3',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    marginLeft: 8,
+  },
+  editTimeButtonText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  
+  // 방문시간 수정 모달 스타일
+  visitTimeModalContainer: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+  visitTimeModalHeader: {
+    backgroundColor: '#2196F3',
+    paddingTop: 40,
+    paddingBottom: 15,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  visitTimeModalCloseButton: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  visitTimeModalTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  visitTimeModalHeaderSpacer: {
+    width: 50,
+  },
+  visitTimeModalContent: {
+    flex: 1,
+    padding: 20,
+  },
+  visitTimeFormSection: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  visitTimeFormLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 10,
+  },
+  visitTimeInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    backgroundColor: '#fff',
+    marginBottom: 10,
+  },
+  visitTimeHint: {
+    fontSize: 14,
+    color: '#666',
+    fontStyle: 'italic',
+  },
+  visitTimeFormActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 20,
+  },
+  visitTimeCancelButton: {
+    backgroundColor: '#757575',
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 8,
+    flex: 0.4,
+  },
+  visitTimeCancelButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  visitTimeSaveButton: {
+    backgroundColor: '#2196F3',
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 8,
+    flex: 0.4,
+  },
+  visitTimeSaveButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
 });
 
