@@ -97,8 +97,28 @@ const DriverEditForm: React.FC<DriverEditFormProps> = ({
     try {
       setIsLoadingDetail(true);
       const response = await userDetailAPI.getUserDetail(driver.id);
-      setUserDetail(response.detail);
-      setEditedUserDetail({ ...response.detail });
+      
+      // detail 필드가 없거나 JSON 파싱에 실패할 경우 빈 객체로 처리
+      let parsedDetail = {};
+      
+      if (response.detail) {
+        try {
+          // 이미 객체인 경우
+          if (typeof response.detail === 'object') {
+            parsedDetail = response.detail;
+          } 
+          // 문자열인 경우 JSON 파싱 시도
+          else if (typeof response.detail === 'string') {
+            parsedDetail = JSON.parse(response.detail);
+          }
+        } catch (parseError) {
+          console.log('JSON 파싱 실패, 빈 객체로 초기화:', parseError);
+          parsedDetail = {};
+        }
+      }
+      
+      setUserDetail(parsedDetail);
+      setEditedUserDetail({ ...parsedDetail });
     } catch (error) {
       console.log('User detail을 불러올 수 없습니다:', error);
       setUserDetail({});
@@ -433,7 +453,7 @@ const DriverEditForm: React.FC<DriverEditFormProps> = ({
 
               <div>
                 <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
-                  <Hash className="w-4 h-4" style={{ color: colorScheme.icon }} />
+                  <Truck className="w-4 h-4" style={{ color: colorScheme.icon }} />
                   차량 번호
                 </label>
                 {isEditing ? (
