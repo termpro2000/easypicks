@@ -63,10 +63,13 @@ const PartnerSelectionModal: React.FC<PartnerSelectionModalProps> = ({
     try {
       const response = await testAPI.getPartnersList();
       if (response.success && response.partners) {
-        // role이 'user'인 파트너사만 필터링
-        const userPartners = response.partners.filter(partner => partner.role === 'user');
+        // role이 'user'인 파트너사만 필터링 (admin, manager 제외)
+        const userPartners = response.partners.filter(partner => 
+          partner.role === 'user'
+        );
         setPartners(userPartners);
         setFilteredPartners(userPartners);
+        console.log('필터링된 파트너사:', userPartners.map(p => `${p.name}(${p.role})`));
       }
     } catch (error) {
       console.error('파트너사 목록 로드 실패:', error);
