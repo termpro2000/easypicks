@@ -149,7 +149,7 @@ router.post('/', authenticateToken, requireRole(['admin']), async (req, res) => 
     const company = req.body.company || null;
     const role = req.body.role || 'user';
     
-    // 허용된 role 값들 확인 (DRIVER 포함)
+    // 허용된 role 값들 확인 (모든 역할 포함)
     const allowedRoles = ['admin', 'manager', 'user', 'driver'];
     if (!allowedRoles.includes(role)) {
       return res.status(400).json({
@@ -325,7 +325,7 @@ router.put('/:id', authenticateToken, requireRole(['admin']), async (req, res) =
     }
     if (role !== undefined) {
       // 허용된 role 값들 확인
-      const allowedRoles = ['admin', 'user', 'driver'];
+      const allowedRoles = ['admin', 'manager', 'user', 'driver'];
       if (!allowedRoles.includes(role)) {
         return res.status(400).json({
           success: false,
