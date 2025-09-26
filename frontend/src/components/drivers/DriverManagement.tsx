@@ -297,66 +297,25 @@ const DriverManagement: React.FC = () => {
                         <div>
                           <h3 className="text-xl font-bold text-gray-800 mb-1">{driver.name}</h3>
                           <p className="text-gray-600 font-medium">
-                            {driver.username ? `@${driver.username}` : '-'}
+                            ID: {driver.username || '-'}
                           </p>
                         </div>
                       </div>
                       
-                      {/* 상태 배지 */}
+                      {/* 전화번호 표시 */}
                       <div className="flex flex-col items-end gap-2">
-                        <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-2xl text-xs font-bold shadow-lg ${
-                          driver.is_active !== false
-                            ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
-                            : 'bg-gradient-to-r from-gray-500 to-gray-600 text-white'
-                        }`}>
-                          {driver.is_active !== false ? (
-                            <>
-                              <CheckCircle className="w-3 h-3" />
-                              활성
-                            </>
-                          ) : (
-                            <>
-                              <XCircle className="w-3 h-3" />
-                              비활성
-                            </>
-                          )}
-                        </span>
+                        {driver.phone ? (
+                          <div className="flex items-center gap-2">
+                            <Phone className="w-4 h-4 text-green-600" />
+                            <span className="text-gray-700 font-medium">{driver.phone}</span>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-sm">전화번호 미등록</span>
+                        )}
                       </div>
                     </div>
 
-                    {/* 연락처 정보 */}
-                    <div className="space-y-3 mb-6">
-                      {driver.phone && (
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-blue-100 rounded-xl flex items-center justify-center">
-                            <Phone className="w-4 h-4 text-blue-600" />
-                          </div>
-                          <span className="text-gray-700">{driver.phone}</span>
-                        </div>
-                      )}
-                      {driver.email && (
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-gray-100 rounded-xl flex items-center justify-center">
-                            <Mail className="w-4 h-4 text-gray-600" />
-                          </div>
-                          <span className="text-gray-700 text-sm">{driver.email}</span>
-                        </div>
-                      )}
-                    </div>
 
-                    {/* 사용자 정보 */}
-                    <div className="space-y-3 mb-6 p-4 bg-gray-50 backdrop-blur-sm rounded-2xl border border-gray-200">
-                      <h4 className="text-blue-600 font-semibold text-sm">사용자 정보</h4>
-                      <div className="flex items-center gap-3">
-                        <Hash className="w-4 h-4 text-blue-600" />
-                        <span className="text-gray-700 text-sm">역할: {driver.role || 'DRIVER'}</span>
-                      </div>
-                      {driver.last_login && (
-                        <div className="text-gray-500 text-xs">
-                          최근 로그인: {new Date(driver.last_login).toLocaleDateString('ko-KR')}
-                        </div>
-                      )}
-                    </div>
 
                     {/* 액션 버튼들 */}
                     <div className="flex items-center gap-3">
