@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, X, Edit3, Save, Eye, EyeOff, Key, Shield, Calendar, Check, AlertCircle, Building, Phone, MapPin } from 'lucide-react';
+import { User, X, Edit3, Save, Eye, EyeOff, Key, Shield, Calendar, Check, AlertCircle, Building, Phone, MapPin, Truck, Mail, Home, FileText } from 'lucide-react';
 import { userAPI, authAPI, userDetailAPI } from '../../services/api';
 import type { User as UserType } from '../../types';
 
@@ -824,21 +824,276 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                 </div>
               )}
 
-              {/* 다른 role의 경우 기본 안내 */}
-              {user.role !== 'user' && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <div className="flex items-start gap-3">
-                    <Calendar className="w-5 h-5 text-blue-500 mt-0.5" />
-                    <div>
-                      <h4 className="text-sm font-semibold text-blue-800 mb-1">세부 정보</h4>
-                      <p className="text-sm text-blue-700">
-                        {user.role === 'driver' ? '기사' : user.role === 'admin' ? '관리자' : '매니저'} 관련 세부 정보는 
-                        추후 별도 시스템에서 관리될 예정입니다.
-                      </p>
+              {/* Driver role 추가 정보 섹션 */}
+              {user.role === 'driver' && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <Truck className="w-5 h-5" />
+                    기사 추가정보
+                  </h3>
+                  
+                  {isLoadingDetail ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-6">
+                      {/* 이름 */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          기사명
+                        </label>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={editedUserDetail.name || ''}
+                            onChange={(e) => handleUserDetailChange('name', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="기사명을 입력하세요"
+                          />
+                        ) : (
+                          <p className="px-3 py-2 bg-gray-50 rounded-lg text-gray-900">
+                            {userDetail?.detail?.name || '-'}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* 전화번호 */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          연락처
+                        </label>
+                        {isEditing ? (
+                          <input
+                            type="tel"
+                            value={editedUserDetail.phone || ''}
+                            onChange={(e) => handleUserDetailChange('phone', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="연락처를 입력하세요"
+                          />
+                        ) : (
+                          <p className="px-3 py-2 bg-gray-50 rounded-lg text-gray-900 flex items-center gap-2">
+                            <Phone className="w-4 h-4 text-gray-500" />
+                            {userDetail?.detail?.phone || '-'}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* 이메일 */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          이메일
+                        </label>
+                        {isEditing ? (
+                          <input
+                            type="email"
+                            value={editedUserDetail.email || ''}
+                            onChange={(e) => handleUserDetailChange('email', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="이메일을 입력하세요"
+                          />
+                        ) : (
+                          <p className="px-3 py-2 bg-gray-50 rounded-lg text-gray-900 flex items-center gap-2">
+                            <Mail className="w-4 h-4 text-gray-500" />
+                            {userDetail?.detail?.email || '-'}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* 차량 타입 */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          차량 타입
+                        </label>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={editedUserDetail.vehicle_type || ''}
+                            onChange={(e) => handleUserDetailChange('vehicle_type', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="차량 타입을 입력하세요 (예: 1톤 트럭, 2.5톤 트럭)"
+                          />
+                        ) : (
+                          <p className="px-3 py-2 bg-gray-50 rounded-lg text-gray-900 flex items-center gap-2">
+                            <Truck className="w-4 h-4 text-gray-500" />
+                            {userDetail?.detail?.vehicle_type || '-'}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* 차량 번호 */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          차량 번호
+                        </label>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={editedUserDetail.vehicle_number || ''}
+                            onChange={(e) => handleUserDetailChange('vehicle_number', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="차량 번호를 입력하세요 (예: 12가3456)"
+                          />
+                        ) : (
+                          <p className="px-3 py-2 bg-gray-50 rounded-lg text-gray-900">
+                            {userDetail?.detail?.vehicle_number || '-'}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* 적재 용량 */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          적재 용량
+                        </label>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={editedUserDetail.cargo_capacity || ''}
+                            onChange={(e) => handleUserDetailChange('cargo_capacity', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="적재 용량을 입력하세요 (예: 1000kg, 2500kg)"
+                          />
+                        ) : (
+                          <p className="px-3 py-2 bg-gray-50 rounded-lg text-gray-900">
+                            {userDetail?.detail?.cargo_capacity || '-'}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* 배송 지역 */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          배송 지역
+                        </label>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={editedUserDetail.delivery_area || ''}
+                            onChange={(e) => handleUserDetailChange('delivery_area', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="배송 지역을 입력하세요 (예: 서울, 경기 남부)"
+                          />
+                        ) : (
+                          <p className="px-3 py-2 bg-gray-50 rounded-lg text-gray-900 flex items-center gap-2">
+                            <MapPin className="w-4 h-4 text-gray-500" />
+                            {userDetail?.detail?.delivery_area || '-'}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
+
+              {/* Admin/Manager role 추가 정보 섹션 */}
+              {(user.role === 'admin' || user.role === 'manager') && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <Shield className="w-5 h-5" />
+                    {user.role === 'admin' ? '관리자' : '매니저'} 추가정보
+                  </h3>
+                  
+                  {isLoadingDetail ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-6">
+                      {/* 주소 */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          주소
+                        </label>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={editedUserDetail.address || ''}
+                            onChange={(e) => handleUserDetailChange('address', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="주소를 입력하세요"
+                          />
+                        ) : (
+                          <p className="px-3 py-2 bg-gray-50 rounded-lg text-gray-900 flex items-center gap-2">
+                            <Home className="w-4 h-4 text-gray-500" />
+                            {userDetail?.detail?.address || '-'}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* 상세주소 */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          상세주소
+                        </label>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={editedUserDetail.detail_address || ''}
+                            onChange={(e) => handleUserDetailChange('detail_address', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="상세주소를 입력하세요 (예: 456호, 12층 1201호)"
+                          />
+                        ) : (
+                          <p className="px-3 py-2 bg-gray-50 rounded-lg text-gray-900 flex items-center gap-2">
+                            <MapPin className="w-4 h-4 text-gray-500" />
+                            {userDetail?.detail?.detail_address || '-'}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* 우편번호 */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          우편번호
+                        </label>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={editedUserDetail.zipcode || ''}
+                            onChange={(e) => handleUserDetailChange('zipcode', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="우편번호를 입력하세요 (예: 06234)"
+                            maxLength={6}
+                          />
+                        ) : (
+                          <p className="px-3 py-2 bg-gray-50 rounded-lg text-gray-900">
+                            {userDetail?.detail?.zipcode || '-'}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* 메모 */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          메모
+                        </label>
+                        {isEditing ? (
+                          <textarea
+                            value={editedUserDetail.memo || ''}
+                            onChange={(e) => handleUserDetailChange('memo', e.target.value)}
+                            rows={3}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-vertical"
+                            placeholder="메모를 입력하세요 (예: 시스템 관리자 계정, 배송 관리 매니저)"
+                          />
+                        ) : (
+                          <div className="px-3 py-2 bg-gray-50 rounded-lg text-gray-900">
+                            {userDetail?.detail?.memo ? (
+                              <div className="flex items-start gap-2">
+                                <FileText className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
+                                <p className="whitespace-pre-wrap">{userDetail.detail.memo}</p>
+                              </div>
+                            ) : (
+                              <span className="text-gray-400 italic">-</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
             </div>
           ) : (
             <div className="text-center py-12">
