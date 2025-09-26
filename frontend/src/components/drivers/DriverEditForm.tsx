@@ -393,6 +393,118 @@ const DriverEditForm: React.FC<DriverEditFormProps> = ({
             </div>
           </div>
 
+          {/* 기사 상세 정보 (user_detail JSON 데이터) */}
+          <div className="pt-6 border-t border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <Truck className="w-5 h-5" style={{ color: colorScheme.icon }} />
+              기사 상세 정보
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                  <Truck className="w-4 h-4" style={{ color: colorScheme.icon }} />
+                  차량 유형
+                </label>
+                {isEditing ? (
+                  <select
+                    value={editedUserDetail?.vehicle_type || ''}
+                    onChange={(e) => setEditedUserDetail({ ...editedUserDetail, vehicle_type: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:border-blue-400 transition-all"
+                    style={{ 
+                      focusRingColor: colorScheme.secondary,
+                      '--tw-ring-color': colorScheme.secondary 
+                    } as any}
+                  >
+                    <option value="">차량 유형 선택</option>
+                    <option value="1톤 트럭">1톤 트럭</option>
+                    <option value="2.5톤 트럭">2.5톤 트럭</option>
+                    <option value="5톤 트럭">5톤 트럭</option>
+                    <option value="승합차">승합차</option>
+                    <option value="화물차">화물차</option>
+                    <option value="밴">밴</option>
+                    <option value="기타">기타</option>
+                  </select>
+                ) : (
+                  <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-800 font-medium">
+                    {userDetail?.vehicle_type || '미등록'}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                  <Hash className="w-4 h-4" style={{ color: colorScheme.icon }} />
+                  차량 번호
+                </label>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={editedUserDetail?.vehicle_number || ''}
+                    onChange={(e) => setEditedUserDetail({ ...editedUserDetail, vehicle_number: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:border-blue-400 transition-all"
+                    placeholder="예: 12가3456"
+                    style={{ 
+                      focusRingColor: colorScheme.secondary,
+                      '--tw-ring-color': colorScheme.secondary 
+                    } as any}
+                  />
+                ) : (
+                  <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-800 font-medium">
+                    {userDetail?.vehicle_number || '미등록'}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                  <Building className="w-4 h-4" style={{ color: colorScheme.icon }} />
+                  적재 용량
+                </label>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={editedUserDetail?.cargo_capacity || ''}
+                    onChange={(e) => setEditedUserDetail({ ...editedUserDetail, cargo_capacity: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:border-blue-400 transition-all"
+                    placeholder="예: 1000kg"
+                    style={{ 
+                      focusRingColor: colorScheme.secondary,
+                      '--tw-ring-color': colorScheme.secondary 
+                    } as any}
+                  />
+                ) : (
+                  <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-800 font-medium">
+                    {userDetail?.cargo_capacity || '미등록'}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                  <MapPin className="w-4 h-4" style={{ color: colorScheme.icon }} />
+                  배송 가능 지역
+                </label>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={editedUserDetail?.delivery_area || ''}
+                    onChange={(e) => setEditedUserDetail({ ...editedUserDetail, delivery_area: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:border-blue-400 transition-all"
+                    placeholder="예: 서울, 경기 남부"
+                    style={{ 
+                      focusRingColor: colorScheme.secondary,
+                      '--tw-ring-color': colorScheme.secondary 
+                    } as any}
+                  />
+                ) : (
+                  <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-800 font-medium">
+                    {userDetail?.delivery_area || '미등록'}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* 계정 상태 */}
           <div className="pt-6 border-t border-gray-200">
             <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
