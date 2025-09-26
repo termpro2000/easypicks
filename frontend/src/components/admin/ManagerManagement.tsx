@@ -90,8 +90,8 @@ const ManagerManagement: React.FC<ManagerManagementProps> = ({ onNavigateBack })
       // testAPI 응답 구조에 맞게 조정
       let managersList = response.partners || [];
       
-      // role이 'manager'인 사용자만 필터링
-      managersList = managersList.filter((user: any) => user.role === 'manager');
+      // role이 'manager' 또는 'admin'인 사용자만 필터링
+      managersList = managersList.filter((user: any) => user.role === 'manager' || user.role === 'admin');
       
       // 검색 필터링 (클라이언트 사이드)
       if (searchTerm) {
@@ -317,7 +317,7 @@ const ManagerManagement: React.FC<ManagerManagementProps> = ({ onNavigateBack })
           <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-6 animate-pulse">
             <Settings className="w-8 h-8 text-white animate-spin" />
           </div>
-          <h3 className="text-xl font-semibold text-slate-700 mb-2">매니저 목록을 로딩 중...</h3>
+          <h3 className="text-xl font-semibold text-slate-700 mb-2">관리자/매니저 목록을 로딩 중...</h3>
           <p className="text-slate-500">잠시만 기다려주세요</p>
           <div className="flex items-center justify-center gap-2 mt-6">
             <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"></div>
@@ -361,9 +361,9 @@ const ManagerManagement: React.FC<ManagerManagementProps> = ({ onNavigateBack })
             </div>
             <div className="text-center">
               <h2 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-                매니저 관리
+                관리자/매니저 관리
               </h2>
-              <p className="text-slate-600 font-medium mt-1">시스템 매니저를 관리합니다</p>
+              <p className="text-slate-600 font-medium mt-1">시스템 관리자와 매니저를 관리합니다</p>
             </div>
           </div>
           
@@ -385,7 +385,7 @@ const ManagerManagement: React.FC<ManagerManagementProps> = ({ onNavigateBack })
                 <Search className="w-5 h-5 absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="매니저명, 이름, 부서명으로 검색..."
+                  placeholder="관리자/매니저명, 이름, 부서명으로 검색..."
                   className="w-full pl-12 pr-4 py-4 bg-transparent focus:outline-none text-slate-700 placeholder-slate-400 font-medium"
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
@@ -410,7 +410,7 @@ const ManagerManagement: React.FC<ManagerManagementProps> = ({ onNavigateBack })
             <div className="w-20 h-20 bg-gradient-to-br from-slate-300 to-slate-400 rounded-full flex items-center justify-center mx-auto mb-6">
               <Users className="w-10 h-10 text-white" />
             </div>
-            <h3 className="text-xl font-semibold text-slate-700 mb-2">등록된 매니저가 없습니다</h3>
+            <h3 className="text-xl font-semibold text-slate-700 mb-2">등록된 관리자/매니저가 없습니다</h3>
             <p className="text-slate-500">새 매니저를 등록하여 시작하세요</p>
           </div>
         ) : (
@@ -475,14 +475,29 @@ const ManagerManagement: React.FC<ManagerManagementProps> = ({ onNavigateBack })
                 {/* 액션 버튼들 */}
                 <div className="flex items-center justify-between pt-4 border-t border-slate-200/50">
                   <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => openEditModal(manager)}
-                      className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 text-blue-600 rounded-xl hover:bg-blue-500/20 transition-all duration-200 font-medium"
-                      title="편집"
-                    >
-                      <Edit className="w-4 h-4" />
-                      <span className="text-sm">편집</span>
-                    </button>
+                    {/* 매니저는 관리자 계정을 수정할 수 없음 */}
+                    {!(currentUser?.role === 'manager' && manager.role === 'admin') && (
+                      <button
+                        onClick={() => openEditModal(manager)}
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 text-blue-600 rounded-xl hover:bg-blue-500/20 transition-all duration-200 font-medium"
+                        title="편집"
+                      >
+                        <Edit className="w-4 h-4" />
+                        <span className="text-sm">편집</span>
+                      </button>
+                    )}
+                    
+                    {/* 매니저가 관리자 계정을 수정하려고 할 때 비활성화된 버튼 표시 */}
+                    {currentUser?.role === 'manager' && manager.role === 'admin' && (
+                      <button
+                        disabled
+                        className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-400 rounded-xl cursor-not-allowed transition-all duration-200 font-medium"
+                        title="권한 없음 - 관리자 계정은 수정할 수 없습니다"
+                      >
+                        <Edit className="w-4 h-4" />
+                        <span className="text-sm">편집</span>
+                      </button>
+                    )}
                     
                     {currentUser?.role === 'admin' && currentUser.id !== manager.id && (
                       <button
