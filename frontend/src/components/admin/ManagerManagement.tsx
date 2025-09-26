@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Users, Plus, Edit, Trash2, Search, Eye, EyeOff, ArrowLeft, Shield, UserCog, Settings } from 'lucide-react';
 import { userAPI, testAPI } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
+import ManagerForm from './ManagerForm';
 
 interface Manager {
   id: number;
@@ -26,6 +27,9 @@ interface ManagerManagementProps {
 
 const ManagerManagement: React.FC<ManagerManagementProps> = ({ onNavigateBack }) => {
   const { user: currentUser } = useAuth();
+  
+  // 화면 상태 관리
+  const [currentView, setCurrentView] = useState<'list' | 'manager-form'>('list');
   
   // 매니저 관련 상태
   const [managers, setManagers] = useState<Manager[]>([]);
@@ -117,6 +121,19 @@ const ManagerManagement: React.FC<ManagerManagementProps> = ({ onNavigateBack })
   const showNotification = (type: 'success' | 'error', message: string) => {
     setNotification({ type, message });
     setTimeout(() => setNotification(null), 3000);
+  };
+
+  const handleCreateManager = () => {
+    setCurrentView('manager-form');
+  };
+
+  const handleManagerFormSuccess = () => {
+    setCurrentView('list');
+    fetchManagers(); // 목록 새로고침
+  };
+
+  const handleBackToList = () => {
+    setCurrentView('list');
   };
 
   const handleManagerSearch = () => {
@@ -283,6 +300,16 @@ const ManagerManagement: React.FC<ManagerManagementProps> = ({ onNavigateBack })
     return new Date(dateString).toLocaleDateString('ko-KR');
   };
 
+  // ManagerForm 화면 렌더링
+  if (currentView === 'manager-form') {
+    return (
+      <ManagerForm 
+        onNavigateBack={handleBackToList}
+        onSuccess={handleManagerFormSuccess}
+      />
+    );
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center p-6">
@@ -342,10 +369,7 @@ const ManagerManagement: React.FC<ManagerManagementProps> = ({ onNavigateBack })
           
           {/* 매니저 등록 버튼 - Neumorphic 스타일 */}
           <button
-            onClick={() => {
-              resetManagerForm();
-              setShowManagerModal(true);
-            }}
+            onClick={handleCreateManager}
             className="group flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 hover:scale-105"
           >
             <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />

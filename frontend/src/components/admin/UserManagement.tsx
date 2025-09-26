@@ -3,6 +3,7 @@ import { Users, Plus, Edit, Trash2, Search, Eye, EyeOff, ArrowLeft, Building, Us
 import { userAPI, testAPI } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
 import UserEditForm from './UserEditForm';
+import PartnerForm from './PartnerForm';
 
 interface User {
   id: number;
@@ -30,7 +31,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onNavigateBack }) => {
   const { user: currentUser } = useAuth();
   
   // 화면 상태 관리
-  const [currentView, setCurrentView] = useState<'list' | 'edit'>('list');
+  const [currentView, setCurrentView] = useState<'list' | 'edit' | 'partner-form'>('list');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   
   // 사용자 관련 상태
@@ -54,6 +55,15 @@ const UserManagement: React.FC<UserManagementProps> = ({ onNavigateBack }) => {
   const handleBackToList = () => {
     setCurrentView('list');
     setSelectedUser(null);
+    fetchUsers(); // 목록 새로고침
+  };
+
+  const handleCreatePartner = () => {
+    setCurrentView('partner-form');
+  };
+
+  const handlePartnerFormSuccess = () => {
+    setCurrentView('list');
     fetchUsers(); // 목록 새로고침
   };
 
@@ -246,6 +256,16 @@ const UserManagement: React.FC<UserManagementProps> = ({ onNavigateBack }) => {
     return new Date(dateString).toLocaleDateString('ko-KR');
   };
 
+  // PartnerForm 화면 렌더링
+  if (currentView === 'partner-form') {
+    return (
+      <PartnerForm 
+        onNavigateBack={handleBackToList}
+        onSuccess={handlePartnerFormSuccess}
+      />
+    );
+  }
+
   // UserEditForm 화면 렌더링
   if (currentView === 'edit' && selectedUser) {
     return (
@@ -300,10 +320,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onNavigateBack }) => {
             <p className="text-blue-100 opacity-90">파트너사 사용자를 관리합니다</p>
           </div>
           <button
-            onClick={() => {
-              resetPartnerForm();
-              setShowPartnerModal(true);
-            }}
+            onClick={handleCreatePartner}
             className="bg-white/20 hover:bg-white/30 px-6 py-3 rounded-xl transition-colors backdrop-blur-sm border border-white/20"
           >
             <div className="flex items-center gap-2">
@@ -402,10 +419,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onNavigateBack }) => {
             </p>
             {!searchTerm && (
               <button
-                onClick={() => {
-                  resetPartnerForm();
-                  setShowPartnerModal(true);
-                }}
+                onClick={handleCreatePartner}
                 className="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-colors"
               >
                 <div className="flex items-center gap-2">
