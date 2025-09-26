@@ -304,13 +304,16 @@ router.put('/:id', authenticateToken, requireRole(['admin']), async (req, res) =
       updateFields.push('username = ?');
       updateValues.push(username);
     }
-    if (password !== undefined) {
-      // 비밀번호 해싱
+    if (password !== undefined && password !== null && password.trim() !== '') {
+      // 비밀번호 해싱 (빈 문자열이 아닐 때만)
       const bcrypt = require('bcryptjs');
+      console.log(`[Users API] 비밀번호 해싱 시작: ${password.length}자`);
       const hashedPassword = await bcrypt.hash(password, 10);
       updateFields.push('password = ?');
       updateValues.push(hashedPassword);
       console.log(`[Users API] 비밀번호 해싱 완료: ${password.length}자 -> 해시`);
+    } else if (password !== undefined) {
+      console.log(`[Users API] 비밀번호 업데이트 건너뜀: 빈 값 (${typeof password})`);
     }
     if (name !== undefined) {
       updateFields.push('name = ?');
