@@ -1388,11 +1388,29 @@ app.post('/api/deliveries', async (req, res) => {
 // 배송 목록 조회
 app.get('/api/deliveries', async (req, res) => {
   try {
-    const [deliveries] = await pool.execute('SELECT * FROM deliveries ORDER BY created_at DESC');
+    const { driver_id } = req.query;  // 쿼리 파라미터로 기사 ID 받기
+    
+    let query = 'SELECT * FROM deliveries';
+    let queryParams = [];
+    
+    // 기사별 필터링이 요청된 경우
+    if (driver_id) {
+      query += ' WHERE driver_id = ? OR assigned_driver = ?';
+      queryParams.push(driver_id, driver_id);
+      console.log(`🚛 기사별 배송 목록 조회: driver_id=${driver_id}`);
+    }
+    
+    query += ' ORDER BY created_at DESC';
+    
+    const [deliveries] = await pool.execute(query, queryParams);
+    
+    console.log(`📦 조회된 배송 개수: ${deliveries.length}${driver_id ? ` (기사 ID: ${driver_id})` : ''}`);
+    
     res.json({
       success: true,
       count: deliveries.length,
-      deliveries: deliveries
+      deliveries: deliveries,
+      filter: driver_id ? { driver_id } : null
     });
   } catch (error) {
     console.error('❌ 배송 목록 조회 오류:', error);

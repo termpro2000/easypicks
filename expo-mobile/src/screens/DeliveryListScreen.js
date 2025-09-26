@@ -201,7 +201,17 @@ const DeliveryListScreen = ({ navigation }) => {
 
   const fetchDeliveries = async () => {
     try {
-      const response = await api.get('/deliveries');
+      // 기사별 필터링을 위해 user_id를 쿼리 파라미터로 전달
+      const driverId = userInfo?.id;
+      const apiUrl = driverId ? `/deliveries?driver_id=${driverId}` : '/deliveries';
+      
+      console.log('📡 배송목록 API 호출:', {
+        url: apiUrl,
+        driverId,
+        userInfo: userInfo ? { id: userInfo.id, name: userInfo.name } : null
+      });
+      
+      const response = await api.get(apiUrl);
       console.log('API 응답:', response.data);
       
       if (response.data.deliveries) {
@@ -222,7 +232,7 @@ const DeliveryListScreen = ({ navigation }) => {
             customerName: delivery.customer_name || delivery.receiver_name,
             customerPhone: delivery.customer_phone || delivery.receiver_phone,
             customerAddress: delivery.customer_address || delivery.receiver_address,
-            assignedDriver: delivery.assigned_driver,
+            assignedDriver: delivery.assigned_driver || delivery.driver_id,
             assignmentTime: delivery.visit_time,
             status: delivery.status,
             requestType: delivery.request_type,
@@ -250,31 +260,33 @@ const DeliveryListScreen = ({ navigation }) => {
               id: delivery.id,
               trackingNumber: delivery.trackingNumber,
               visitDate: delivery.visitDate,
+              driverId: delivery.assignedDriver,
               selectedDate: selectedDateString
             });
             
+            // visitDate 체크
             if (!delivery.visitDate) {
               console.log('visitDate가 없는 배송:', delivery.trackingNumber);
               return false;
             }
             
-            // 헬퍼 함수를 사용해서 날짜만 추출 (시간 완전 제거)
+            // 날짜 필터링만 수행 (기사별 필터링은 API에서 이미 완료됨)
             const deliveryDateOnly = extractDateOnly(delivery.visitDate);
-            const isMatch = deliveryDateOnly === selectedDateString;
+            const isDateMatch = deliveryDateOnly === selectedDateString;
             
-            console.log('날짜 비교 (개선됨):', {
+            console.log('날짜 필터링:', {
               trackingNumber: delivery.trackingNumber,
               visitDate: delivery.visitDate,
               deliveryDateOnly: deliveryDateOnly,
               selectedDate: selectedDateString,
-              isMatch: isMatch
+              isDateMatch: isDateMatch
             });
             
-            if (isMatch) {
+            if (isDateMatch) {
               console.log('✅ 매칭된 배송:', delivery.trackingNumber, '날짜:', deliveryDateOnly);
             }
             
-            return isMatch;
+            return isDateMatch;
           });
         
         console.log('필터링된 배송 개수:', deliveriesData.length);
