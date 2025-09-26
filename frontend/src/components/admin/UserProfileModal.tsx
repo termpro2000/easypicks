@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { User, X, Edit3, Save, Eye, EyeOff, Key, Shield, Calendar, Check, AlertCircle } from 'lucide-react';
-import { userAPI, authAPI } from '../../services/api';
+import { User, X, Edit3, Save, Eye, EyeOff, Key, Shield, Calendar, Check, AlertCircle, Building, Phone, MapPin } from 'lucide-react';
+import { userAPI, authAPI, userDetailAPI } from '../../services/api';
 import type { User as UserType } from '../../types';
 
 interface UserProfileModalProps {
@@ -28,6 +28,11 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  // User detail 상태
+  const [userDetail, setUserDetail] = useState<any>(null);
+  const [editedUserDetail, setEditedUserDetail] = useState<any>({});
+  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+
   // Password change states
   const [showPasswordSection, setShowPasswordSection] = useState(false);
   const [passwordData, setPasswordData] = useState({
@@ -52,11 +57,83 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
       setShowPasswordSection(false);
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
       setPasswordError(null);
+      
+      // User detail 로드
+      loadUserDetail();
     }
   }, [isOpen, initialUser]);
 
+  // User detail 로드 함수
+  const loadUserDetail = async () => {
+    if (!initialUser?.id) return;
+    
+    setIsLoadingDetail(true);
+    try {
+      console.log('User detail 로드 시작:', initialUser.id);
+      const response = await userDetailAPI.getUserDetail(initialUser.id.toString());
+      
+      if (response.success && response.data) {
+        setUserDetail(response.data);
+        setEditedUserDetail({ ...response.data.detail });
+        console.log('User detail 로드 성공:', response.data);
+      } else {
+        console.log('User detail 없음, 기본값으로 초기화');
+        setUserDetail(null);
+        setEditedUserDetail(getDefaultUserDetail(initialUser.role));
+      }
+    } catch (error) {
+      console.error('User detail 로드 오류:', error);
+      setUserDetail(null);
+      setEditedUserDetail(getDefaultUserDetail(initialUser.role));
+    } finally {
+      setIsLoadingDetail(false);
+    }
+  };
+
+  // Role별 기본 user detail 반환
+  const getDefaultUserDetail = (role: string) => {
+    switch (role) {
+      case 'admin':
+      case 'manager':
+        return {
+          address: '',
+          detail_address: '',
+          zipcode: '',
+          memo: ''
+        };
+      case 'user':
+        return {
+          sender_name: '',
+          sender_company: '',
+          sender_address: '',
+          sender_detail_address: '',
+          emergency_contact_name: '',
+          emergency_contact_phone: ''
+        };
+      case 'driver':
+        return {
+          name: '',
+          phone: '',
+          email: '',
+          vehicle_type: '',
+          vehicle_number: '',
+          cargo_capacity: '',
+          delivery_area: ''
+        };
+      default:
+        return {};
+    }
+  };
+
   const handleInputChange = (field: string, value: any) => {
     setEditedUser(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleUserDetailChange = (field: string, value: any) => {
+    setEditedUserDetail(prev => ({
       ...prev,
       [field]: value
     }));
@@ -136,7 +213,28 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
           console.warn('UserProfileModal: 최신 데이터 로드 실패, 로컬 데이터 사용:', refreshError);
         }
         
-        // 3. 부모 컴포넌트에 업데이트된 사용자 정보 전달
+        // 3. User detail 저장 (있는 경우)
+        try {
+          if (editedUserDetail && Object.keys(editedUserDetail).length > 0) {
+            console.log('User detail 저장 시작:', editedUserDetail);
+            const detailResponse = await userDetailAPI.createOrUpdateUserDetail(userId, {
+              role: user.role,
+              detail: editedUserDetail
+            });
+            
+            if (detailResponse.success) {
+              setUserDetail(detailResponse.data);
+              console.log('User detail 저장 성공');
+            } else {
+              console.warn('User detail 저장 실패:', detailResponse.message);
+            }
+          }
+        } catch (detailError) {
+          console.error('User detail 저장 오류:', detailError);
+          // User detail 저장 실패는 전체 저장을 실패로 처리하지 않음
+        }
+
+        // 4. 부모 컴포넌트에 업데이트된 사용자 정보 전달
         if (onUserUpdated) {
           onUserUpdated(refreshedUser || { ...user, ...basicUserData });
         }
@@ -588,19 +686,159 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                 </div>
               </div>
 
-              {/* Detailed Information Notice */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <Calendar className="w-5 h-5 text-blue-500 mt-0.5" />
-                  <div>
-                    <h4 className="text-sm font-semibold text-blue-800 mb-1">세부 정보</h4>
-                    <p className="text-sm text-blue-700">
-                      {user.role === 'user' ? '파트너사' : user.role === 'driver' ? '기사' : '관리자'} 관련 세부 정보는 
-                      추후 별도 시스템에서 관리될 예정입니다.
-                    </p>
+              {/* Role별 추가 정보 섹션 */}
+              {user.role === 'user' && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <Building className="w-5 h-5" />
+                    파트너사 추가정보
+                  </h3>
+                  
+                  {isLoadingDetail ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-6">
+                      {/* 발송인명(발송업체명) */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          발송인명 (발송업체명)
+                        </label>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={editedUserDetail.sender_name || ''}
+                            onChange={(e) => handleUserDetailChange('sender_name', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="발송인명을 입력하세요"
+                          />
+                        ) : (
+                          <p className="px-3 py-2 bg-gray-50 rounded-lg text-gray-900">
+                            {userDetail?.detail?.sender_name || '-'}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* 발송업체명 */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          발송업체명
+                        </label>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={editedUserDetail.sender_company || ''}
+                            onChange={(e) => handleUserDetailChange('sender_company', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="발송업체명을 입력하세요"
+                          />
+                        ) : (
+                          <p className="px-3 py-2 bg-gray-50 rounded-lg text-gray-900">
+                            {userDetail?.detail?.sender_company || '-'}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* 발송인주소 */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          발송인주소
+                        </label>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={editedUserDetail.sender_address || ''}
+                            onChange={(e) => handleUserDetailChange('sender_address', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="발송인주소를 입력하세요"
+                          />
+                        ) : (
+                          <p className="px-3 py-2 bg-gray-50 rounded-lg text-gray-900">
+                            {userDetail?.detail?.sender_address || '-'}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* 상세주소 */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          상세주소
+                        </label>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={editedUserDetail.sender_detail_address || ''}
+                            onChange={(e) => handleUserDetailChange('sender_detail_address', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="상세주소를 입력하세요"
+                          />
+                        ) : (
+                          <p className="px-3 py-2 bg-gray-50 rounded-lg text-gray-900">
+                            {userDetail?.detail?.sender_detail_address || '-'}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* 긴급연락담당자 */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          긴급연락담당자
+                        </label>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={editedUserDetail.emergency_contact_name || ''}
+                            onChange={(e) => handleUserDetailChange('emergency_contact_name', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="긴급연락담당자를 입력하세요"
+                          />
+                        ) : (
+                          <p className="px-3 py-2 bg-gray-50 rounded-lg text-gray-900">
+                            {userDetail?.detail?.emergency_contact_name || '-'}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* 긴급연락전화번호 */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          긴급연락전화번호
+                        </label>
+                        {isEditing ? (
+                          <input
+                            type="tel"
+                            value={editedUserDetail.emergency_contact_phone || ''}
+                            onChange={(e) => handleUserDetailChange('emergency_contact_phone', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="긴급연락전화번호를 입력하세요"
+                          />
+                        ) : (
+                          <p className="px-3 py-2 bg-gray-50 rounded-lg text-gray-900">
+                            {userDetail?.detail?.emergency_contact_phone || '-'}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* 다른 role의 경우 기본 안내 */}
+              {user.role !== 'user' && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <Calendar className="w-5 h-5 text-blue-500 mt-0.5" />
+                    <div>
+                      <h4 className="text-sm font-semibold text-blue-800 mb-1">세부 정보</h4>
+                      <p className="text-sm text-blue-700">
+                        {user.role === 'driver' ? '기사' : user.role === 'admin' ? '관리자' : '매니저'} 관련 세부 정보는 
+                        추후 별도 시스템에서 관리될 예정입니다.
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           ) : (
             <div className="text-center py-12">

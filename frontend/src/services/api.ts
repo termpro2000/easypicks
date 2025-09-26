@@ -302,6 +302,55 @@ export const schemaAPI = {
 };
 
 /**
+ * 사용자 상세정보 API
+ */
+export const userDetailAPI = {
+  // 사용자별 상세정보 조회
+  getUserDetail: async (userId: string) => {
+    try {
+      const response = await apiClient.get(`/user-detail/${userId}`);
+      return response.data;
+    } catch (error: any) {
+      console.error('사용자 상세정보 조회 오류:', error);
+      throw error;
+    }
+  },
+
+  // 사용자 상세정보 생성/업데이트
+  createOrUpdateUserDetail: async (userId: string, data: { role?: string; detail: any }) => {
+    try {
+      const response = await apiClient.post(`/user-detail/${userId}`, data);
+      return response.data;
+    } catch (error: any) {
+      console.error('사용자 상세정보 생성/업데이트 오류:', error);
+      throw error;
+    }
+  },
+
+  // 사용자 상세정보 업데이트
+  updateUserDetail: async (userId: string, data: { role?: string; detail: any }) => {
+    try {
+      const response = await apiClient.put(`/user-detail/${userId}`, data);
+      return response.data;
+    } catch (error: any) {
+      console.error('사용자 상세정보 업데이트 오류:', error);
+      throw error;
+    }
+  },
+
+  // 사용자 상세정보 삭제
+  deleteUserDetail: async (userId: string) => {
+    try {
+      const response = await apiClient.delete(`/user-detail/${userId}`);
+      return response.data;
+    } catch (error: any) {
+      console.error('사용자 상세정보 삭제 오류:', error);
+      throw error;
+    }
+  }
+};
+
+/**
  * 테스트 관련 API 함수들
  * 시스템 테스트 및 개발용 데이터 관리 기능 제공
  */
