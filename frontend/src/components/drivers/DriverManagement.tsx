@@ -276,69 +276,118 @@ const DriverManagement: React.FC = () => {
           </div>
         ) : (
           <div className="p-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredDrivers.map((driver) => (
-                <div
-                  key={driver.driver_id || driver.id}
-                  className="group relative bg-white/70 backdrop-blur-lg rounded-3xl border border-gray-200 p-6 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 hover:-translate-y-2 overflow-hidden"
-                >
-                  {/* 배경 그라데이션 효과 */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-blue-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-3xl"></div>
-                  
-                  {/* 기사 아바타와 정보 */}
-                  <div className="relative z-10">
-                    <div className="flex items-start justify-between mb-6">
-                      <div className="flex items-center gap-4">
-                        <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-xl group-hover:shadow-2xl transition-shadow">
-                          <span className="text-white font-bold text-xl">
-                            {driver.name?.charAt(0) || 'D'}
+            {/* 고급스러운 테이블 형식 */}
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                {/* 테이블 헤더 */}
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
+                      기사 정보
+                    </th>
+                    <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
+                      로그인 ID
+                    </th>
+                    <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
+                      전화번호
+                    </th>
+                    <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
+                      상태
+                    </th>
+                    <th className="text-center py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
+                      관리
+                    </th>
+                  </tr>
+                </thead>
+                
+                {/* 테이블 바디 */}
+                <tbody className="divide-y divide-gray-100">
+                  {filteredDrivers.map((driver, index) => (
+                    <tr 
+                      key={driver.driver_id || driver.id}
+                      className="group hover:bg-blue-50/50 transition-colors duration-200"
+                    >
+                      {/* 기사 정보 (아바타 + 이름) */}
+                      <td className="py-4 px-6">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                            <span className="text-white font-bold text-lg">
+                              {driver.name?.charAt(0) || 'D'}
+                            </span>
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-gray-900 text-lg">{driver.name}</h3>
+                            <p className="text-gray-500 text-sm">기사 #{index + 1}</p>
+                          </div>
+                        </div>
+                      </td>
+                      
+                      {/* 로그인 ID */}
+                      <td className="py-4 px-6">
+                        <div className="flex items-center gap-2">
+                          <Hash className="w-4 h-4 text-blue-500" />
+                          <span className="font-medium text-gray-800">
+                            {driver.username || '-'}
                           </span>
                         </div>
-                        <div>
-                          <h3 className="text-xl font-bold text-gray-800 mb-1">{driver.name}</h3>
-                          <p className="text-gray-600 font-medium">
-                            ID: {driver.username || '-'}
-                          </p>
-                        </div>
-                      </div>
+                      </td>
                       
-                      {/* 전화번호 표시 */}
-                      <div className="flex flex-col items-end gap-2">
+                      {/* 전화번호 */}
+                      <td className="py-4 px-6">
                         {driver.phone ? (
                           <div className="flex items-center gap-2">
-                            <Phone className="w-4 h-4 text-green-600" />
-                            <span className="text-gray-700 font-medium">{driver.phone}</span>
+                            <Phone className="w-4 h-4 text-green-500" />
+                            <span className="font-medium text-gray-800">{driver.phone}</span>
                           </div>
                         ) : (
-                          <span className="text-gray-400 text-sm">전화번호 미등록</span>
+                          <span className="text-gray-400 text-sm italic">미등록</span>
                         )}
-                      </div>
-                    </div>
-
-
-
-                    {/* 액션 버튼들 */}
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => handleEditDriver(driver)}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-100 text-blue-600 rounded-2xl hover:bg-blue-200 transition-all duration-200 font-semibold"
-                        title="기사 편집"
-                      >
-                        <Edit className="w-4 h-4" />
-                        <span>편집</span>
-                      </button>
-                      <button
-                        onClick={() => handleDeleteDriver(driver)}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-100 text-red-600 rounded-2xl hover:bg-red-200 transition-all duration-200 font-semibold"
-                        title="기사 삭제"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        <span>삭제</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                      </td>
+                      
+                      {/* 상태 */}
+                      <td className="py-4 px-6">
+                        <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold ${
+                          driver.is_active !== false
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          {driver.is_active !== false ? (
+                            <>
+                              <CheckCircle className="w-3 h-3" />
+                              활성
+                            </>
+                          ) : (
+                            <>
+                              <XCircle className="w-3 h-3" />
+                              비활성
+                            </>
+                          )}
+                        </span>
+                      </td>
+                      
+                      {/* 관리 버튼 */}
+                      <td className="py-4 px-6">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => handleEditDriver(driver)}
+                            className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors duration-200"
+                            title="편집"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteDriver(driver)}
+                            className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors duration-200"
+                            title="삭제"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
