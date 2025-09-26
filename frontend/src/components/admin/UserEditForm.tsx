@@ -178,30 +178,29 @@ const UserEditForm: React.FC<UserEditFormProps> = ({
       setIsSaving(true);
       setError(null);
 
-      // users 테이블 필드만 분리 (실제 데이터베이스 스키마에 맞게)
-      const usersTableData = {
-        username: editedUser.username,
-        name: editedUser.name,
-        email: editedUser.email,
-        phone: editedUser.phone,
-        role: editedUser.role,
-        is_active: editedUser.is_active
-      };
+      // users 테이블 필드만 분리 (undefined 값 제거)
+      const usersTableData: any = {};
+      if (editedUser.username !== undefined) usersTableData.username = editedUser.username;
+      if (editedUser.name !== undefined) usersTableData.name = editedUser.name;
+      if (editedUser.email !== undefined) usersTableData.email = editedUser.email;
+      if (editedUser.phone !== undefined) usersTableData.phone = editedUser.phone;
+      if (editedUser.role !== undefined) usersTableData.role = editedUser.role;
+      if (editedUser.is_active !== undefined) usersTableData.is_active = editedUser.is_active;
+      
+      console.log('🔄 Sending users table data:', usersTableData);
 
-      // user_detail JSON 필드 준비 (company와 address 필드들 포함)
-      const userDetailData = {
-        // 기존 파트너사 상세 정보
-        business_number: editedUserDetail?.business_number,
-        representative_name: editedUserDetail?.representative_name,
-        business_type: editedUserDetail?.business_type,
-        service_area: editedUserDetail?.service_area,
-        // 담당자명 (company 필드가 users 테이블에 없으므로 user_detail로 이동)
-        company: editedUser.company,
-        // 주소 정보 (users 테이블에 없으므로 user_detail로 이동)
-        sender_address: editedUser.default_sender_address,
-        sender_detail_address: editedUser.default_sender_detail_address,
-        sender_zipcode: editedUser.default_sender_zipcode
-      };
+      // user_detail JSON 필드 준비 (undefined 값 제거)
+      const userDetailData: any = {};
+      if (editedUserDetail?.business_number) userDetailData.business_number = editedUserDetail.business_number;
+      if (editedUserDetail?.representative_name) userDetailData.representative_name = editedUserDetail.representative_name;
+      if (editedUserDetail?.business_type) userDetailData.business_type = editedUserDetail.business_type;
+      if (editedUserDetail?.service_area) userDetailData.service_area = editedUserDetail.service_area;
+      if (editedUser.company) userDetailData.company = editedUser.company;
+      if (editedUser.default_sender_address) userDetailData.sender_address = editedUser.default_sender_address;
+      if (editedUser.default_sender_detail_address) userDetailData.sender_detail_address = editedUser.default_sender_detail_address;
+      if (editedUser.default_sender_zipcode) userDetailData.sender_zipcode = editedUser.default_sender_zipcode;
+      
+      console.log('🔄 Sending user detail data:', userDetailData);
 
       // users 테이블 업데이트
       const response = await userAPI.updateUser(user.id, usersTableData);
@@ -244,7 +243,18 @@ const UserEditForm: React.FC<UserEditFormProps> = ({
       
     } catch (error: any) {
       console.error('파트너사 정보 업데이트 실패:', error);
-      setError(error.response?.data?.message || '파트너사 정보 업데이트에 실패했습니다.');
+      console.error('Error response:', error.response);
+      console.error('Error details:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        headers: error.response?.headers
+      });
+      setError(
+        error.response?.data?.details || 
+        error.response?.data?.message || 
+        `서버 오류 (${error.response?.status}): 파트너사 정보 업데이트에 실패했습니다.`
+      );
     } finally {
       setIsSaving(false);
     }
