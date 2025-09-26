@@ -2,9 +2,9 @@
 
 React Native 모바일 앱, React 웹 어드민, Node.js 백엔드 서버로 구성된 완전한 배송 관리 시스템입니다.
 
-> **최근 업데이트**: 2025-09-25 - 사용자 프로필 모달 시스템 및 비밀번호 변경 기능 구현 완료 🎉
+> **최근 업데이트**: 2025-09-26 - User Detail 시스템 (Role 기반 추가정보 관리) 구현 완료 🎉
 > 
-> 🌟 **신규 기능**: 클릭 가능한 role 배지와 완전한 사용자 프로필 관리 및 보안 기능!
+> 🌟 **신규 기능**: 모든 사용자 role별 전용 추가정보 섹션과 JSON 기반 유연한 데이터 관리!
 
 ## 📋 목차
 - [프로젝트 구조](#프로젝트-구조)
@@ -13,6 +13,7 @@ React Native 모바일 앱, React 웹 어드민, Node.js 백엔드 서버로 구
 - [🎯 멀티-프로덕트 배송 시스템](#-멀티-프로덕트-배송-시스템)
 - [👤 사용자 프로필 모달 시스템](#-사용자-프로필-모달-시스템)
 - [🔐 비밀번호 변경 기능](#-비밀번호-변경-기능)
+- [🗃️ User Detail 시스템 (Role 기반 추가정보 관리)](#️-user-detail-시스템-role-기반-추가정보-관리)
 - [🆕 Status 관리 시스템](#-status-관리-시스템)
 - [🔥 Firebase Storage 시스템](#-firebase-storage-시스템)
 - [📱 EAS Build & Update 시스템](#-eas-build--update-시스템)
@@ -681,6 +682,200 @@ const [passwordError, setPasswordError] = useState<string | null>(null);
 
 **커밋**: `50c5575` - "사용자 프로필 모달 시스템 구현: 클릭 가능한 role 배지와 완전한 프로필 편집 기능"
 
+## 🗃️ User Detail 시스템 (Role 기반 추가정보 관리)
+
+### 📊 완전한 Role 기반 상세정보 시스템 (2025-09-26)
+
+사용자 프로필 모달에서 **모든 사용자 role에 대한 전용 추가정보 섹션**이 완전히 구현되었습니다. drivers 테이블을 user_detail 테이블로 대체하여 JSON 기반의 유연한 데이터 관리 시스템을 구축했습니다.
+
+#### 🚀 주요 기능
+
+##### 1. User Detail 테이블 구조
+```sql
+CREATE TABLE user_detail (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    role ENUM('admin', 'manager', 'user', 'driver') NOT NULL,
+    detail JSON NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    INDEX idx_user_id (user_id),
+    INDEX idx_role (role),
+    UNIQUE KEY unique_user_detail (user_id)
+);
+```
+
+##### 2. Role별 추가정보 섹션
+
+**👥 User Role (파트너사 정보)** - Building 아이콘
+- **발송인명(발송업체명)** - `sender_name`: 파트너사 발송인 이름
+- **발송업체명** - `sender_company`: 정식 회사명
+- **발송인주소** - `sender_address`: 발송지 주소
+- **상세주소** - `sender_detail_address`: 상세 주소 정보
+- **긴급연락담당자** - `emergency_contact_name`: 비상시 연락할 담당자
+- **긴급연락전화번호** - `emergency_contact_phone`: 비상 연락처
+
+```json
+{
+  "sender_name": "미래가구",
+  "sender_company": "미래가구 주식회사",
+  "sender_address": "경기도 성남시 분당구 정자일로 95",
+  "sender_detail_address": "네이버 그린팩토리 6층",
+  "emergency_contact_name": "김담당자",
+  "emergency_contact_phone": "010-1234-5678"
+}
+```
+
+**🚛 Driver Role (기사 정보)** - Truck 아이콘
+- **기사명** - `name`: 기사의 실제 이름
+- **연락처** - `phone`: 연락 전화번호 (Phone 아이콘)
+- **이메일** - `email`: 이메일 주소 (Mail 아이콘)
+- **차량 타입** - `vehicle_type`: 차량 종류 (Truck 아이콘)
+- **차량 번호** - `vehicle_number`: 차량 번호판
+- **적재 용량** - `cargo_capacity`: 최대 적재 가능량
+- **배송 지역** - `delivery_area`: 담당 배송 구역 (MapPin 아이콘)
+
+```json
+{
+  "name": "홍길동",
+  "phone": "010-9876-5432",
+  "email": "driver@example.com",
+  "vehicle_type": "1톤 트럭",
+  "vehicle_number": "12가3456",
+  "cargo_capacity": "1000kg",
+  "delivery_area": "서울, 경기 남부"
+}
+```
+
+**🛡️ Admin/Manager Role (관리자 정보)** - Shield 아이콘
+- **주소** - `address`: 관리자 주소 (Home 아이콘)
+- **상세주소** - `detail_address`: 상세 주소 정보 (MapPin 아이콘)
+- **우편번호** - `zipcode`: 6자리 우편번호
+- **메모** - `memo`: 관리자 메모 (FileText 아이콘, 여러 줄 지원)
+
+```json
+{
+  "address": "서울시 강남구 테헤란로 123",
+  "detail_address": "456호",
+  "zipcode": "06234",
+  "memo": "시스템 관리자 계정"
+}
+```
+
+#### 🔧 기술적 구현
+
+##### Backend API 시스템
+- **GET /api/user-detail/:userId** - 사용자별 상세정보 조회
+- **POST /api/user-detail/:userId** - 상세정보 생성/업데이트
+- **PUT /api/user-detail/:userId** - 상세정보 업데이트
+- **DELETE /api/user-detail/:userId** - 상세정보 삭제
+- **JSON 파싱**: 자동 JSON 파싱 및 에러 처리
+- **데이터 검증**: 사용자 존재 확인 및 입력값 검증
+
+##### Frontend 통합
+```typescript
+// API 연동
+export const userDetailAPI = {
+  getUserDetail: async (userId: string) => { ... },
+  createOrUpdateUserDetail: async (userId: string, data: any) => { ... },
+  updateUserDetail: async (userId: string, data: any) => { ... },
+  deleteUserDetail: async (userId: string) => { ... }
+};
+
+// 상태 관리
+const [userDetail, setUserDetail] = useState<any>(null);
+const [editedUserDetail, setEditedUserDetail] = useState<any>({});
+const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+```
+
+#### 🎨 UI/UX 특징
+
+##### 시각적 디자인
+- **Role별 전용 아이콘**: Building(파트너사), Truck(기사), Shield(관리자)
+- **필드별 아이콘**: Phone, Mail, Home, MapPin, FileText 등 의미있는 아이콘
+- **동적 제목**: role에 따라 "관리자 추가정보" 또는 "매니저 추가정보"
+- **일관된 레이아웃**: 모든 role에서 통일된 그리드 레이아웃
+
+##### 사용자 경험
+- **편집 모드**: 편집 버튼 클릭 시에만 필드 수정 가능
+- **자동 로드**: 모달 오픈 시 user_detail 자동 로드 및 표시
+- **통합 저장**: 기본 사용자 정보와 추가정보 동시 저장
+- **로딩 상태**: 모든 섹션에서 일관된 스피너 로딩 표시
+- **입력 검증**: email, tel 타입, maxLength 등 적절한 제한
+- **다양한 입력**: input, textarea로 데이터 특성에 맞는 UI
+
+#### 📊 데이터 마이그레이션
+
+##### 기존 drivers 테이블에서 user_detail로 이전
+```sql
+-- 기존 drivers 데이터를 user_detail로 마이그레이션
+INSERT INTO user_detail (user_id, role, detail)
+SELECT 
+    user_id,
+    'driver' as role,
+    JSON_OBJECT(
+        'name', name,
+        'phone', phone,
+        'email', email,
+        'vehicle_type', vehicle_type,
+        'vehicle_number', vehicle_number,
+        'cargo_capacity', cargo_capacity,
+        'delivery_area', delivery_area
+    ) as detail
+FROM drivers
+WHERE user_id IS NOT NULL;
+```
+
+##### PlanetScale 호환성
+- **외래키 제약조건 없음**: PlanetScale의 제약사항에 맞춘 설계
+- **인덱스 최적화**: 검색 성능을 위한 user_id, role 인덱스
+- **유니크 제약조건**: 한 사용자당 하나의 상세정보만 허용
+
+#### 🔄 시스템 아키텍처
+
+**데이터 플로우**:
+```
+사용자 프로필 모달 열기 → user_detail API 호출 → JSON 파싱 →
+Role별 UI 렌더링 → 편집 모드 → 데이터 수정 → 통합 저장 →
+기본 사용자 정보 + user_detail 동시 업데이트
+```
+
+**확장성**:
+- **새로운 Role 추가**: 쉽게 새로운 role과 필드 추가 가능
+- **유연한 스키마**: JSON 기반으로 필드 변경에 유연하게 대응
+- **버전 호환성**: 기존 데이터와의 하위 호환성 유지
+
+#### 🎯 핵심 성과
+
+- ✅ **완전한 Role 커버리지**: user, driver, admin, manager 모든 역할 지원
+- ✅ **유연한 데이터 구조**: JSON 기반으로 role별 다양한 필드 지원
+- ✅ **일관된 사용자 경험**: 모든 role에서 통일된 UI/UX 패턴
+- ✅ **확장 가능한 아키텍처**: 새로운 role과 필드 추가가 용이한 구조
+- ✅ **데이터 무결성**: user_detail과 users 테이블 간 완전한 연동
+- ✅ **성능 최적화**: 인덱스와 쿼리 최적화로 빠른 데이터 액세스
+- ✅ **최적화된 UI 구조**: 시스템 정보를 맨 아래 배치하여 편집 가능한 정보 우선순위 조정
+
+#### 🔄 UI/UX 구조 개선 (2025-09-26)
+
+**사용자 프로필 모달 섹션 순서 최적화**:
+1. **기본 정보** - 사용자 ID, 이름, 연락처, 권한 등 핵심 정보
+2. **Role별 추가정보** - 편집 가능한 상세 정보 (우선순위 높음)
+   - 👥 User: 파트너사 정보 (Building 아이콘)
+   - 🚛 Driver: 기사 및 차량 정보 (Truck 아이콘)
+   - 🛡️ Admin/Manager: 관리자 정보 (Shield 아이콘)
+3. **시스템 정보** - 읽기 전용 정보 (최하단 배치)
+   - 사용자 ID, 생성일, 수정일, 마지막 로그인
+
+**사용성 개선 효과**:
+- **편집 우선순위**: 실제 편집 가능한 정보가 상단에 배치
+- **시각적 계층**: 중요도에 따른 논리적 정보 구조
+- **효율적 워크플로**: 기본 정보 → 상세 정보 → 시스템 정보 순서로 자연스러운 탐색
+
+**커밋**: 
+- `65fe574` - "Implement user_detail table system with role-based additional information"
+- `7280b0d` - "Complete role-based additional information sections in UserProfileModal"
+
 ## 🆕 Status 관리 시스템
 
 ### 📊 의뢰종류별 동적 Status 처리
@@ -1236,6 +1431,8 @@ FormData {
 - [x] **EAS Build 프로덕션 APK 빌드 시스템 구축**
 - [x] **사용자 프로필 모달 시스템 (클릭 가능한 role 배지)**
 - [x] **통합 비밀번호 변경 기능 (보안 관리)**
+- [x] **User Detail 시스템 구현 (Role별 추가정보 관리)**
+- [x] **JSON 기반 유연한 데이터 구조 및 PlanetScale 호환성**
 
 ### Phase 3 - 고급 기능
 - [ ] 푸시 알림 시스템

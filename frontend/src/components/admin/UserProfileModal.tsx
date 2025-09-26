@@ -31,6 +31,64 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
   // User detail 상태
   const [userDetail, setUserDetail] = useState<any>(null);
   const [editedUserDetail, setEditedUserDetail] = useState<any>({});
+
+  // Role별 색상 톤 시스템 (2025 트렌드)
+  const getRoleColorScheme = (role: string) => {
+    switch (role) {
+      case 'admin':
+        return {
+          primary: '#844fc1',
+          secondary: '#6366f1',
+          background: '#faf5ff',
+          border: '#c4b5fd',
+          text: '#581c87',
+          icon: '#7c3aed',
+          badge: 'bg-purple-100 text-purple-800'
+        };
+      case 'manager':
+        return {
+          primary: '#21bf06',
+          secondary: '#059669',
+          background: '#f0fdf4',
+          border: '#86efac',
+          text: '#14532d',
+          icon: '#16a34a',
+          badge: 'bg-green-100 text-green-800'
+        };
+      case 'user':
+        return {
+          primary: '#3b86d1',
+          secondary: '#0ea5e9',
+          background: '#f0f9ff',
+          border: '#7dd3fc',
+          text: '#0c4a6e',
+          icon: '#0284c7',
+          badge: 'bg-blue-100 text-blue-800'
+        };
+      case 'driver':
+        return {
+          primary: '#f97316',
+          secondary: '#ea580c',
+          background: '#fff7ed',
+          border: '#fdba74',
+          text: '#9a3412',
+          icon: '#ea580c',
+          badge: 'bg-orange-100 text-orange-800'
+        };
+      default:
+        return {
+          primary: '#6b7280',
+          secondary: '#9ca3af',
+          background: '#f9fafb',
+          border: '#d1d5db',
+          text: '#374151',
+          icon: '#6b7280',
+          badge: 'bg-gray-100 text-gray-800'
+        };
+    }
+  };
+
+  const colorScheme = getRoleColorScheme(user?.role || 'user');
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
 
   // Password change states
@@ -326,21 +384,41 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200" style={{ backgroundColor: colorScheme.background }}>
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-              <User className="w-6 h-6 text-blue-600" />
+            <div 
+              className="w-12 h-12 rounded-xl flex items-center justify-center"
+              style={{ 
+                backgroundColor: colorScheme.background,
+                border: `2px solid ${colorScheme.border}` 
+              }}
+            >
+              <User className="w-6 h-6" style={{ color: colorScheme.primary }} />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900">사용자 프로필</h2>
-              <p className="text-sm text-gray-500">{user?.username}</p>
+              <h2 className="text-xl font-bold" style={{ color: colorScheme.text }}>사용자 프로필</h2>
+              <div className="flex items-center gap-2">
+                <p className="text-sm text-gray-500">{user?.username}</p>
+                <span 
+                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${colorScheme.badge}`}
+                >
+                  {user.role === 'admin' ? '관리자' : 
+                   user.role === 'manager' ? '매니저' :
+                   user.role === 'driver' ? '기사' : '파트너사'}
+                </span>
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
             {!isEditing && (
               <button
                 onClick={() => setIsEditing(true)}
-                className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors hover:opacity-80"
+                style={{
+                  color: colorScheme.primary,
+                  backgroundColor: colorScheme.background,
+                  border: `1px solid ${colorScheme.border}`
+                }}
               >
                 <Edit3 className="w-4 h-4" />
                 편집
@@ -403,7 +481,12 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
             </div>
             <button
               onClick={() => setShowPasswordSection(!showPasswordSection)}
-              className="flex items-center gap-2 px-4 py-2 text-purple-600 hover:text-purple-800 hover:bg-purple-100 rounded-lg transition-colors"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors hover:opacity-80"
+              style={{
+                color: colorScheme.secondary,
+                backgroundColor: colorScheme.background,
+                border: `1px solid ${colorScheme.border}`
+              }}
             >
               <Key className="w-4 h-4" />
               비밀번호 변경
@@ -413,10 +496,16 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
         {/* Password Change Section */}
         {isEditing && showPasswordSection && (
-          <div className="mx-6 mt-4 p-6 bg-purple-50 border border-purple-200 rounded-lg">
+          <div 
+            className="mx-6 mt-4 p-6 rounded-lg"
+            style={{
+              backgroundColor: colorScheme.background,
+              border: `1px solid ${colorScheme.border}`
+            }}
+          >
             <div className="space-y-4">
-              <h4 className="text-lg font-semibold text-purple-800 flex items-center gap-2">
-                <Key className="w-5 h-5" />
+              <h4 className="text-lg font-semibold flex items-center gap-2" style={{ color: colorScheme.text }}>
+                <Key className="w-5 h-5" style={{ color: colorScheme.primary }} />
                 비밀번호 변경
               </h4>
 
@@ -430,7 +519,11 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                     type={showPasswords.current ? 'text' : 'password'}
                     value={passwordData.currentPassword}
                     onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
-                    className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="w-full px-3 py-2 pr-10 border rounded-lg focus:ring-2 focus:border-transparent"
+                    style={{
+                      borderColor: colorScheme.border,
+                      '--tw-ring-color': colorScheme.primary
+                    } as React.CSSProperties}
                     placeholder="현재 비밀번호를 입력하세요"
                   />
                   <button
@@ -453,7 +546,11 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                     type={showPasswords.new ? 'text' : 'password'}
                     value={passwordData.newPassword}
                     onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
-                    className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="w-full px-3 py-2 pr-10 border rounded-lg focus:ring-2 focus:border-transparent"
+                    style={{
+                      borderColor: colorScheme.border,
+                      '--tw-ring-color': colorScheme.primary
+                    } as React.CSSProperties}
                     placeholder="새 비밀번호를 입력하세요"
                   />
                   <button
@@ -476,7 +573,11 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                     type={showPasswords.confirm ? 'text' : 'password'}
                     value={passwordData.confirmPassword}
                     onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                    className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="w-full px-3 py-2 pr-10 border rounded-lg focus:ring-2 focus:border-transparent"
+                    style={{
+                      borderColor: colorScheme.border,
+                      '--tw-ring-color': colorScheme.primary
+                    } as React.CSSProperties}
                     placeholder="새 비밀번호를 다시 입력하세요"
                   />
                   <button
@@ -494,7 +595,8 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                 <button
                   onClick={handlePasswordChange}
                   disabled={isSaving || !passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword}
-                  className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
+                  className="flex items-center gap-2 px-4 py-2 text-white rounded-lg transition-colors disabled:opacity-50 hover:opacity-90"
+                  style={{ backgroundColor: colorScheme.primary }}
                 >
                   <Key className="w-4 h-4" />
                   {isSaving ? '변경 중...' : '비밀번호 변경'}
@@ -506,7 +608,12 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                     setShowPasswords({ current: false, new: false, confirm: false });
                     setPasswordError(null);
                   }}
-                  className="px-4 py-2 text-purple-600 hover:text-purple-800 hover:bg-purple-100 rounded-lg transition-colors"
+                  className="px-4 py-2 rounded-lg transition-colors hover:opacity-80"
+                  style={{
+                    color: colorScheme.primary,
+                    backgroundColor: colorScheme.background,
+                    border: `1px solid ${colorScheme.border}`
+                  }}
                 >
                   취소
                 </button>
@@ -525,8 +632,8 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
             <div className="space-y-8">
               {/* Basic Information */}
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <User className="w-5 h-5" />
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2" style={{ color: colorScheme.text }}>
+                  <User className="w-5 h-5" style={{ color: colorScheme.primary }} />
                   기본 정보
                 </h3>
                 
@@ -554,7 +661,11 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                         type="text"
                         value={editedUser.name || ''}
                         onChange={(e) => handleInputChange('name', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent"
+                        style={{
+                          borderColor: colorScheme.border,
+                          '--tw-ring-color': colorScheme.primary
+                        } as React.CSSProperties}
                         placeholder="이름을 입력하세요"
                         required
                       />
@@ -575,7 +686,11 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                         type="tel"
                         value={editedUser.phone || ''}
                         onChange={(e) => handleInputChange('phone', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent"
+                        style={{
+                          borderColor: colorScheme.border,
+                          '--tw-ring-color': colorScheme.primary
+                        } as React.CSSProperties}
                         placeholder="전화번호를 입력하세요"
                       />
                     ) : (
@@ -595,7 +710,11 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                         type="email"
                         value={editedUser.email || ''}
                         onChange={(e) => handleInputChange('email', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent"
+                        style={{
+                          borderColor: colorScheme.border,
+                          '--tw-ring-color': colorScheme.primary
+                        } as React.CSSProperties}
                         placeholder="이메일을 입력하세요"
                       />
                     ) : (
@@ -614,7 +733,11 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                       <select
                         value={editedUser.role || 'user'}
                         onChange={(e) => handleInputChange('role', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent"
+                        style={{
+                          borderColor: colorScheme.border,
+                          '--tw-ring-color': colorScheme.primary
+                        } as React.CSSProperties}
                       >
                         <option value="user">사용자 (파트너사)</option>
                         <option value="driver">기사</option>
@@ -637,7 +760,11 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                       <select
                         value={editedUser.is_active ? 'true' : 'false'}
                         onChange={(e) => handleInputChange('is_active', e.target.value === 'true')}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent"
+                        style={{
+                          borderColor: colorScheme.border,
+                          '--tw-ring-color': colorScheme.primary
+                        } as React.CSSProperties}
                       >
                         <option value="true">활성</option>
                         <option value="false">비활성</option>
@@ -657,40 +784,11 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                 </div>
               </div>
 
-              {/* System Information */}
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <Shield className="w-5 h-5" />
-                  시스템 정보
-                </h3>
-                
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">사용자 ID:</span>
-                      <span className="text-gray-900">{user.id || '-'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">생성일:</span>
-                      <span className="text-gray-900">{formatDate(user.created_at)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">수정일:</span>
-                      <span className="text-gray-900">{formatDate(user.updated_at)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">마지막 로그인:</span>
-                      <span className="text-gray-900">{formatDate(user.last_login)}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
               {/* Role별 추가 정보 섹션 */}
               {user.role === 'user' && (
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <Building className="w-5 h-5" />
+                <div className="p-4 rounded-lg border" style={{ backgroundColor: colorScheme.background, borderColor: colorScheme.border }}>
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2" style={{ color: colorScheme.text }}>
+                    <Building className="w-5 h-5" style={{ color: colorScheme.primary }} />
                     파트너사 추가정보
                   </h3>
                   
@@ -710,7 +808,11 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                             type="text"
                             value={editedUserDetail.sender_name || ''}
                             onChange={(e) => handleUserDetailChange('sender_name', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent"
+                        style={{
+                          borderColor: colorScheme.border,
+                          '--tw-ring-color': colorScheme.primary
+                        } as React.CSSProperties}
                             placeholder="발송인명을 입력하세요"
                           />
                         ) : (
@@ -730,7 +832,11 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                             type="text"
                             value={editedUserDetail.sender_company || ''}
                             onChange={(e) => handleUserDetailChange('sender_company', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent"
+                        style={{
+                          borderColor: colorScheme.border,
+                          '--tw-ring-color': colorScheme.primary
+                        } as React.CSSProperties}
                             placeholder="발송업체명을 입력하세요"
                           />
                         ) : (
@@ -750,7 +856,11 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                             type="text"
                             value={editedUserDetail.sender_address || ''}
                             onChange={(e) => handleUserDetailChange('sender_address', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent"
+                        style={{
+                          borderColor: colorScheme.border,
+                          '--tw-ring-color': colorScheme.primary
+                        } as React.CSSProperties}
                             placeholder="발송인주소를 입력하세요"
                           />
                         ) : (
@@ -770,7 +880,11 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                             type="text"
                             value={editedUserDetail.sender_detail_address || ''}
                             onChange={(e) => handleUserDetailChange('sender_detail_address', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent"
+                        style={{
+                          borderColor: colorScheme.border,
+                          '--tw-ring-color': colorScheme.primary
+                        } as React.CSSProperties}
                             placeholder="상세주소를 입력하세요"
                           />
                         ) : (
@@ -790,7 +904,11 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                             type="text"
                             value={editedUserDetail.emergency_contact_name || ''}
                             onChange={(e) => handleUserDetailChange('emergency_contact_name', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent"
+                        style={{
+                          borderColor: colorScheme.border,
+                          '--tw-ring-color': colorScheme.primary
+                        } as React.CSSProperties}
                             placeholder="긴급연락담당자를 입력하세요"
                           />
                         ) : (
@@ -810,7 +928,11 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                             type="tel"
                             value={editedUserDetail.emergency_contact_phone || ''}
                             onChange={(e) => handleUserDetailChange('emergency_contact_phone', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent"
+                        style={{
+                          borderColor: colorScheme.border,
+                          '--tw-ring-color': colorScheme.primary
+                        } as React.CSSProperties}
                             placeholder="긴급연락전화번호를 입력하세요"
                           />
                         ) : (
@@ -826,9 +948,9 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
               {/* Driver role 추가 정보 섹션 */}
               {user.role === 'driver' && (
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <Truck className="w-5 h-5" />
+                <div className="p-4 rounded-lg border" style={{ backgroundColor: colorScheme.background, borderColor: colorScheme.border }}>
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2" style={{ color: colorScheme.text }}>
+                    <Truck className="w-5 h-5" style={{ color: colorScheme.primary }} />
                     기사 추가정보
                   </h3>
                   
@@ -848,7 +970,11 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                             type="text"
                             value={editedUserDetail.name || ''}
                             onChange={(e) => handleUserDetailChange('name', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent"
+                        style={{
+                          borderColor: colorScheme.border,
+                          '--tw-ring-color': colorScheme.primary
+                        } as React.CSSProperties}
                             placeholder="기사명을 입력하세요"
                           />
                         ) : (
@@ -868,7 +994,11 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                             type="tel"
                             value={editedUserDetail.phone || ''}
                             onChange={(e) => handleUserDetailChange('phone', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent"
+                        style={{
+                          borderColor: colorScheme.border,
+                          '--tw-ring-color': colorScheme.primary
+                        } as React.CSSProperties}
                             placeholder="연락처를 입력하세요"
                           />
                         ) : (
@@ -889,7 +1019,11 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                             type="email"
                             value={editedUserDetail.email || ''}
                             onChange={(e) => handleUserDetailChange('email', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent"
+                        style={{
+                          borderColor: colorScheme.border,
+                          '--tw-ring-color': colorScheme.primary
+                        } as React.CSSProperties}
                             placeholder="이메일을 입력하세요"
                           />
                         ) : (
@@ -910,7 +1044,11 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                             type="text"
                             value={editedUserDetail.vehicle_type || ''}
                             onChange={(e) => handleUserDetailChange('vehicle_type', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent"
+                        style={{
+                          borderColor: colorScheme.border,
+                          '--tw-ring-color': colorScheme.primary
+                        } as React.CSSProperties}
                             placeholder="차량 타입을 입력하세요 (예: 1톤 트럭, 2.5톤 트럭)"
                           />
                         ) : (
@@ -931,7 +1069,11 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                             type="text"
                             value={editedUserDetail.vehicle_number || ''}
                             onChange={(e) => handleUserDetailChange('vehicle_number', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent"
+                        style={{
+                          borderColor: colorScheme.border,
+                          '--tw-ring-color': colorScheme.primary
+                        } as React.CSSProperties}
                             placeholder="차량 번호를 입력하세요 (예: 12가3456)"
                           />
                         ) : (
@@ -951,7 +1093,11 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                             type="text"
                             value={editedUserDetail.cargo_capacity || ''}
                             onChange={(e) => handleUserDetailChange('cargo_capacity', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent"
+                        style={{
+                          borderColor: colorScheme.border,
+                          '--tw-ring-color': colorScheme.primary
+                        } as React.CSSProperties}
                             placeholder="적재 용량을 입력하세요 (예: 1000kg, 2500kg)"
                           />
                         ) : (
@@ -971,7 +1117,11 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                             type="text"
                             value={editedUserDetail.delivery_area || ''}
                             onChange={(e) => handleUserDetailChange('delivery_area', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent"
+                        style={{
+                          borderColor: colorScheme.border,
+                          '--tw-ring-color': colorScheme.primary
+                        } as React.CSSProperties}
                             placeholder="배송 지역을 입력하세요 (예: 서울, 경기 남부)"
                           />
                         ) : (
@@ -988,9 +1138,9 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
               {/* Admin/Manager role 추가 정보 섹션 */}
               {(user.role === 'admin' || user.role === 'manager') && (
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <Shield className="w-5 h-5" />
+                <div className="p-4 rounded-lg border" style={{ backgroundColor: colorScheme.background, borderColor: colorScheme.border }}>
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2" style={{ color: colorScheme.text }}>
+                    <Shield className="w-5 h-5" style={{ color: colorScheme.primary }} />
                     {user.role === 'admin' ? '관리자' : '매니저'} 추가정보
                   </h3>
                   
@@ -1010,7 +1160,11 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                             type="text"
                             value={editedUserDetail.address || ''}
                             onChange={(e) => handleUserDetailChange('address', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent"
+                        style={{
+                          borderColor: colorScheme.border,
+                          '--tw-ring-color': colorScheme.primary
+                        } as React.CSSProperties}
                             placeholder="주소를 입력하세요"
                           />
                         ) : (
@@ -1031,7 +1185,11 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                             type="text"
                             value={editedUserDetail.detail_address || ''}
                             onChange={(e) => handleUserDetailChange('detail_address', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent"
+                        style={{
+                          borderColor: colorScheme.border,
+                          '--tw-ring-color': colorScheme.primary
+                        } as React.CSSProperties}
                             placeholder="상세주소를 입력하세요 (예: 456호, 12층 1201호)"
                           />
                         ) : (
@@ -1052,7 +1210,11 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                             type="text"
                             value={editedUserDetail.zipcode || ''}
                             onChange={(e) => handleUserDetailChange('zipcode', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent"
+                        style={{
+                          borderColor: colorScheme.border,
+                          '--tw-ring-color': colorScheme.primary
+                        } as React.CSSProperties}
                             placeholder="우편번호를 입력하세요 (예: 06234)"
                             maxLength={6}
                           />
@@ -1093,6 +1255,35 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                   )}
                 </div>
               )}
+
+              {/* System Information - 맨 아래에 배치 */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <Shield className="w-5 h-5" />
+                  시스템 정보
+                </h3>
+                
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">사용자 ID:</span>
+                      <span className="text-gray-900">{user.id || '-'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">생성일:</span>
+                      <span className="text-gray-900">{formatDate(user.created_at)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">수정일:</span>
+                      <span className="text-gray-900">{formatDate(user.updated_at)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">마지막 로그인:</span>
+                      <span className="text-gray-900">{formatDate(user.last_login)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
             </div>
           ) : (
