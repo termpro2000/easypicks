@@ -133,271 +133,220 @@ const DriverManagement: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-100 via-gray-200 to-gray-100 p-8">
-      {/* Glassmorphism 헤더 */}
-      <div className="bg-white/80 backdrop-blur-xl rounded-3xl border border-gray-200 p-8 mb-8 shadow-2xl">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-orange-50 to-amber-50 p-4 md:p-8">
+      {/* 미니멀 헤더 */}
+      <div className="bg-gradient-to-r from-orange-500 to-amber-600 rounded-2xl p-8 mb-6 text-white shadow-lg">
         <div className="flex justify-between items-center">
-          <div className="flex items-center gap-6">
-            <div className="relative">
-              <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-3xl flex items-center justify-center shadow-2xl">
-                <Truck className="w-10 h-10 text-white" />
-              </div>
-              <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r from-blue-400 to-blue-500 rounded-full flex items-center justify-center">
-                <Sparkles className="w-3 h-3 text-white" />
-              </div>
-            </div>
-            <div>
-              <h1 className="text-4xl font-bold text-gray-800 mb-2">
-                기사 관리
-              </h1>
-              <p className="text-gray-600 text-lg">배송 기사의 정보를 관리합니다</p>
-            </div>
+          <div>
+            <h1 className="text-3xl font-bold mb-2">기사 관리</h1>
+            <p className="text-orange-100 opacity-90">배송 기사의 정보를 관리합니다</p>
           </div>
-          
           <button
             onClick={handleCreateDriver}
-            className="group relative px-8 py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-2xl shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105 overflow-hidden"
+            className="bg-white/20 hover:bg-white/30 px-6 py-3 rounded-xl transition-colors backdrop-blur-sm border border-white/20"
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-blue-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            <div className="relative flex items-center gap-3">
-              <UserPlus className="w-6 h-6 group-hover:rotate-12 transition-transform duration-300" />
-              <span className="font-bold text-lg">기사 등록</span>
+            <div className="flex items-center gap-2">
+              <UserPlus className="w-5 h-5" />
+              <span className="font-semibold">기사 등록</span>
             </div>
           </button>
         </div>
       </div>
 
-      {/* Glassmorphism 검색 바 */}
-      <div className="bg-white/80 backdrop-blur-xl rounded-3xl border border-gray-200 p-6 mb-8 shadow-2xl">
-        <div className="flex gap-4">
+      {/* 미니멀 검색 바 */}
+      <div className="bg-white rounded-xl p-4 mb-6 shadow-sm border border-slate-200">
+        <div className="flex gap-3">
           <div className="flex-1 relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
             <input
               type="text"
               placeholder="기사명, 사용자명, 연락처, 이메일로 검색..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-              className="w-full pl-12 pr-4 py-4 bg-white/70 backdrop-blur-sm border border-gray-300 rounded-2xl text-gray-800 placeholder-gray-500 focus:bg-white focus:border-blue-400 transition-all duration-300 text-lg"
+              className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-lg text-slate-700 placeholder-slate-400 focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20 transition-colors"
             />
           </div>
           <button
             onClick={handleSearch}
-            className="group px-8 py-4 bg-white/70 backdrop-blur-sm border border-gray-300 text-gray-700 rounded-2xl hover:bg-blue-500 hover:text-white hover:border-blue-400 transition-all duration-300 hover:scale-105"
+            className="px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-600 text-white rounded-lg hover:from-orange-600 hover:to-amber-700 transition-colors font-medium"
           >
-            <span className="font-semibold text-lg">검색</span>
+            검색
           </button>
         </div>
       </div>
 
-      {/* Glassmorphism 통계 카드 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white/80 backdrop-blur-xl rounded-3xl border border-gray-200 p-8 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center">
-              <Truck className="w-8 h-8 text-white" />
-            </div>
+      {/* 미니멀 통계 카드 */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between">
             <div>
-              <div className="text-3xl font-bold text-gray-800 mb-1">{drivers.length}</div>
-              <div className="text-gray-600">전체 기사</div>
+              <div className="text-2xl font-bold text-slate-800">{drivers.length}</div>
+              <div className="text-slate-600 text-sm">전체 기사</div>
+            </div>
+            <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-amber-600 rounded-lg flex items-center justify-center">
+              <Truck className="w-6 h-6 text-white" />
             </div>
           </div>
         </div>
-        <div className="bg-white/80 backdrop-blur-xl rounded-3xl border border-gray-200 p-8 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center">
-              <CheckCircle className="w-8 h-8 text-white" />
-            </div>
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between">
             <div>
-              <div className="text-3xl font-bold text-gray-800 mb-1">
+              <div className="text-2xl font-bold text-slate-800">
                 {drivers.filter(d => d.is_active !== false).length}
               </div>
-              <div className="text-gray-600">활성 기사</div>
+              <div className="text-slate-600 text-sm">활성 기사</div>
+            </div>
+            <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-green-600 rounded-lg flex items-center justify-center">
+              <CheckCircle className="w-6 h-6 text-white" />
             </div>
           </div>
         </div>
-        <div className="bg-white/80 backdrop-blur-xl rounded-3xl border border-gray-200 p-8 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-gray-500 to-gray-600 rounded-2xl flex items-center justify-center">
-              <XCircle className="w-8 h-8 text-white" />
-            </div>
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between">
             <div>
-              <div className="text-3xl font-bold text-gray-800 mb-1">
+              <div className="text-2xl font-bold text-slate-800">
                 {drivers.filter(d => d.is_active === false).length}
               </div>
-              <div className="text-gray-600">비활성 기사</div>
+              <div className="text-slate-600 text-sm">비활성 기사</div>
+            </div>
+            <div className="w-12 h-12 bg-gradient-to-br from-slate-500 to-gray-600 rounded-lg flex items-center justify-center">
+              <XCircle className="w-6 h-6 text-white" />
             </div>
           </div>
         </div>
       </div>
 
-      {/* Glassmorphism 기사 목록 - 카드 그리드 */}
-      <div className="bg-white/80 backdrop-blur-xl rounded-3xl border border-gray-200 shadow-2xl">
-        <div className="p-8 border-b border-gray-200">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center">
-              <Navigation className="w-6 h-6 text-white" />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-800">
-              등록된 기사 목록 ({filteredDrivers.length}명)
-            </h2>
+      {/* 미니멀 기사 목록 */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200">
+        <div className="p-6 border-b border-slate-200">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold text-slate-800">기사 목록</h2>
+            <span className="text-sm text-slate-500">{filteredDrivers.length}명</span>
           </div>
         </div>
 
         {loading ? (
           <div className="p-12 text-center">
-            <div className="relative w-16 h-16 mx-auto mb-6">
-              <div className="w-16 h-16 bg-gradient-to-r from-cyan-400 to-purple-500 rounded-full animate-spin"></div>
-              <div className="absolute inset-2 bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 rounded-full flex items-center justify-center">
-                <Zap className="w-6 h-6 text-white animate-pulse" />
-              </div>
-            </div>
-            <p className="text-gray-600 text-lg">기사 목록을 불러오는 중...</p>
+            <div className="w-8 h-8 bg-gradient-to-r from-orange-500 to-amber-600 rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-slate-600">기사 목록을 불러오는 중...</p>
           </div>
         ) : filteredDrivers.length === 0 ? (
           <div className="p-12 text-center">
-            <div className="w-24 h-24 bg-gradient-to-br from-gray-300 to-gray-400 rounded-3xl flex items-center justify-center mx-auto mb-6">
-              <Truck className="w-12 h-12 text-white" />
+            <div className="w-16 h-16 bg-gradient-to-br from-slate-200 to-slate-300 rounded-xl flex items-center justify-center mx-auto mb-4">
+              <Truck className="w-8 h-8 text-slate-400" />
             </div>
-            <p className="text-gray-600 text-xl mb-6">
+            <p className="text-slate-600 mb-4">
               {searchTerm ? '검색 결과가 없습니다.' : '등록된 기사가 없습니다.'}
             </p>
             {!searchTerm && (
               <button
                 onClick={handleCreateDriver}
-                className="group px-8 py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-2xl shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105"
+                className="px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-600 text-white rounded-lg hover:from-orange-600 hover:to-amber-700 transition-colors"
               >
-                <div className="flex items-center gap-3">
-                  <UserPlus className="w-5 h-5 group-hover:rotate-12 transition-transform duration-300" />
-                  <span className="font-bold">첫 번째 기사 등록하기</span>
+                <div className="flex items-center gap-2">
+                  <UserPlus className="w-5 h-5" />
+                  <span>첫 번째 기사 등록하기</span>
                 </div>
               </button>
             )}
           </div>
         ) : (
-          <div className="p-8">
-            {/* 고급스러운 테이블 형식 */}
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                {/* 테이블 헤더 */}
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
-                      기사 정보
-                    </th>
-                    <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
-                      로그인 ID
-                    </th>
-                    <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
-                      전화번호
-                    </th>
-                    <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
-                      상태
-                    </th>
-                    <th className="text-center py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">
-                      관리
-                    </th>
-                  </tr>
-                </thead>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-slate-50">
+                <tr>
+                  <th className="text-left py-3 px-6 text-sm font-semibold text-slate-700">기사 정보</th>
+                  <th className="text-left py-3 px-6 text-sm font-semibold text-slate-700">로그인 ID</th>
+                  <th className="text-left py-3 px-6 text-sm font-semibold text-slate-700">연락처</th>
+                  <th className="text-left py-3 px-6 text-sm font-semibold text-slate-700">상태</th>
+                  <th className="text-center py-3 px-6 text-sm font-semibold text-slate-700">관리</th>
+                </tr>
+              </thead>
                 
-                {/* 테이블 바디 */}
-                <tbody className="divide-y divide-gray-100">
-                  {filteredDrivers.map((driver, index) => (
-                    <tr 
-                      key={driver.driver_id || driver.id}
-                      className="group hover:bg-blue-50/50 transition-colors duration-200"
-                    >
-                      {/* 기사 정보 (아바타 + 이름) */}
-                      <td className="py-4 px-6">
-                        <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow-md">
-                            <span className="text-white font-bold text-sm">
-                              {driver.name?.charAt(0) || 'D'}
-                            </span>
-                          </div>
-                          <div>
-                            <h3 className="font-semibold text-gray-900 text-lg">{driver.name}</h3>
-                            <p className="text-gray-500 text-sm">기사 #{index + 1}</p>
-                          </div>
-                        </div>
-                      </td>
-                      
-                      {/* 로그인 ID */}
-                      <td className="py-4 px-6">
-                        <div className="flex items-center gap-2">
-                          <Hash className="w-4 h-4 text-blue-500" />
-                          <span className="font-medium text-gray-800">
-                            {driver.username || '-'}
+              <tbody className="divide-y divide-slate-200">
+                {filteredDrivers.map((driver) => (
+                  <tr key={driver.driver_id || driver.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="py-4 px-6">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-amber-600 rounded-lg flex items-center justify-center">
+                          <span className="text-white font-semibold text-sm">
+                            {driver.name?.charAt(0) || 'D'}
                           </span>
                         </div>
-                      </td>
-                      
-                      {/* 전화번호 */}
-                      <td className="py-4 px-6">
-                        {driver.phone ? (
-                          <div className="flex items-center gap-2">
-                            <Phone className="w-4 h-4 text-green-500" />
-                            <span className="font-medium text-gray-800">{driver.phone}</span>
-                          </div>
-                        ) : (
-                          <span className="text-gray-400 text-sm italic">미등록</span>
-                        )}
-                      </td>
-                      
-                      {/* 상태 */}
-                      <td className="py-4 px-6">
-                        <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold ${
-                          driver.is_active !== false
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-gray-100 text-gray-600'
-                        }`}>
-                          {driver.is_active !== false ? (
-                            <>
-                              <CheckCircle className="w-3 h-3" />
-                              활성
-                            </>
-                          ) : (
-                            <>
-                              <XCircle className="w-3 h-3" />
-                              비활성
-                            </>
-                          )}
-                        </span>
-                      </td>
-                      
-                      {/* 관리 버튼 */}
-                      <td className="py-4 px-6">
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            onClick={() => handleEditDriver(driver)}
-                            className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors duration-200"
-                            title="편집"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteDriver(driver)}
-                            className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors duration-200"
-                            title="삭제"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                        <div>
+                          <div className="font-medium text-slate-900">{driver.name}</div>
+                          <div className="text-slate-600 text-sm">배송 기사</div>
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                      </div>
+                    </td>
+                    <td className="py-4 px-6">
+                      <span className="text-slate-700 font-mono text-sm">@{driver.username || '-'}</span>
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="space-y-1">
+                        {driver.phone && (
+                          <div className="flex items-center gap-2 text-slate-600 text-sm">
+                            <Phone className="w-4 h-4" />
+                            <span>{driver.phone}</span>
+                          </div>
+                        )}
+                        {driver.email && (
+                          <div className="flex items-center gap-2 text-slate-600 text-sm">
+                            <Mail className="w-4 h-4" />
+                            <span>{driver.email}</span>
+                          </div>
+                        )}
+                        {!driver.phone && !driver.email && (
+                          <span className="text-slate-400 text-sm">연락처 미등록</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="space-y-1">
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                          driver.is_active !== false 
+                            ? 'bg-emerald-100 text-emerald-700' 
+                            : 'bg-red-100 text-red-700'
+                        }`}>
+                          {driver.is_active !== false ? '활성' : '비활성'}
+                        </span>
+                        <div className="text-xs text-slate-500">
+                          ID: {driver.id}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => handleEditDriver(driver)}
+                          className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                          title="편집"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteDriver(driver)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="삭제"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
 
       {/* 파일명 표시 */}
-      <div className="mt-8 text-center">
-        <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 text-xs text-white/60">
-          <Sparkles className="w-3 h-3" />
-          <span>DriverManagement.tsx</span>
+      <div className="mt-6 text-center">
+        <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-100 rounded-lg text-xs text-slate-500">
+          <Truck className="w-3 h-3" />
+          DriverManagement.tsx
         </div>
       </div>
     </div>
