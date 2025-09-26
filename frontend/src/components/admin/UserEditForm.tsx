@@ -9,11 +9,12 @@ interface User {
   phone?: string;
   email?: string;
   role?: string;
-  company?: string;
   is_active?: boolean;
   last_login?: string;
   created_at: string;
   updated_at: string;
+  // 이 필드들은 실제로는 user_detail JSON에 저장됨
+  company?: string;
   default_sender_address?: string;
   default_sender_detail_address?: string;
   default_sender_zipcode?: string;
@@ -136,6 +137,17 @@ const UserEditForm: React.FC<UserEditFormProps> = ({
       
       setUserDetail(parsedDetail);
       setEditedUserDetail({ ...parsedDetail });
+      
+      // user_detail에서 company와 주소 정보를 editedUser에 설정
+      if (parsedDetail.company || parsedDetail.sender_address || parsedDetail.sender_detail_address || parsedDetail.sender_zipcode) {
+        setEditedUser(prev => ({
+          ...prev,
+          company: parsedDetail.company || prev.company,
+          default_sender_address: parsedDetail.sender_address || prev.default_sender_address,
+          default_sender_detail_address: parsedDetail.sender_detail_address || prev.default_sender_detail_address,
+          default_sender_zipcode: parsedDetail.sender_zipcode || prev.default_sender_zipcode
+        }));
+      }
     } catch (error) {
       console.log('User detail을 불러올 수 없습니다:', error);
       setUserDetail({});
@@ -166,23 +178,26 @@ const UserEditForm: React.FC<UserEditFormProps> = ({
       setIsSaving(true);
       setError(null);
 
-      // users 테이블 필드만 분리
+      // users 테이블 필드만 분리 (실제 데이터베이스 스키마에 맞게)
       const usersTableData = {
         username: editedUser.username,
         name: editedUser.name,
         email: editedUser.email,
         phone: editedUser.phone,
         role: editedUser.role,
-        company: editedUser.company,
         is_active: editedUser.is_active
       };
 
-      // user_detail JSON 필드 준비 (address 필드명 수정)
+      // user_detail JSON 필드 준비 (company와 address 필드들 포함)
       const userDetailData = {
+        // 기존 파트너사 상세 정보
         business_number: editedUserDetail?.business_number,
         representative_name: editedUserDetail?.representative_name,
         business_type: editedUserDetail?.business_type,
         service_area: editedUserDetail?.service_area,
+        // 담당자명 (company 필드가 users 테이블에 없으므로 user_detail로 이동)
+        company: editedUser.company,
+        // 주소 정보 (users 테이블에 없으므로 user_detail로 이동)
         sender_address: editedUser.default_sender_address,
         sender_detail_address: editedUser.default_sender_detail_address,
         sender_zipcode: editedUser.default_sender_zipcode
