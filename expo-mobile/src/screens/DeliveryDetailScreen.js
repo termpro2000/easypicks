@@ -90,6 +90,8 @@ const DeliveryDetailScreen = ({ route, navigation }) => {
   // 방문시간 편집 관련 상태
   const [isVisitTimeModalVisible, setIsVisitTimeModalVisible] = useState(false); // 방문시간 편집 모달 표시 상태
   const [editingVisitTime, setEditingVisitTime] = useState(delivery.visitTime || ''); // 편집 중인 방문시간
+  const [selectedHour, setSelectedHour] = useState(9); // 선택된 시간 (기본값: 9시)
+  const [selectedMinute, setSelectedMinute] = useState(0); // 선택된 분 (기본값: 0분)
   const canvasRef = useRef(null);
 
 
@@ -1152,10 +1154,13 @@ Storage Bucket: ${firebaseConfig?.storageBucket || '없음'}
   // 방문시간 수정 처리
   const handleUpdateVisitTime = async () => {
     try {
-      console.log('방문시간 수정 시작:', editingVisitTime);
+      // 선택된 시간과 분으로 시간 문자열 생성
+      const formattedTime = `${selectedHour.toString().padStart(2, '0')}:${selectedMinute.toString().padStart(2, '0')}`;
+      console.log('방문시간 수정 시작:', formattedTime);
       
-      if (!editingVisitTime.trim()) {
-        Alert.alert('알림', '방문시간을 입력해주세요.');
+      // 시간 유효성 검사
+      if (selectedHour < 0 || selectedHour > 23 || selectedMinute < 0 || selectedMinute > 59) {
+        Alert.alert('알림', '올바른 시간을 선택해주세요.');
         return;
       }
       
@@ -1167,13 +1172,13 @@ Storage Bucket: ${firebaseConfig?.storageBucket || '없음'}
       }
       
       const response = await api.put(`/deliveries/${trackingNumber}`, {
-        visit_time: editingVisitTime.trim()
+        visit_time: formattedTime
       });
       
       if (response.data.success) {
         // 성공 시 로컬 delivery 객체 업데이트
-        delivery.visitTime = editingVisitTime.trim();
-        delivery.visit_time = editingVisitTime.trim();
+        delivery.visitTime = formattedTime;
+        delivery.visit_time = formattedTime;
         
         Alert.alert('성공', '방문시간이 성공적으로 수정되었습니다.');
         setIsVisitTimeModalVisible(false);
@@ -1181,7 +1186,7 @@ Storage Bucket: ${firebaseConfig?.storageBucket || '없음'}
         // AsyncStorage에 업데이트된 상태 저장 (실시간 업데이트용)
         const updatedDeliveryStatus = {
           trackingNumber: trackingNumber,
-          visitTime: editingVisitTime.trim(),
+          visitTime: formattedTime,
           timestamp: new Date().toISOString()
         };
         await AsyncStorage.setItem('updatedDeliveryStatus', JSON.stringify(updatedDeliveryStatus));
@@ -1854,6 +1859,31 @@ Storage Bucket: ${firebaseConfig?.storageBucket || '없음'}
     );
   };
 
+  // 시간 문자열을 파싱하여 시간과 분을 추출하는 함수
+  const parseTime = (timeString) => {
+    if (!timeString) return { hour: 9, minute: 0 };
+    
+    // HH:MM 형식 파싱
+    const timeMatch = timeString.match(/(\d{1,2}):(\d{2})/);
+    if (timeMatch) {
+      return {
+        hour: parseInt(timeMatch[1], 10),
+        minute: parseInt(timeMatch[2], 10)
+      };
+    }
+    
+    // 숫자만 있는 경우 (예: "14" -> 14:00)
+    const hourMatch = timeString.match(/(\d{1,2})/);
+    if (hourMatch) {
+      return {
+        hour: parseInt(hourMatch[1], 10),
+        minute: 0
+      };
+    }
+    
+    return { hour: 9, minute: 0 };
+  };
+
   // 방문시간 편집 가능한 DetailItem 컴포넌트
   const VisitTimeDetailItem = ({ label, value }) => {
     const displayValue = value || '-';
@@ -1866,11 +1896,15 @@ Storage Bucket: ${firebaseConfig?.storageBucket || '없음'}
           <TouchableOpacity 
             style={styles.editTimeButton}
             onPress={() => {
-              setEditingVisitTime(value || '');
+              const timeString = value || '';
+              const { hour, minute } = parseTime(timeString);
+              setSelectedHour(hour);
+              setSelectedMinute(minute);
+              setEditingVisitTime(timeString);
               setIsVisitTimeModalVisible(true);
             }}
           >
-            <Text style={styles.editTimeButtonText}>✏️ 수정</Text>
+            <Text style={styles.editTimeButtonText}>수정</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -2036,7 +2070,7 @@ Storage Bucket: ${firebaseConfig?.storageBucket || '없음'}
             <Text style={styles.sectionTitle}>배송 정보</Text>
             <DetailItem label="배송상태" value={getStatusText(delivery.status)} />
             <DetailItem label="방문일" value={delivery.visitDate} />
-            <VisitTimeDetailItem label="방문시간" value={delivery.visitTime} />
+            <DetailItem label="방문시간" value={delivery.visitTime} />
             <DetailItem label="배정시간" value={delivery.assignmentTime} />
             <DetailItem label="가구회사" value={delivery.furnitureCompany} />
             <DetailItem label="비상연락망" value={delivery.emergencyContact} />
@@ -2658,15 +2692,57 @@ Storage Bucket: ${firebaseConfig?.storageBucket || '없음'}
           <View style={styles.visitTimeModalContent}>
             <View style={styles.visitTimeFormSection}>
               <Text style={styles.visitTimeFormLabel}>방문시간</Text>
-              <TextInput
-                style={styles.visitTimeInput}
-                placeholder="예: 14:30, 오후 2시 30분"
-                value={editingVisitTime}
-                onChangeText={setEditingVisitTime}
-                autoFocus={true}
-              />
+              
+              <View style={styles.timePickerContainer}>
+                <View style={styles.timePickerSection}>
+                  <Text style={styles.timePickerLabel}>시간</Text>
+                  <ScrollView style={styles.timePicker} showsVerticalScrollIndicator={false}>
+                    {Array.from({length: 24}, (_, i) => (
+                      <TouchableOpacity
+                        key={i}
+                        style={[
+                          styles.timePickerItem,
+                          selectedHour === i && styles.timePickerItemSelected
+                        ]}
+                        onPress={() => setSelectedHour(i)}
+                      >
+                        <Text style={[
+                          styles.timePickerItemText,
+                          selectedHour === i && styles.timePickerItemTextSelected
+                        ]}>
+                          {i.toString().padStart(2, '0')}시
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+                
+                <View style={styles.timePickerSection}>
+                  <Text style={styles.timePickerLabel}>분</Text>
+                  <ScrollView style={styles.timePicker} showsVerticalScrollIndicator={false}>
+                    {Array.from({length: 12}, (_, i) => i * 5).map((minute) => (
+                      <TouchableOpacity
+                        key={minute}
+                        style={[
+                          styles.timePickerItem,
+                          selectedMinute === minute && styles.timePickerItemSelected
+                        ]}
+                        onPress={() => setSelectedMinute(minute)}
+                      >
+                        <Text style={[
+                          styles.timePickerItemText,
+                          selectedMinute === minute && styles.timePickerItemTextSelected
+                        ]}>
+                          {minute.toString().padStart(2, '0')}분
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              </View>
+              
               <Text style={styles.visitTimeHint}>
-                시간 형식: HH:MM (예: 14:30) 또는 자연어 (예: 오후 2시 30분)
+                선택된 시간: {selectedHour.toString().padStart(2, '0')}:{selectedMinute.toString().padStart(2, '0')}
               </Text>
             </View>
 
@@ -4213,14 +4289,46 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 10,
   },
-  visitTimeInput: {
+  timePickerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginVertical: 20,
+  },
+  timePickerSection: {
+    flex: 1,
+    marginHorizontal: 10,
+  },
+  timePickerLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  timePicker: {
+    maxHeight: 200,
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
     backgroundColor: '#fff',
-    marginBottom: 10,
+  },
+  timePickerItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    alignItems: 'center',
+  },
+  timePickerItemSelected: {
+    backgroundColor: '#2196F3',
+  },
+  timePickerItemText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  timePickerItemTextSelected: {
+    color: '#fff',
+    fontWeight: 'bold',
   },
   visitTimeHint: {
     fontSize: 14,
