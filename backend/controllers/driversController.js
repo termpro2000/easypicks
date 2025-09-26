@@ -31,7 +31,7 @@ const ensureDriversTable = async () => {
   }
 };
 
-// 모든 기사 조회 (users 테이블에서 role='DRIVER')
+// 모든 기사 조회 (users 테이블에서 role='driver')
 exports.getAllDrivers = async (req, res) => {
   try {
     const query = `
@@ -48,7 +48,7 @@ exports.getAllDrivers = async (req, res) => {
         created_at,
         updated_at
       FROM users
-      WHERE role = 'DRIVER'
+      WHERE role = 'driver'
       ORDER BY created_at DESC
     `;
     
@@ -69,7 +69,7 @@ exports.getAllDrivers = async (req, res) => {
   }
 };
 
-// 기사 상세 조회 (users 테이블에서 role='DRIVER')
+// 기사 상세 조회 (users 테이블에서 role='driver')
 exports.getDriver = async (req, res) => {
   try {
     const { id } = req.params;
@@ -87,7 +87,7 @@ exports.getDriver = async (req, res) => {
         created_at,
         updated_at
       FROM users
-      WHERE id = ? AND role = 'DRIVER'
+      WHERE id = ? AND role = 'driver'
     `;
     
     const [drivers] = await pool.execute(query, [id]);
@@ -113,7 +113,7 @@ exports.getDriver = async (req, res) => {
   }
 };
 
-// 기사 등록 (users 테이블에 role='DRIVER'로 등록)
+// 기사 등록 (users 테이블에 role='driver'로 등록)
 exports.createDriver = async (req, res) => {
   try {
     const {
@@ -143,12 +143,12 @@ exports.createDriver = async (req, res) => {
       });
     }
 
-    // 기사 등록 (users 테이블에 role='DRIVER'로)
+    // 기사 등록 (users 테이블에 role='driver'로)
     const insertQuery = `
       INSERT INTO users (
         username, password, name, phone, email,
         role, is_active, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, 'DRIVER', 1, NOW(), NOW())
+      ) VALUES (?, ?, ?, ?, ?, 'driver', 1, NOW(), NOW())
     `;
     
     const [result] = await pool.execute(insertQuery, [
@@ -174,7 +174,7 @@ exports.createDriver = async (req, res) => {
   }
 };
 
-// 기사 정보 수정 (users 테이블에서 role='DRIVER')
+// 기사 정보 수정 (users 테이블에서 role='driver')
 exports.updateDriver = async (req, res) => {
   try {
     const { id } = req.params;
@@ -188,7 +188,7 @@ exports.updateDriver = async (req, res) => {
     } = req.body;
 
     // 기사 존재 확인
-    const checkQuery = 'SELECT id FROM users WHERE id = ? AND role = "DRIVER"';
+    const checkQuery = 'SELECT id FROM users WHERE id = ? AND role = "driver"';
     const [existing] = await pool.execute(checkQuery, [id]);
     
     if (existing.length === 0) {
@@ -232,7 +232,7 @@ exports.updateDriver = async (req, res) => {
     const updateQuery = `
       UPDATE users
       SET ${updateFields.join(', ')}
-      WHERE id = ? AND role = 'DRIVER'
+      WHERE id = ? AND role = 'driver'
     `;
     
     updateValues.push(id);
@@ -253,13 +253,13 @@ exports.updateDriver = async (req, res) => {
   }
 };
 
-// 기사 삭제 (users 테이블에서 role='DRIVER')
+// 기사 삭제 (users 테이블에서 role='driver')
 exports.deleteDriver = async (req, res) => {
   try {
     const { id } = req.params;
 
     // 기사 존재 확인
-    const checkQuery = 'SELECT id FROM users WHERE id = ? AND role = "DRIVER"';
+    const checkQuery = 'SELECT id FROM users WHERE id = ? AND role = "driver"';
     const [existing] = await pool.execute(checkQuery, [id]);
     
     if (existing.length === 0) {
@@ -271,7 +271,7 @@ exports.deleteDriver = async (req, res) => {
 
     // 기사 삭제 (또는 비활성화)
     // 실제로는 is_active = 0으로 설정하는 것이 좋을 수 있음
-    const deleteQuery = 'DELETE FROM users WHERE id = ? AND role = "DRIVER"';
+    const deleteQuery = 'DELETE FROM users WHERE id = ? AND role = "driver"';
     await pool.execute(deleteQuery, [id]);
 
     res.json({
@@ -288,7 +288,7 @@ exports.deleteDriver = async (req, res) => {
   }
 };
 
-// 기사 검색 (users 테이블에서 role='DRIVER')
+// 기사 검색 (users 테이블에서 role='driver')
 exports.searchDrivers = async (req, res) => {
   try {
     const { q } = req.query;
@@ -312,7 +312,7 @@ exports.searchDrivers = async (req, res) => {
         created_at,
         updated_at
       FROM users
-      WHERE role = 'DRIVER'
+      WHERE role = 'driver'
         AND (name LIKE ? 
         OR username LIKE ?
         OR phone LIKE ?)

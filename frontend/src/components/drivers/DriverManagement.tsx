@@ -6,8 +6,7 @@ import DriverEditForm from './DriverEditForm';
 
 interface Driver {
   id: number;
-  driver_id?: number;
-  username?: string;
+  username: string;
   name: string;
   phone?: string;
   email?: string;

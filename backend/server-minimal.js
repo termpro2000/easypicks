@@ -787,80 +787,54 @@ app.get('/api/debug/driver/:user_id', async (req, res) => {
   }
 });
 
-// 기사 목록 조회
+// 기사 목록 조회 (users 테이블에서 role='driver')
 app.get('/api/drivers', async (req, res) => {
   try {
-    console.log('🚛 기사 목록 조회 요청');
+    console.log('🚛 기사 목록 조회 요청 (users 테이블에서 role=driver)');
     
     const { page = 1, limit = 50, search = '' } = req.query;
-    
-    // drivers 테이블이 있는지 확인
-    const [tables] = await pool.execute(`
-      SELECT TABLE_NAME 
-      FROM information_schema.TABLES 
-      WHERE TABLE_SCHEMA = DATABASE() 
-      AND TABLE_NAME = 'drivers'
-    `);
-    
-    if (tables.length === 0) {
-      console.log('⚠️ drivers 테이블이 존재하지 않음 - 빈 배열 반환');
-      return res.json({
-        success: true,
-        data: [],
-        pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
-          total: 0,
-          totalPages: 0,
-          hasNext: false,
-          hasPrev: false
-        }
-      });
-    }
-    
-    // drivers 테이블 컬럼 확인
-    const [columns] = await pool.execute(`
-      SELECT COLUMN_NAME 
-      FROM information_schema.COLUMNS 
-      WHERE TABLE_SCHEMA = DATABASE() 
-      AND TABLE_NAME = 'drivers'
-    `);
-    
-    const columnNames = columns.map(col => col.COLUMN_NAME);
-    console.log('📋 drivers 테이블 컬럼:', columnNames);
-    
-    // 기본적으로 존재할 것으로 예상되는 컬럼들만 조회
-    const selectColumns = ['id'];
-    if (columnNames.includes('user_id')) selectColumns.push('user_id');
-    if (columnNames.includes('username')) selectColumns.push('username');
-    if (columnNames.includes('name')) selectColumns.push('name');
-    if (columnNames.includes('email')) selectColumns.push('email');
-    if (columnNames.includes('phone')) selectColumns.push('phone');
-    if (columnNames.includes('vehicle_type')) selectColumns.push('vehicle_type');
-    if (columnNames.includes('vehicle_number')) selectColumns.push('vehicle_number');
-    if (columnNames.includes('license_number')) selectColumns.push('license_number');
-    if (columnNames.includes('is_active')) selectColumns.push('is_active');
-    if (columnNames.includes('created_at')) selectColumns.push('created_at');
-    if (columnNames.includes('updated_at')) selectColumns.push('updated_at');
-    
     const offset = (page - 1) * limit;
     
+    // 검색 조건 구성
+    let whereClause = "WHERE role = 'driver'";
+    const params = [];
+    
+    if (search) {
+      whereClause += ' AND (username LIKE ? OR name LIKE ? OR phone LIKE ? OR email LIKE ?)';
+      const searchTerm = `%${search}%`;
+      params.push(searchTerm, searchTerm, searchTerm, searchTerm);
+    }
+    
+    // users 테이블에서 driver 역할 사용자 조회
     const [drivers] = await pool.execute(`
-      SELECT ${selectColumns.join(', ')}
-      FROM drivers 
-      ORDER BY ${columnNames.includes('created_at') ? 'created_at' : 'id'} DESC
+      SELECT 
+        id,
+        username,
+        name,
+        email,
+        phone,
+        role,
+        is_active,
+        last_login,
+        created_at,
+        updated_at
+      FROM users 
+      ${whereClause}
+      ORDER BY created_at DESC
       LIMIT ? OFFSET ?
-    `, [parseInt(limit), parseInt(offset)]);
+    `, [...params, parseInt(limit), parseInt(offset)]);
     
     // 총 개수 조회
     const [countResult] = await pool.execute(`
-      SELECT COUNT(*) as total FROM drivers
-    `);
+      SELECT COUNT(*) as total 
+      FROM users 
+      ${whereClause}
+    `, params);
     
     const total = countResult[0].total;
     const totalPages = Math.ceil(total / limit);
     
-    console.log(`✅ 기사 목록 조회 성공: ${drivers.length}개`);
+    console.log(`✅ 기사 목록 조회 성공 (users 테이블): ${drivers.length}개`);
     
     res.json({
       success: true,
