@@ -261,6 +261,7 @@ router.put('/:id', authenticateToken, requireRole(['admin']), async (req, res) =
       name,
       email,
       phone,
+      company,
       role,
       is_active
     } = req.body;
@@ -322,6 +323,10 @@ router.put('/:id', authenticateToken, requireRole(['admin']), async (req, res) =
     if (phone !== undefined) {
       updateFields.push('phone = ?');
       updateValues.push(phone);
+    }
+    if (company !== undefined) {
+      updateFields.push('company = ?');
+      updateValues.push(company);
     }
     if (role !== undefined) {
       // 허용된 role 값들 확인
@@ -391,11 +396,16 @@ router.put('/:id', authenticateToken, requireRole(['admin']), async (req, res) =
     });
     
   } catch (error) {
+    console.error('=== PUT /api/users/:id ERROR ===');
     console.error('[Users API] 사용자 수정 오류:', error);
+    console.error('Error stack:', error.stack);
+    console.error('Request ID:', req.params.id);
+    console.error('Request body:', req.body);
     res.status(500).json({
       success: false,
       error: '사용자를 수정할 수 없습니다.',
-      details: error.message
+      details: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });
