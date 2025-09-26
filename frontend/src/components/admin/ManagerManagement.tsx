@@ -163,7 +163,7 @@ const ManagerManagement: React.FC<ManagerManagementProps> = ({ onNavigateBack })
     setShowManagerPassword(false);
   };
 
-  const handleCreateManager = async (e: React.FormEvent) => {
+  const handleCreateManagerModal = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       console.log('ManagerManagement: 매니저 등록 시작');
@@ -650,7 +650,7 @@ const ManagerManagement: React.FC<ManagerManagementProps> = ({ onNavigateBack })
             <div className="fixed inset-0 bg-gray-500 bg-opacity-75" onClick={() => setShowManagerModal(false)}></div>
             
             <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
-              <form onSubmit={handleCreateManager}>
+              <form onSubmit={handleCreateManagerModal}>
                 <div className="bg-white px-6 py-4 max-h-[80vh] overflow-y-auto">
                   <h3 className="text-lg font-medium text-gray-900 mb-4">매니저 등록</h3>
                   
