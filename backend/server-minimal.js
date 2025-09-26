@@ -1367,10 +1367,10 @@ app.get('/api/deliveries', async (req, res) => {
     let query = 'SELECT * FROM deliveries';
     let queryParams = [];
     
-    // 기사별 필터링이 요청된 경우
+    // 기사별 필터링이 요청된 경우 (driver_id만 사용)
     if (driver_id) {
-      query += ' WHERE driver_id = ? OR assigned_driver = ?';
-      queryParams.push(driver_id, driver_id);
+      query += ' WHERE driver_id = ?';
+      queryParams.push(driver_id);
       console.log(`🚛 기사별 배송 목록 조회: driver_id=${driver_id}`);
     }
     
