@@ -42,21 +42,51 @@ const UserEditForm: React.FC<UserEditFormProps> = ({
   const [userDetail, setUserDetail] = useState<any>(null);
   const [editedUserDetail, setEditedUserDetail] = useState<any>({});
 
-  // Role별 색상 톤 시스템 (2025 트렌드) - user만 표시
+  // Role별 색상 톤 시스템 (2025 트렌드)
   const getRoleColorScheme = (role: string) => {
-    if (role !== 'USER' && role !== 'user') {
-      return null; // user가 아니면 null 반환
+    switch (role?.toLowerCase()) {
+      case 'admin':
+        return {
+          primary: '#dc2626',
+          secondary: '#b91c1c',
+          background: '#fef2f2',
+          border: '#fca5a5',
+          text: '#991b1b',
+          icon: '#dc2626',
+          badge: 'bg-red-100 text-red-800'
+        };
+      case 'manager':
+        return {
+          primary: '#7c3aed',
+          secondary: '#6d28d9',
+          background: '#f3e8ff',
+          border: '#c4b5fd',
+          text: '#5b21b6',
+          icon: '#7c3aed',
+          badge: 'bg-purple-100 text-purple-800'
+        };
+      case 'driver':
+        return {
+          primary: '#059669',
+          secondary: '#047857',
+          background: '#ecfdf5',
+          border: '#86efac',
+          text: '#065f46',
+          icon: '#059669',
+          badge: 'bg-green-100 text-green-800'
+        };
+      case 'user':
+      default:
+        return {
+          primary: '#3b82f6',
+          secondary: '#2563eb',
+          background: '#eff6ff',
+          border: '#93c5fd',
+          text: '#1e40af',
+          icon: '#2563eb',
+          badge: 'bg-blue-100 text-blue-800'
+        };
     }
-    
-    return {
-      primary: '#3b82f6',
-      secondary: '#2563eb',
-      background: '#eff6ff',
-      border: '#93c5fd',
-      text: '#1e40af',
-      icon: '#2563eb',
-      badge: 'bg-blue-100 text-blue-800'
-    };
   };
 
   const colorScheme = getRoleColorScheme(user?.role || 'user');
@@ -73,23 +103,6 @@ const UserEditForm: React.FC<UserEditFormProps> = ({
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // role이 user가 아니면 컴포넌트를 렌더링하지 않음
-  if (!colorScheme) {
-    return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="bg-white p-8 rounded-lg shadow-lg">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">접근 권한 없음</h2>
-          <p className="text-gray-600 mb-4">이 기능은 파트너사 역할의 사용자만 사용할 수 있습니다.</p>
-          <button 
-            onClick={onNavigateBack}
-            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-          >
-            돌아가기
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   useEffect(() => {
     if (user?.id) {
@@ -436,6 +449,37 @@ const UserEditForm: React.FC<UserEditFormProps> = ({
               ) : (
                 <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-800 font-medium">
                   {user.company || '미등록'}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                <Shield className="w-4 h-4" style={{ color: colorScheme.icon }} />
+                역할
+              </label>
+              {isEditing ? (
+                <select
+                  value={editedUser.role || 'user'}
+                  onChange={(e) => setEditedUser({ ...editedUser, role: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:border-blue-400 transition-all bg-white"
+                  style={{ 
+                    focusRingColor: colorScheme.secondary,
+                    '--tw-ring-color': colorScheme.secondary 
+                  } as any}
+                >
+                  <option value="user">파트너사</option>
+                  <option value="manager">매니저</option>
+                  <option value="admin">관리자</option>
+                  <option value="driver">기사</option>
+                </select>
+              ) : (
+                <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-800 font-medium">
+                  {user.role === 'user' ? '파트너사' : 
+                   user.role === 'manager' ? '매니저' :
+                   user.role === 'admin' ? '관리자' :
+                   user.role === 'driver' ? '기사' : 
+                   user.role || '미설정'}
                 </div>
               )}
             </div>
