@@ -166,13 +166,36 @@ const UserEditForm: React.FC<UserEditFormProps> = ({
       setIsSaving(true);
       setError(null);
 
-      // 기본 사용자 정보 업데이트
-      const response = await userAPI.updateUser(user.id, editedUser);
+      // users 테이블 필드만 분리
+      const usersTableData = {
+        username: editedUser.username,
+        name: editedUser.name,
+        email: editedUser.email,
+        phone: editedUser.phone,
+        role: editedUser.role,
+        company: editedUser.company,
+        is_active: editedUser.is_active
+      };
+
+      // user_detail JSON 필드 준비 (address 필드명 수정)
+      const userDetailData = {
+        business_number: editedUserDetail?.business_number,
+        representative_name: editedUserDetail?.representative_name,
+        business_type: editedUserDetail?.business_type,
+        service_area: editedUserDetail?.service_area,
+        sender_address: editedUser.default_sender_address,
+        sender_detail_address: editedUser.default_sender_detail_address,
+        sender_zipcode: editedUser.default_sender_zipcode
+      };
+
+      // users 테이블 업데이트
+      const response = await userAPI.updateUser(user.id, usersTableData);
       
-      // User detail 업데이트 (있는 경우만)
-      if (editedUserDetail && Object.keys(editedUserDetail).length > 0) {
+      // user_detail 업데이트 (데이터가 있는 경우만)
+      const hasUserDetailData = Object.values(userDetailData).some(value => value !== undefined && value !== null && value !== '');
+      if (hasUserDetailData) {
         try {
-          await userDetailAPI.updateUserDetail(user.id, editedUserDetail);
+          await userDetailAPI.updateUserDetail(user.id, { detail: userDetailData });
         } catch (detailError) {
           console.log('User detail 업데이트 실패:', detailError);
         }
@@ -191,8 +214,9 @@ const UserEditForm: React.FC<UserEditFormProps> = ({
         });
       }
 
-      setUser(editedUser);
-      setUserDetail(editedUserDetail);
+      // 성공적으로 저장된 데이터로 로컬 상태 업데이트
+      setUser({ ...user, ...usersTableData });
+      setUserDetail(userDetailData);
       setIsEditing(false);
       setSuccessMessage('파트너사 정보가 성공적으로 업데이트되었습니다.');
       setShowPasswordSection(false);
