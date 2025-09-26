@@ -31,7 +31,7 @@ const ensureDriversTable = async () => {
   }
 };
 
-// 모든 기사 조회
+// 모든 기사 조회 (users 테이블에서 role='DRIVER')
 exports.getAllDrivers = async (req, res) => {
   try {
     const query = `
@@ -42,13 +42,13 @@ exports.getAllDrivers = async (req, res) => {
         name,
         phone,
         email,
-        vehicle_type,
-        vehicle_number,
-        license_number,
+        role,
         is_active,
+        last_login,
         created_at,
         updated_at
-      FROM drivers
+      FROM users
+      WHERE role = 'DRIVER'
       ORDER BY created_at DESC
     `;
     
@@ -69,7 +69,7 @@ exports.getAllDrivers = async (req, res) => {
   }
 };
 
-// 기사 상세 조회
+// 기사 상세 조회 (users 테이블에서 role='DRIVER')
 exports.getDriver = async (req, res) => {
   try {
     const { id } = req.params;
@@ -81,14 +81,13 @@ exports.getDriver = async (req, res) => {
         name,
         phone,
         email,
-        vehicle_type,
-        vehicle_number,
-        license_number,
+        role,
         is_active,
+        last_login,
         created_at,
         updated_at
-      FROM drivers
-      WHERE id = ?
+      FROM users
+      WHERE id = ? AND role = 'DRIVER'
     `;
     
     const [drivers] = await pool.execute(query, [id]);
@@ -114,7 +113,7 @@ exports.getDriver = async (req, res) => {
   }
 };
 
-// 기사 등록
+// 기사 등록 (users 테이블에 role='DRIVER'로 등록)
 exports.createDriver = async (req, res) => {
   try {
     const {
@@ -122,10 +121,7 @@ exports.createDriver = async (req, res) => {
       password,
       name,
       phone,
-      email,
-      vehicle_type,
-      vehicle_number,
-      license_number
+      email
     } = req.body;
 
     // 필수 필드 확인
@@ -137,7 +133,7 @@ exports.createDriver = async (req, res) => {
     }
 
     // 중복 사용자명 확인
-    const checkQuery = 'SELECT id FROM drivers WHERE username = ?';
+    const checkQuery = 'SELECT id FROM users WHERE username = ?';
     const [existing] = await pool.execute(checkQuery, [username]);
     
     if (existing.length > 0) {
@@ -147,13 +143,12 @@ exports.createDriver = async (req, res) => {
       });
     }
 
-    // 기사 등록
+    // 기사 등록 (users 테이블에 role='DRIVER'로)
     const insertQuery = `
-      INSERT INTO drivers (
+      INSERT INTO users (
         username, password, name, phone, email,
-        vehicle_type, vehicle_number, license_number,
-        is_active, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, NOW(), NOW())
+        role, is_active, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, 'DRIVER', 1, NOW(), NOW())
     `;
     
     const [result] = await pool.execute(insertQuery, [
@@ -161,10 +156,7 @@ exports.createDriver = async (req, res) => {
       password, // 실제 환경에서는 암호화 필요
       name,
       phone || null,
-      email || null,
-      vehicle_type || null,
-      vehicle_number || null,
-      license_number || null
+      email || null
     ]);
 
     res.status(201).json({
@@ -182,7 +174,7 @@ exports.createDriver = async (req, res) => {
   }
 };
 
-// 기사 정보 수정
+// 기사 정보 수정 (users 테이블에서 role='DRIVER')
 exports.updateDriver = async (req, res) => {
   try {
     const { id } = req.params;
@@ -192,14 +184,11 @@ exports.updateDriver = async (req, res) => {
       name,
       phone,
       email,
-      vehicle_type,
-      vehicle_number,
-      license_number,
       is_active
     } = req.body;
 
     // 기사 존재 확인
-    const checkQuery = 'SELECT id FROM drivers WHERE id = ?';
+    const checkQuery = 'SELECT id FROM users WHERE id = ? AND role = "DRIVER"';
     const [existing] = await pool.execute(checkQuery, [id]);
     
     if (existing.length === 0) {
@@ -233,18 +222,6 @@ exports.updateDriver = async (req, res) => {
       updateFields.push('email = ?');
       updateValues.push(email);
     }
-    if (vehicle_type !== undefined) {
-      updateFields.push('vehicle_type = ?');
-      updateValues.push(vehicle_type);
-    }
-    if (vehicle_number !== undefined) {
-      updateFields.push('vehicle_number = ?');
-      updateValues.push(vehicle_number);
-    }
-    if (license_number !== undefined) {
-      updateFields.push('license_number = ?');
-      updateValues.push(license_number);
-    }
     if (is_active !== undefined) {
       updateFields.push('is_active = ?');
       updateValues.push(is_active ? 1 : 0);
@@ -253,9 +230,9 @@ exports.updateDriver = async (req, res) => {
     updateFields.push('updated_at = NOW()');
     
     const updateQuery = `
-      UPDATE drivers
+      UPDATE users
       SET ${updateFields.join(', ')}
-      WHERE id = ?
+      WHERE id = ? AND role = 'DRIVER'
     `;
     
     updateValues.push(id);
@@ -276,13 +253,13 @@ exports.updateDriver = async (req, res) => {
   }
 };
 
-// 기사 삭제
+// 기사 삭제 (users 테이블에서 role='DRIVER')
 exports.deleteDriver = async (req, res) => {
   try {
     const { id } = req.params;
 
     // 기사 존재 확인
-    const checkQuery = 'SELECT id FROM drivers WHERE id = ?';
+    const checkQuery = 'SELECT id FROM users WHERE id = ? AND role = "DRIVER"';
     const [existing] = await pool.execute(checkQuery, [id]);
     
     if (existing.length === 0) {
@@ -294,7 +271,7 @@ exports.deleteDriver = async (req, res) => {
 
     // 기사 삭제 (또는 비활성화)
     // 실제로는 is_active = 0으로 설정하는 것이 좋을 수 있음
-    const deleteQuery = 'DELETE FROM drivers WHERE id = ?';
+    const deleteQuery = 'DELETE FROM users WHERE id = ? AND role = "DRIVER"';
     await pool.execute(deleteQuery, [id]);
 
     res.json({
@@ -311,7 +288,7 @@ exports.deleteDriver = async (req, res) => {
   }
 };
 
-// 기사 검색
+// 기사 검색 (users 테이블에서 role='DRIVER')
 exports.searchDrivers = async (req, res) => {
   try {
     const { q } = req.query;
@@ -324,26 +301,26 @@ exports.searchDrivers = async (req, res) => {
     const query = `
       SELECT 
         id,
+        id as driver_id,
         username,
         name,
         phone,
         email,
-        vehicle_type,
-        vehicle_number,
-        license_number,
+        role,
         is_active,
+        last_login,
         created_at,
         updated_at
-      FROM drivers
-      WHERE name LIKE ? 
+      FROM users
+      WHERE role = 'DRIVER'
+        AND (name LIKE ? 
         OR username LIKE ?
-        OR phone LIKE ?
-        OR vehicle_number LIKE ?
+        OR phone LIKE ?)
       ORDER BY created_at DESC
     `;
     
     const [drivers] = await pool.execute(query, [
-      searchTerm, searchTerm, searchTerm, searchTerm
+      searchTerm, searchTerm, searchTerm
     ]);
     
     res.json({

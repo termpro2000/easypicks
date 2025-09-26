@@ -7,15 +7,13 @@ import DriverEditForm from './DriverEditForm';
 interface Driver {
   id: number;
   driver_id?: number;
-  user_id?: string;
   username?: string;
   name: string;
   phone?: string;
   email?: string;
-  vehicle_type?: string;
-  vehicle_number?: string;
-  license_number?: string;
+  role?: string;
   is_active?: boolean;
+  last_login?: string;
   created_at: string;
   updated_at: string;
 }
@@ -108,10 +106,9 @@ const DriverManagement: React.FC = () => {
   // 필터링된 기사 목록
   const filteredDrivers = drivers.filter(driver =>
     driver.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    driver.user_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     driver.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     driver.phone?.includes(searchTerm) ||
-    driver.vehicle_number?.toLowerCase().includes(searchTerm.toLowerCase())
+    driver.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // 기사등록 폼 표시
@@ -177,7 +174,7 @@ const DriverManagement: React.FC = () => {
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white/60 w-5 h-5" />
             <input
               type="text"
-              placeholder="기사명, 사용자명, 연락처, 차량번호로 검색..."
+              placeholder="기사명, 사용자명, 연락처, 이메일로 검색..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
@@ -300,7 +297,7 @@ const DriverManagement: React.FC = () => {
                         <div>
                           <h3 className="text-xl font-bold text-white mb-1">{driver.name}</h3>
                           <p className="text-cyan-200 font-medium">
-                            {driver.user_id ? `@${driver.user_id}` : (driver.username ? `@${driver.username}` : '-')}
+                            {driver.username ? `@${driver.username}` : '-'}
                           </p>
                         </div>
                       </div>
@@ -347,24 +344,16 @@ const DriverManagement: React.FC = () => {
                       )}
                     </div>
 
-                    {/* 차량 정보 */}
+                    {/* 사용자 정보 */}
                     <div className="space-y-3 mb-6 p-4 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10">
-                      <h4 className="text-cyan-300 font-semibold text-sm">차량 정보</h4>
-                      {driver.vehicle_type && (
-                        <div className="flex items-center gap-3">
-                          <Truck className="w-4 h-4 text-emerald-300" />
-                          <span className="text-white/90 text-sm">{driver.vehicle_type}</span>
-                        </div>
-                      )}
-                      {driver.vehicle_number && (
-                        <div className="flex items-center gap-3">
-                          <Hash className="w-4 h-4 text-cyan-300" />
-                          <span className="text-white/90 font-mono text-sm">{driver.vehicle_number}</span>
-                        </div>
-                      )}
-                      {driver.license_number && (
+                      <h4 className="text-cyan-300 font-semibold text-sm">사용자 정보</h4>
+                      <div className="flex items-center gap-3">
+                        <Hash className="w-4 h-4 text-cyan-300" />
+                        <span className="text-white/90 text-sm">역할: {driver.role || 'DRIVER'}</span>
+                      </div>
+                      {driver.last_login && (
                         <div className="text-white/60 text-xs">
-                          면허: {driver.license_number}
+                          최근 로그인: {new Date(driver.last_login).toLocaleDateString('ko-KR')}
                         </div>
                       )}
                     </div>
