@@ -8,6 +8,8 @@ const createDelivery = async (req, res) => {
   try {
     console.log('📦 [createDelivery] 새로운 배송 접수 생성 시작');
     console.log('📋 [createDelivery] 받은 데이터:', JSON.stringify(req.body, null, 2));
+    console.log('📋 [createDelivery] req.body.products 확인:', req.body.products);
+    console.log('📋 [createDelivery] req.body.products type:', typeof req.body.products);
 
     // 입력 데이터 구조분해
     const {
@@ -295,7 +297,12 @@ const createDelivery = async (req, res) => {
         fieldsStored: finalColumns.length,
         productsCount: productsCount
       },
-      trackingNumber: tracking_number
+      trackingNumber: tracking_number,
+      debug: {
+        receivedProducts: req.body.products,
+        productsType: typeof req.body.products,
+        productsLength: req.body.products ? req.body.products.length : 'undefined'
+      }
     };
 
     res.status(201).json(responseData);
