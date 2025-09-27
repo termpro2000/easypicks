@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { 
   User, Phone, Building, MapPin, Package, Truck, 
@@ -147,61 +147,62 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack, s
   }, []);
 
   // 사용자 목록 로드
+  // 파트너 정보 로딩 함수를 useCallback으로 안정화
+  const loadPartnerInfo = useCallback(async () => {
+    if (!selectedPartnerId) {
+      setPartnerInfo(null);
+      return;
+    }
+
+    setIsLoadingPartner(true);
+    try {
+      const response = await userAPI.getUserById(selectedPartnerId.toString());
+      if (response.success && response.data) {
+        setPartnerInfo(response.data);
+        
+        // 파트너 정보로 발송인 정보 자동 채우기
+        const partner = response.data;
+        
+        // 발송인 이름 설정
+        if (partner.name) {
+          setValue('sender_name', partner.name);
+        }
+        
+        // 발송인 주소 설정
+        if (partner.address) {
+          setValue('sender_address', partner.address);
+        }
+        
+        // 발송인 상세주소 설정
+        if (partner.detail_address) {
+          setValue('sender_detail_address', partner.detail_address);
+        }
+        
+        // 가구회사명 설정 (파트너명으로 설정)
+        if (partner.name) {
+          setValue('furniture_company', partner.name);
+        }
+        
+        // 긴급연락처 설정
+        if (partner.phone) {
+          setValue('emergency_contact', partner.phone);
+        }
+      } else {
+        console.error('파트너 정보 로드 실패');
+        setPartnerInfo(null);
+      }
+    } catch (error) {
+      console.error('파트너 정보 로드 실패:', error);
+      setPartnerInfo(null);
+    } finally {
+      setIsLoadingPartner(false);
+    }
+  }, [selectedPartnerId, setValue]);
+
   // 선택된 파트너 정보 로드
   useEffect(() => {
-    const loadPartnerInfo = async () => {
-      if (!selectedPartnerId) {
-        setPartnerInfo(null);
-        return;
-      }
-
-      setIsLoadingPartner(true);
-      try {
-        const response = await userAPI.getUserById(selectedPartnerId.toString());
-        if (response.success && response.data) {
-          setPartnerInfo(response.data);
-          
-          // 파트너 정보로 발송인 정보 자동 채우기
-          const partner = response.data;
-          
-          // 발송인 이름 설정
-          if (partner.name) {
-            setValue('sender_name', partner.name);
-          }
-          
-          // 발송인 주소 설정
-          if (partner.address) {
-            setValue('sender_address', partner.address);
-          }
-          
-          // 발송인 상세주소 설정
-          if (partner.detail_address) {
-            setValue('sender_detail_address', partner.detail_address);
-          }
-          
-          // 가구회사명 설정 (파트너명으로 설정)
-          if (partner.name) {
-            setValue('furniture_company', partner.name);
-          }
-          
-          // 긴급연락처 설정
-          if (partner.phone) {
-            setValue('emergency_contact', partner.phone);
-          }
-        } else {
-          console.error('파트너 정보 로드 실패');
-          setPartnerInfo(null);
-        }
-      } catch (error) {
-        console.error('파트너 정보 로드 실패:', error);
-        setPartnerInfo(null);
-      } finally {
-        setIsLoadingPartner(false);
-      }
-    };
-
     loadPartnerInfo();
-  }, [selectedPartnerId, setValue]);
+  }, [loadPartnerInfo]);
 
   // 의뢰종류 목록 로드
   useEffect(() => {
