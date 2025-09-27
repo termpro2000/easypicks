@@ -2825,8 +2825,15 @@ app.post('/api/products', async (req, res) => {
         cost1, cost2, memo, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
     `, [
-      user_id || null, name, maincode, subcode, weight, size,
-      cost1 || 0, cost2 || 0, memo
+      user_id || null, 
+      name || null, 
+      maincode || null, 
+      subcode || null, 
+      weight || null, 
+      size || null,
+      cost1 || null, 
+      cost2 || null, 
+      memo || null
     ]);
     
     console.log('✅ 상품 생성 성공:', { id: result.insertId, name });
