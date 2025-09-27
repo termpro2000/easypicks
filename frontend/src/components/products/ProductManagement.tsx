@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Package2, Plus, Search, Trash2, X, Building, Edit } from 'lucide-react';
 import { productsAPI } from '../../services/api';
 import ProductForm from './ProductForm';
+import EditProductForm from './EditProductForm';
 
 interface Product {
   id: number;
@@ -143,11 +144,11 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ onNavigateBack })
 
   if (currentView === 'edit-form' && editingProduct) {
     return (
-      <ProductForm 
+      <EditProductForm 
         onNavigateBack={handleBackToList}
         onSuccess={handleFormSuccess}
         selectedPartnerId={selectedPartner?.id}
-        initialData={editingProduct}
+        product={editingProduct}
       />
     );
   }
@@ -263,7 +264,7 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ onNavigateBack })
                 </div>
               ) : (
                 filteredProducts.map((product) => (
-                  <div key={product.id} className="px-6 py-4 hover:bg-gray-50">
+                  <div key={product.id} className="px-6 py-4 hover:bg-gray-50 cursor-pointer" onClick={() => handleEditProduct(product)}>
                     <div className="grid grid-cols-8 gap-4 items-center text-sm">
                       <div className="font-mono text-blue-600">{product.code}</div>
                       <div className="col-span-2">
@@ -290,14 +291,20 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ onNavigateBack })
                       </div>
                       <div className="flex items-center justify-center gap-2">
                         <button
-                          onClick={() => handleEditProduct(product)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditProduct(product);
+                          }}
                           className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                           title="수정"
                         >
                           <Edit className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleDeleteProduct(product.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteProduct(product.id);
+                          }}
                           className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                           title="삭제"
                         >
