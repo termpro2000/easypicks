@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { 
   User, Phone, Building, MapPin, Package, Truck, 
@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { shippingAPI, deliveriesAPI, productsAPI, userAPI } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
-import ProductSelectionModal from '../partner/ProductSelectionModal';
+// import ProductSelectionModal from '../partner/ProductSelectionModal';
 
 // Daum 우편번호 서비스 타입 선언
 declare global {
@@ -147,62 +147,51 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack, s
   }, []);
 
   // 사용자 목록 로드
-  // 파트너 정보 로딩 함수를 useCallback으로 안정화
-  const loadPartnerInfo = useCallback(async () => {
+  // 선택된 파트너 정보 로드 (단순화)
+  useEffect(() => {
     if (!selectedPartnerId) {
       setPartnerInfo(null);
       return;
     }
 
-    setIsLoadingPartner(true);
-    try {
-      const response = await userAPI.getUserById(selectedPartnerId.toString());
-      if (response.success && response.data) {
-        setPartnerInfo(response.data);
-        
-        // 파트너 정보로 발송인 정보 자동 채우기
-        const partner = response.data;
-        
-        // 발송인 이름 설정
-        if (partner.name) {
-          setValue('sender_name', partner.name);
+    const loadPartnerInfo = async () => {
+      setIsLoadingPartner(true);
+      try {
+        const response = await userAPI.getUserById(selectedPartnerId.toString());
+        if (response.success && response.data) {
+          const partner = response.data;
+          setPartnerInfo(partner);
+          
+          // 파트너 정보로 발송인 정보 자동 채우기 (setTimeout으로 지연)
+          setTimeout(() => {
+            if (partner.name) {
+              setValue('sender_name', partner.name);
+              setValue('furniture_company', partner.name);
+            }
+            if (partner.address) {
+              setValue('sender_address', partner.address);
+            }
+            if (partner.detail_address) {
+              setValue('sender_detail_address', partner.detail_address);
+            }
+            if (partner.phone) {
+              setValue('emergency_contact', partner.phone);
+            }
+          }, 100);
+        } else {
+          console.error('파트너 정보 로드 실패');
+          setPartnerInfo(null);
         }
-        
-        // 발송인 주소 설정
-        if (partner.address) {
-          setValue('sender_address', partner.address);
-        }
-        
-        // 발송인 상세주소 설정
-        if (partner.detail_address) {
-          setValue('sender_detail_address', partner.detail_address);
-        }
-        
-        // 가구회사명 설정 (파트너명으로 설정)
-        if (partner.name) {
-          setValue('furniture_company', partner.name);
-        }
-        
-        // 긴급연락처 설정
-        if (partner.phone) {
-          setValue('emergency_contact', partner.phone);
-        }
-      } else {
-        console.error('파트너 정보 로드 실패');
+      } catch (error) {
+        console.error('파트너 정보 로드 실패:', error);
         setPartnerInfo(null);
+      } finally {
+        setIsLoadingPartner(false);
       }
-    } catch (error) {
-      console.error('파트너 정보 로드 실패:', error);
-      setPartnerInfo(null);
-    } finally {
-      setIsLoadingPartner(false);
-    }
-  }, [selectedPartnerId, setValue]);
+    };
 
-  // 선택된 파트너 정보 로드
-  useEffect(() => {
     loadPartnerInfo();
-  }, [loadPartnerInfo]);
+  }, [selectedPartnerId]);
 
   // 의뢰종류 목록 로드
   useEffect(() => {
@@ -239,21 +228,7 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack, s
     };
   }, []);
 
-  const { register, handleSubmit, formState: { errors }, setValue } = useForm<DeliveryData>({
-    defaultValues: {
-      status: 'pending',
-      building_type: '아파트',
-      request_type: '일반',
-      construction_type: '1인시공',
-      elevator_available: false,
-      ladder_truck: false,
-      disposal: false,
-      room_movement: false,
-      wall_construction: false,
-      fragile: false,
-      floor_count: 1
-    }
-  });
+  const { register, handleSubmit, formState: { errors }, setValue } = useForm<DeliveryData>();
 
   // 랜덤 데이터 생성 함수들
   const generateRandomName = () => {
@@ -1381,12 +1356,12 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack, s
         </form>
       </main>
 
-      {/* 상품 선택 모달 */}
-      <ProductSelectionModal
+      {/* 상품 선택 모달 - 임시 비활성화 */}
+      {/* <ProductSelectionModal
         isOpen={isProductModalOpen}
         onClose={() => setIsProductModalOpen(false)}
         onSelectProduct={handleSelectProduct}
-      />
+      /> */}
 
     </div>
   );
