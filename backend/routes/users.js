@@ -16,9 +16,9 @@ router.get('/', authenticateToken, requireRole(['admin']), async (req, res) => {
     const params = [];
     
     if (search) {
-      whereClause += ' AND (username LIKE ? OR name LIKE ? OR email LIKE ? OR company LIKE ?)';
+      whereClause += ' AND (username LIKE ? OR name LIKE ? OR email LIKE ?)';
       const searchTerm = `%${search}%`;
-      params.push(searchTerm, searchTerm, searchTerm, searchTerm);
+      params.push(searchTerm, searchTerm, searchTerm);
     }
     
     if (role) {
