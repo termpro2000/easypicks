@@ -223,8 +223,7 @@ app.get('/api/users/:id', async (req, res) => {
     const [users] = await pool.execute(`
       SELECT 
         id, username, name, email, phone, role, is_active,
-        last_login, created_at, updated_at,
-        default_sender_address, default_sender_detail_address, default_sender_zipcode
+        last_login, created_at, updated_at
       FROM users WHERE id = ?
     `, [id]);
     
@@ -263,8 +262,7 @@ app.post('/api/users', async (req, res) => {
     console.log('📋 요청 본문:', req.body);
     
     const {
-      username, password, name, email, phone, role = 'user',
-      default_sender_address, default_sender_detail_address, default_sender_zipcode
+      username, password, name, email, phone, role = 'user'
     } = req.body;
     
     console.log('📝 추출된 필드:', { username, name, email, phone, role });
@@ -298,26 +296,20 @@ app.post('/api/users', async (req, res) => {
     // undefined를 null로 변환
     const safeEmail = email || null;
     const safePhone = phone || null;
-    const safeDefaultSenderAddress = default_sender_address || null;
-    const safeDefaultSenderDetailAddress = default_sender_detail_address || null;
-    const safeDefaultSenderZipcode = default_sender_zipcode || null;
     
     console.log('📝 SQL 파라미터:', {
       username, hashedPassword: '***', name, 
-      safeEmail, safePhone, safeCompany, role,
-      safeDefaultSenderAddress, safeDefaultSenderDetailAddress, safeDefaultSenderZipcode
+      safeEmail, safePhone, role
     });
     
     // 사용자 생성
     const [result] = await pool.execute(`
       INSERT INTO users (
         username, password, name, email, phone, role,
-        default_sender_address, default_sender_detail_address, default_sender_zipcode,
         is_active, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW(), NOW())
+      ) VALUES (?, ?, ?, ?, ?, ?, 1, NOW(), NOW())
     `, [
-      username, hashedPassword, name, safeEmail, safePhone, role,
-      safeDefaultSenderAddress, safeDefaultSenderDetailAddress, safeDefaultSenderZipcode
+      username, hashedPassword, name, safeEmail, safePhone, role
     ]);
     
     console.log('✅ 사용자 생성 성공:', { id: result.insertId, username });
@@ -360,7 +352,6 @@ app.put('/api/users/:id', async (req, res) => {
     
     const {
       username, password, name, email, phone, role,
-      default_sender_address, default_sender_detail_address, default_sender_zipcode,
       is_active
     } = req.body;
     
@@ -399,9 +390,6 @@ app.put('/api/users/:id', async (req, res) => {
     if (email !== undefined) { updates.push('email = ?'); values.push(email); }
     if (phone !== undefined) { updates.push('phone = ?'); values.push(phone); }
     if (role !== undefined) { updates.push('role = ?'); values.push(role); }
-    if (default_sender_address !== undefined) { updates.push('default_sender_address = ?'); values.push(default_sender_address); }
-    if (default_sender_detail_address !== undefined) { updates.push('default_sender_detail_address = ?'); values.push(default_sender_detail_address); }
-    if (default_sender_zipcode !== undefined) { updates.push('default_sender_zipcode = ?'); values.push(default_sender_zipcode); }
     if (is_active !== undefined) { updates.push('is_active = ?'); values.push(is_active ? 1 : 0); }
     
     if (updates.length === 0) {
