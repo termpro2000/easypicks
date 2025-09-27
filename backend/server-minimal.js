@@ -157,7 +157,7 @@ app.get('/api/users', async (req, res) => {
     // 파라미터에 LIMIT과 OFFSET 추가
     params.push(parseInt(limit), parseInt(offset));
     
-    // 사용자 목록 조회
+    // 사용자 목록 조회 (기본 컬럼만 사용)
     const [users] = await pool.execute(`
       SELECT 
         id,
@@ -167,12 +167,8 @@ app.get('/api/users', async (req, res) => {
         phone,
         role,
         is_active,
-        last_login,
         created_at,
-        updated_at,
-        default_sender_address,
-        default_sender_detail_address,
-        default_sender_zipcode
+        updated_at
       FROM users 
       ${whereClause}
       ORDER BY created_at DESC
