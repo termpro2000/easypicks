@@ -146,7 +146,6 @@ router.post('/', authenticateToken, requireRole(['admin']), async (req, res) => 
     const name = req.body.name;
     const email = req.body.email || null;
     const phone = req.body.phone || null;
-    const company = req.body.company || null;
     const role = req.body.role || 'user';
     
     // 허용된 role 값들 확인 (모든 역할 포함)
@@ -160,7 +159,7 @@ router.post('/', authenticateToken, requireRole(['admin']), async (req, res) => 
     const is_active = req.body.is_active !== undefined ? req.body.is_active : true;
     
     console.log('처리된 데이터:', {
-      username, password: password ? '***' : 'NO_PASSWORD', name, email, phone, company, role, is_active
+      username, password: password ? '***' : 'NO_PASSWORD', name, email, phone, role, is_active
     });
     
     // 필수 필드 검증
@@ -200,7 +199,6 @@ router.post('/', authenticateToken, requireRole(['admin']), async (req, res) => 
     const optionalFields = [
       { name: 'email', value: email },
       { name: 'phone', value: phone },
-      { name: 'company', value: company },
       { name: 'role', value: role },
       { name: 'is_active', value: is_active }
     ];
@@ -232,7 +230,6 @@ router.post('/', authenticateToken, requireRole(['admin']), async (req, res) => 
         name,
         email,
         phone,
-        company,
         role,
         is_active
       }
@@ -261,7 +258,6 @@ router.put('/:id', authenticateToken, requireRole(['admin']), async (req, res) =
       name,
       email,
       phone,
-      company,
       role,
       is_active
     } = req.body;
@@ -326,10 +322,6 @@ router.put('/:id', authenticateToken, requireRole(['admin']), async (req, res) =
     if (phone !== undefined) {
       updateFields.push('phone = ?');
       updateValues.push(phone);
-    }
-    if (company !== undefined) {
-      updateFields.push('company = ?');
-      updateValues.push(company);
     }
     if (role !== undefined) {
       // 허용된 role 값들 확인
