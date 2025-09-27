@@ -2802,6 +2802,7 @@ app.get('/api/products/:id', async (req, res) => {
 app.post('/api/products', async (req, res) => {
   try {
     console.log('📦 새 상품 생성 요청');
+    console.log('📦 요청 데이터:', JSON.stringify(req.body, null, 2));
     
     const {
       name, maincode, subcode, weight, size,
@@ -2843,10 +2844,13 @@ app.post('/api/products', async (req, res) => {
     
   } catch (error) {
     console.error('❌ 상품 생성 오류:', error);
+    console.error('❌ 에러 스택:', error.stack);
+    console.error('❌ SQL 쿼리 관련:', error.sql);
     res.status(500).json({
       success: false,
       error: '상품 생성 중 오류가 발생했습니다.',
-      details: error.message
+      details: error.message,
+      sqlError: error.sql
     });
   }
 });
