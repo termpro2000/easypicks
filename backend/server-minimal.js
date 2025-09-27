@@ -2715,7 +2715,8 @@ app.put('/api/shipping/orders/:id', async (req, res) => {
 // 모든 상품 조회
 app.get('/api/products', async (req, res) => {
   try {
-    console.log('📦 상품 목록 조회 요청');
+    const { user_id } = req.query;
+    console.log('📦 상품 목록 조회 요청', user_id ? `(user_id: ${user_id})` : '(전체)');
     
     // products 테이블이 있는지 확인
     const [tables] = await pool.execute(`
@@ -2734,10 +2735,18 @@ app.get('/api/products', async (req, res) => {
       });
     }
 
-    const [products] = await pool.execute(`
-      SELECT * FROM products 
-      ORDER BY created_at DESC
-    `);
+    // user_id 파라미터가 있으면 해당 사용자의 상품만 조회
+    let query = 'SELECT * FROM products';
+    let params = [];
+    
+    if (user_id) {
+      query += ' WHERE user_id = ?';
+      params.push(parseInt(user_id));
+    }
+    
+    query += ' ORDER BY created_at DESC';
+
+    const [products] = await pool.execute(query, params);
 
     console.log(`✅ 상품 목록 조회 완료: ${products.length}개`);
 
@@ -2796,7 +2805,7 @@ app.post('/api/products', async (req, res) => {
     
     const {
       name, maincode, subcode, weight, size,
-      cost1, cost2, memo, partner_id
+      cost1, cost2, memo, user_id
     } = req.body;
     
     // 필수 필드 검증
@@ -2807,13 +2816,15 @@ app.post('/api/products', async (req, res) => {
       });
     }
     
+    console.log('📦 상품 생성 데이터:', { name, user_id, maincode, subcode });
+    
     const [result] = await pool.execute(`
       INSERT INTO products (
         user_id, name, maincode, subcode, weight, size,
         cost1, cost2, memo, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
     `, [
-      1, name, maincode, subcode, weight, size,
+      user_id || null, name, maincode, subcode, weight, size,
       cost1 || 0, cost2 || 0, memo
     ]);
     
