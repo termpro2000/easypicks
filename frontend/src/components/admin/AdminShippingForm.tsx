@@ -179,9 +179,9 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack, s
             setValue('sender_detail_address', partner.detail_address);
           }
           
-          // 가구회사명 설정
-          if (partner.company) {
-            setValue('furniture_company', partner.company);
+          // 가구회사명 설정 (파트너명으로 설정)
+          if (partner.name) {
+            setValue('furniture_company', partner.name);
           }
           
           // 긴급연락처 설정
