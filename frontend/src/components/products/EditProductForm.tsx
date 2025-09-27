@@ -1,23 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { Save, X, Building, Package2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Save, X, Package2 } from 'lucide-react';
 import { productsAPI } from '../../services/api';
-
-interface Partner {
-  id: number;
-  name: string;
-  code?: string;
-}
 
 interface Product {
   id: number;
-  partner_id?: number;
+  user_id?: number;
   name: string;
-  code?: string;
+  maincode?: string;
+  subcode?: string;
   weight?: number;
   size?: string;
-  category?: string;
-  partner_company?: string;
-  description?: string;
   cost1?: number;
   cost2?: number;
   memo?: string;
@@ -34,58 +26,31 @@ interface EditProductFormProps {
 
 interface ProductFormData {
   name: string;
-  code: string;
+  maincode: string;
+  subcode: string;
   weight: string;
   size: string;
-  category: string;
-  description: string;
   cost1: string;
   cost2: string;
   memo: string;
-  partner_id?: number;
 }
 
-const EditProductForm: React.FC<EditProductFormProps> = ({ onNavigateBack, onSuccess, selectedPartnerId, product }) => {
+const EditProductForm: React.FC<EditProductFormProps> = ({ onNavigateBack, onSuccess, product }) => {
   const [formData, setFormData] = useState<ProductFormData>({
     name: product.name || '',
-    code: product.code || '',
+    maincode: product.maincode || '',
+    subcode: product.subcode || '',
     weight: product.weight?.toString() || '',
     size: product.size || '',
-    category: product.category || '',
-    description: product.description || '',
     cost1: product.cost1?.toString() || '',
     cost2: product.cost2?.toString() || '',
-    memo: product.memo || '',
-    partner_id: product.partner_id || selectedPartnerId
+    memo: product.memo || ''
   });
   
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null);
-  const [showPartnerModal, setShowPartnerModal] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // 파트너사 목록 (실제 환경에서는 API에서 가져와야 함)
-  const partners: Partner[] = [
-    { id: 1, name: '삼성전자', code: 'SAMSUNG' },
-    { id: 2, name: 'LG전자', code: 'LG' },
-    { id: 3, name: '한샘', code: 'HANSSEM' },
-    { id: 4, name: '이케아', code: 'IKEA' },
-    { id: 5, name: '신세계', code: 'SHINSEGAE' },
-    { id: 6, name: '롯데', code: 'LOTTE' }
-  ];
-
-  // 초기 파트너 설정
-  useEffect(() => {
-    if (selectedPartnerId) {
-      const partner = partners.find(p => p.id === selectedPartnerId);
-      if (partner) {
-        setSelectedPartner(partner);
-        setFormData(prev => ({ ...prev, partner_id: selectedPartnerId }));
-      }
-    }
-  }, [selectedPartnerId]);
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -101,23 +66,6 @@ const EditProductForm: React.FC<EditProductFormProps> = ({ onNavigateBack, onSuc
     }
   };
 
-  const handlePartnerSelect = (partner: Partner) => {
-    setSelectedPartner(partner);
-    setFormData(prev => ({
-      ...prev,
-      partner_id: partner.id
-    }));
-    setShowPartnerModal(false);
-  };
-
-  const clearPartnerSelection = () => {
-    setSelectedPartner(null);
-    setFormData(prev => ({
-      ...prev,
-      partner_id: undefined
-    }));
-  };
-
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
@@ -125,12 +73,8 @@ const EditProductForm: React.FC<EditProductFormProps> = ({ onNavigateBack, onSuc
       newErrors.name = '상품명은 필수입니다.';
     }
 
-    if (!formData.code.trim()) {
-      newErrors.code = '상품코드는 필수입니다.';
-    }
-
-    if (!formData.category) {
-      newErrors.category = '카테고리를 선택해주세요.';
+    if (!formData.maincode.trim()) {
+      newErrors.maincode = '메인코드는 필수입니다.';
     }
 
     if (formData.weight && isNaN(parseFloat(formData.weight))) {
@@ -160,15 +104,13 @@ const EditProductForm: React.FC<EditProductFormProps> = ({ onNavigateBack, onSuc
     try {
       const productData = {
         name: formData.name.trim(),
-        code: formData.code.trim(),
+        maincode: formData.maincode.trim(),
+        subcode: formData.subcode.trim(),
         weight: formData.weight ? parseFloat(formData.weight) : undefined,
         size: formData.size.trim() || undefined,
-        category: formData.category,
-        description: formData.description.trim() || undefined,
         cost1: formData.cost1 ? parseFloat(formData.cost1) : undefined,
         cost2: formData.cost2 ? parseFloat(formData.cost2) : undefined,
-        memo: formData.memo.trim() || undefined,
-        partner_id: formData.partner_id
+        memo: formData.memo.trim() || undefined
       };
 
       await productsAPI.updateProduct(product.id, productData);
@@ -233,44 +175,33 @@ const EditProductForm: React.FC<EditProductFormProps> = ({ onNavigateBack, onSuc
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  상품코드 <span className="text-red-500">*</span>
+                  메인코드 <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
-                  name="code"
-                  value={formData.code}
+                  name="maincode"
+                  value={formData.maincode}
                   onChange={handleInputChange}
                   className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                    errors.code ? 'border-red-500' : 'border-gray-300'
+                    errors.maincode ? 'border-red-500' : 'border-gray-300'
                   }`}
-                  placeholder="상품코드를 입력하세요"
+                  placeholder="메인코드를 입력하세요"
                 />
-                {errors.code && <p className="text-red-500 text-sm mt-1">{errors.code}</p>}
+                {errors.maincode && <p className="text-red-500 text-sm mt-1">{errors.maincode}</p>}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  카테고리 <span className="text-red-500">*</span>
+                  서브코드
                 </label>
-                <select
-                  name="category"
-                  value={formData.category}
+                <input
+                  type="text"
+                  name="subcode"
+                  value={formData.subcode}
                   onChange={handleInputChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                    errors.category ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                >
-                  <option value="">카테고리를 선택하세요</option>
-                  <option value="가전">가전</option>
-                  <option value="가구">가구</option>
-                  <option value="생활용품">생활용품</option>
-                  <option value="의류">의류</option>
-                  <option value="식품">식품</option>
-                  <option value="도서">도서</option>
-                  <option value="스포츠">스포츠</option>
-                  <option value="기타">기타</option>
-                </select>
-                {errors.category && <p className="text-red-500 text-sm mt-1">{errors.category}</p>}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="서브코드를 입력하세요"
+                />
               </div>
 
               <div>
@@ -304,66 +235,6 @@ const EditProductForm: React.FC<EditProductFormProps> = ({ onNavigateBack, onSuc
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="예: 600x650x850mm"
                 />
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  상품 설명
-                </label>
-                <textarea
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  rows={4}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="상품에 대한 상세한 설명을 입력하세요"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* 파트너사 정보 섹션 */}
-          <div className="bg-white rounded-lg shadow-sm border p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">파트너사 정보</h2>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  파트너사 선택
-                </label>
-                <div className="flex gap-3">
-                  <div className="flex-1">
-                    {selectedPartner ? (
-                      <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <Building className="w-5 h-5 text-green-600" />
-                          <div>
-                            <div className="font-medium text-green-800">{selectedPartner.name}</div>
-                            <div className="text-sm text-green-600">코드: {selectedPartner.code}</div>
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={clearPartnerSelection}
-                          className="text-green-600 hover:text-green-800"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="p-3 border border-gray-300 rounded-lg text-gray-500">
-                        파트너사가 선택되지 않았습니다
-                      </div>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowPartnerModal(true)}
-                    className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    파트너사 선택
-                  </button>
-                </div>
               </div>
             </div>
           </div>
@@ -465,52 +336,6 @@ const EditProductForm: React.FC<EditProductFormProps> = ({ onNavigateBack, onSuc
             </button>
           </div>
         </form>
-
-        {/* 파트너사 선택 모달 */}
-        {showPartnerModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg max-w-md w-full p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <Building className="w-5 h-5 text-blue-600" />
-                  파트너사 선택
-                </h3>
-                <button
-                  onClick={() => setShowPartnerModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="space-y-2 max-h-96 overflow-y-auto">
-                {partners.map((partner) => (
-                  <button
-                    key={partner.id}
-                    onClick={() => handlePartnerSelect(partner)}
-                    className="w-full text-left p-3 border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="font-medium text-gray-900">{partner.name}</div>
-                        <div className="text-sm text-gray-500">코드: {partner.code}</div>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <button
-                  onClick={() => setShowPartnerModal(false)}
-                  className="w-full px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                >
-                  닫기
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* 파일명 표시 */}
         <div className="mt-8 text-xs text-gray-400 text-center">
