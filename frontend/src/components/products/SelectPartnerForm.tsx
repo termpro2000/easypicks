@@ -35,7 +35,7 @@ const SelectPartnerForm: React.FC<SelectPartnerFormProps> = ({ onNavigateBack, o
     setIsLoading(true);
     try {
       const response = await userAPI.getAllUsers();
-      const partnerUsers = response.users?.filter((user: Partner) => user.role === 'user') || [];
+      const partnerUsers = response.data?.filter((user: Partner) => user.role === 'user') || [];
       setPartners(partnerUsers);
     } catch (error) {
       console.error('파트너 목록 로드 실패:', error);
