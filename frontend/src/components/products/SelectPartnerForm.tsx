@@ -9,7 +9,6 @@ interface Partner {
   email?: string;
   phone?: string;
   role: string;
-  default_sender_address?: string;
 }
 
 interface SelectPartnerFormProps {
@@ -53,7 +52,6 @@ const SelectPartnerForm: React.FC<SelectPartnerFormProps> = ({ onNavigateBack, o
       filtered = filtered.filter(partner => 
         partner.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         partner.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (partner.default_sender_address && partner.default_sender_address.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (partner.email && partner.email.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     }
@@ -101,7 +99,7 @@ const SelectPartnerForm: React.FC<SelectPartnerFormProps> = ({ onNavigateBack, o
               <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="파트너명, 사용자명, 주소, 이메일로 검색..."
+                placeholder="파트너명, 사용자명, 이메일로 검색..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -131,10 +129,9 @@ const SelectPartnerForm: React.FC<SelectPartnerFormProps> = ({ onNavigateBack, o
             <>
               {/* 테이블 헤더 */}
               <div className="bg-gray-50 px-6 py-3 border-b">
-                <div className="grid grid-cols-6 gap-4 text-sm font-medium text-gray-700">
+                <div className="grid grid-cols-5 gap-4 text-sm font-medium text-gray-700">
                   <div>사용자명</div>
                   <div>파트너명</div>
-                  <div>기본주소</div>
                   <div>이메일</div>
                   <div>전화번호</div>
                   <div className="text-center">선택</div>
@@ -154,10 +151,9 @@ const SelectPartnerForm: React.FC<SelectPartnerFormProps> = ({ onNavigateBack, o
                       className="px-6 py-4 hover:bg-gray-50 cursor-pointer transition-colors"
                       onClick={() => handlePartnerClick(partner)}
                     >
-                      <div className="grid grid-cols-6 gap-4 items-center text-sm">
+                      <div className="grid grid-cols-5 gap-4 items-center text-sm">
                         <div className="font-mono text-blue-600">{partner.username}</div>
                         <div className="font-medium text-gray-900">{partner.name}</div>
-                        <div className="text-gray-600">{partner.default_sender_address || '-'}</div>
                         <div className="text-gray-600">{partner.email || '-'}</div>
                         <div className="text-gray-600">{partner.phone || '-'}</div>
                         <div className="flex items-center justify-center">
@@ -197,9 +193,9 @@ const SelectPartnerForm: React.FC<SelectPartnerFormProps> = ({ onNavigateBack, o
           </div>
           <div className="bg-white rounded-lg shadow-sm border p-4">
             <div className="text-2xl font-bold text-orange-600">
-              {filteredPartners.filter(p => p.default_sender_address).length}
+              {filteredPartners.filter(p => p.phone).length}
             </div>
-            <div className="text-sm text-gray-600">주소 등록된 파트너</div>
+            <div className="text-sm text-gray-600">전화번호 등록된 파트너</div>
           </div>
         </div>
       
