@@ -292,20 +292,25 @@ const DriverAssignment: React.FC<DriverAssignmentProps> = ({ onNavigateBack }) =
   return (
     <div className="space-y-6">
       {/* 뒤로가기 버튼 */}
-      {onNavigateBack && (
-        <button
-          onClick={onNavigateBack}
-          className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          <span>관리자화면으로 돌아가기</span>
-        </button>
-      )}
-
       {/* 헤더 */}
       <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-6 text-white">
-        <h2 className="text-2xl font-bold mb-2">기사 배정 관리</h2>
-        <p className="text-blue-100">
+        <div className="flex items-center justify-between mb-2">
+          {onNavigateBack && (
+            <button
+              onClick={onNavigateBack}
+              className="flex items-center gap-2 px-4 py-2 text-white hover:bg-white/10 rounded-lg transition-colors border border-white/20"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              <span>관리자화면으로 돌아가기</span>
+            </button>
+          )}
+          
+          <h2 className="text-2xl font-bold flex-1 text-center">기사 배정 관리</h2>
+          
+          {/* 균형을 위한 빈 공간 */}
+          <div className="w-48"></div>
+        </div>
+        <p className="text-blue-100 text-center">
           기사와 배송 주문을 효율적으로 배정하고 관리하세요.
         </p>
       </div>
