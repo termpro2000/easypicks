@@ -8,6 +8,7 @@ require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
 const deliveriesRoutes = require('./routes/deliveries');
+const deliveryDetailsRoutes = require('./routes/deliveryDetails');
 const userRoutes = require('./routes/users');
 const schemaRoutes = require('./routes/schema');
 const testRoutes = require('./routes/test');
@@ -154,6 +155,7 @@ app.get('/debug', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/deliveries', deliveriesRoutes);
+app.use('/api/delivery-details', deliveryDetailsRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/drivers', driversRoutes);
 app.use('/api/schema', schemaRoutes);
