@@ -217,25 +217,67 @@ const createDelivery = async (req, res) => {
 
     // products 배열이 있으면 delivery_details 테이블에 저장
     let productsCount = 0;
+    console.log('📦 [createDelivery] products 확인:', {
+      products: products,
+      isArray: Array.isArray(products),
+      length: products ? products.length : 'undefined'
+    });
+    
     if (products && Array.isArray(products) && products.length > 0) {
       try {
         console.log('📦 [createDelivery] 제품 정보 저장 시작:', products.length + '개');
+        console.log('📦 [createDelivery] 제품 데이터:', products);
+        
+        // delivery_details 테이블 존재 확인 및 생성
+        try {
+          const [tableCheck] = await pool.execute(`
+            SELECT COUNT(*) as count FROM information_schema.tables 
+            WHERE table_schema = DATABASE() AND table_name = 'delivery_details'
+          `);
+          console.log('📋 [createDelivery] delivery_details 테이블 존재:', tableCheck[0].count > 0);
+          
+          // 테이블이 없으면 생성
+          if (tableCheck[0].count === 0) {
+            console.log('📋 [createDelivery] delivery_details 테이블 생성 중...');
+            await pool.execute(`
+              CREATE TABLE delivery_details (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                delivery_id INT NOT NULL,
+                detail_type VARCHAR(50) NOT NULL,
+                detail_value TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_delivery_id (delivery_id),
+                INDEX idx_detail_type (detail_type)
+              )
+            `);
+            console.log('✅ [createDelivery] delivery_details 테이블 생성 완료');
+          }
+        } catch (tableError) {
+          console.error('❌ [createDelivery] 테이블 확인/생성 실패:', tableError);
+        }
         
         // products 배열을 JSON 문자열로 변환하여 delivery_details에 저장
         const productsJson = JSON.stringify(products);
-        await pool.execute(`
+        console.log('📦 [createDelivery] JSON 변환 결과:', productsJson);
+        
+        const [insertResult] = await pool.execute(`
           INSERT INTO delivery_details (delivery_id, detail_type, detail_value, created_at)
           VALUES (?, 'products', ?, NOW())
-        `, [deliveryId, productsJson]);
+        `, [deliveryId, 'products', productsJson]);
+        
+        console.log('📦 [createDelivery] DB 삽입 결과:', insertResult);
         
         productsCount = products.length;
         console.log('✅ [createDelivery] 제품 정보 저장 완료:', productsCount + '개');
       } catch (error) {
         console.error('❌ [createDelivery] 제품 정보 저장 실패:', error);
+        console.error('❌ [createDelivery] 에러 상세:', error.message);
+        console.error('❌ [createDelivery] 에러 스택:', error.stack);
         // 제품 저장 실패해도 배송 생성은 성공으로 처리
       }
     } else {
-      console.log('📦 [createDelivery] 저장할 제품 정보 없음');
+      console.log('📦 [createDelivery] 저장할 제품 정보 없음 - products:', products);
     }
 
     // 응답 데이터 구성
