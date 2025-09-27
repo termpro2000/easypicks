@@ -2,9 +2,9 @@
 
 React Native 모바일 앱, React 웹 어드민, Node.js 백엔드 서버로 구성된 완전한 배송 관리 시스템입니다.
 
-> **최근 업데이트**: 2025-09-26 - User Detail 시스템 (Role 기반 추가정보 관리) 구현 완료 🎉
+> **최근 업데이트**: 2025-09-27 - 파트너 선택 기반 배송접수 워크플로우 구현 완료 🎉
 > 
-> 🌟 **신규 기능**: 모든 사용자 role별 전용 추가정보 섹션과 JSON 기반 유연한 데이터 관리!
+> 🌟 **신규 기능**: 관리자 배송접수 시 필수 파트너 선택을 통한 체계적인 데이터 관리 및 추적!
 
 ## 📋 목차
 - [프로젝트 구조](#프로젝트-구조)
@@ -14,6 +14,7 @@ React Native 모바일 앱, React 웹 어드민, Node.js 백엔드 서버로 구
 - [👤 사용자 프로필 모달 시스템](#-사용자-프로필-모달-시스템)
 - [🔐 비밀번호 변경 기능](#-비밀번호-변경-기능)
 - [🗃️ User Detail 시스템 (Role 기반 추가정보 관리)](#️-user-detail-시스템-role-기반-추가정보-관리)
+- [🤝 파트너 선택 기반 배송접수 워크플로우](#-파트너-선택-기반-배송접수-워크플로우)
 - [🆕 Status 관리 시스템](#-status-관리-시스템)
 - [🔥 Firebase Storage 시스템](#-firebase-storage-시스템)
 - [📱 EAS Build & Update 시스템](#-eas-build--update-시스템)
@@ -763,7 +764,126 @@ CREATE TABLE user_detail (
 }
 ```
 
+### 🤝 파트너 선택 기반 배송접수 워크플로우
+
+### 📋 관리자 배송접수 프로세스 (2025-09-27)
+
+**AdminDashboard**에서 **파트너사 선택을 통한 체계적인 배송접수 시스템**이 구현되었습니다. 이를 통해 관리자는 반드시 파트너사를 먼저 선택한 후 해당 파트너와 연결된 배송 데이터를 생성할 수 있습니다.
+
+#### 🚀 업무 순서
+
+```
+1. 새배송접수 클릭 → 2. SelectPartnerForm 표시 → 3. 파트너사 선택 →
+4. AdminShippingForm 표시 → 5. 배송접수완료 클릭 → 6. 배송데이터 생성 (user_id 포함)
+```
+
 #### 🔧 기술적 구현
+
+##### 1. AdminDashboard 네비게이션 확장
+```typescript
+// 새로운 페이지 타입 추가
+type AdminPageType = 'main' | 'new-order' | 'select-partner-for-shipping' | ...
+
+// 새배송접수 클릭 시 파트너 선택 우선
+case '새배송접수':
+  setCurrentPage('select-partner-for-shipping');
+  break;
+```
+
+##### 2. SelectPartnerForm 통합
+- **재사용 가능한 컴포넌트**: 상품관리와 배송접수에서 동일한 SelectPartnerForm 사용
+- **역할 필터링**: `users.role = 'user'` 조건으로 파트너사만 표시
+- **검색 및 선택**: 파트너사 검색 후 선택 시 ID와 이름 전달
+
+```typescript
+// 파트너 선택 후 AdminShippingForm으로 이동
+onPartnerSelect={(partnerId, partnerName) => {
+  setSelectedPartnerId(partnerId);
+  setSelectedPartnerName(partnerName);
+  setCurrentPage('new-order');
+}}
+```
+
+##### 3. AdminShippingForm 강화
+- **파트너 정보 표시**: 헤더에 선택된 파트너명 표시
+- **자동 연결**: 배송 데이터 생성 시 `user_id`에 선택된 파트너 ID 자동 포함
+- **Props 인터페이스 확장**:
+
+```typescript
+interface AdminShippingFormProps {
+  onNavigateBack: () => void;
+  selectedPartnerId?: number | null;
+  selectedPartnerName?: string;
+}
+```
+
+##### 4. 데이터베이스 연동
+```javascript
+// 배송 데이터 생성 시 파트너 ID 포함
+const deliveryData = {
+  sender_name: data.sender_name,
+  customer_name: data.customer_name,
+  // ... 기타 필드들
+  user_id: selectedPartnerId,  // 선택된 파트너 ID 자동 포함
+};
+```
+
+#### 📊 사용자 경험 개선
+
+##### Before (기존 시스템)
+- 새배송접수 → AdminShippingForm 직접 이동
+- 파트너 정보 수동 입력 또는 누락 가능
+- 배송 데이터와 파트너 연결 불확실
+
+##### After (개선된 시스템)
+- 새배송접수 → 파트너 선택 → AdminShippingForm 이동
+- 선택된 파트너 정보 헤더에 표시
+- 배송 데이터에 파트너 ID 자동 연결 보장
+
+#### 🎯 비즈니스 가치
+
+##### 1. 데이터 무결성 보장
+- **필수 파트너 선택**: 모든 배송 건이 특정 파트너와 연결됨
+- **누락 방지**: 파트너 정보 입력 누락 원천 차단
+- **추적 가능성**: 배송 건별 파트너사 추적 완벽 지원
+
+##### 2. 운영 효율성 향상
+- **체계적 프로세스**: 일관된 배송접수 절차
+- **파트너 관리**: 파트너별 배송 현황 관리 용이
+- **권한 관리**: 관리자의 체계적인 파트너사 관리
+
+##### 3. 확장성 확보
+- **멀티 테넌트**: 여러 파트너사 동시 관리 가능
+- **역할 분리**: 파트너별 데이터 분리 및 권한 관리
+- **통계 분석**: 파트너별 배송 성과 분석 기반 마련
+
+#### 📱 사용자 워크플로우
+
+```
+관리자 로그인 → AdminDashboard 접근 → [새배송접수] 클릭
+                    ↓
+SelectPartnerForm 표시 → 파트너 검색/선택 → [선택] 클릭
+                    ↓
+AdminShippingForm 표시 (파트너명 헤더 표시) → 배송 정보 입력
+                    ↓
+[배송접수완료] 클릭 → 배송데이터 생성 (user_id 포함) → 성공 메시지
+```
+
+#### 🔗 시스템 통합
+
+##### 기존 시스템과의 호환성
+- **상품관리**: 동일한 SelectPartnerForm 재사용으로 일관성 유지
+- **기존 배송 데이터**: 기존 배송 건들과 완전 호환
+- **API 구조**: 기존 deliveries API 구조 유지하며 user_id 필드만 추가
+
+##### 향후 확장 방향
+- **파트너별 대시보드**: 파트너사별 전용 관리 화면
+- **권한 기반 접근**: 파트너사별 데이터 접근 권한 관리
+- **통계 및 리포팅**: 파트너별 배송 성과 분석 시스템
+
+**커밋**: `ddd69c4` - "Implement partner selection workflow for delivery registration"
+
+### 🔧 기술적 구현
 
 ##### Backend API 시스템
 - **GET /api/user-detail/:userId** - 사용자별 상세정보 조회
