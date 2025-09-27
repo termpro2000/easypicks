@@ -2800,7 +2800,7 @@ app.post('/api/products', async (req, res) => {
     console.log('📦 새 상품 생성 요청');
     
     const {
-      name, code, maincode, subcode, weight, size,
+      name, maincode, subcode, weight, size,
       cost1, cost2, memo, partner_id
     } = req.body;
     
@@ -2814,12 +2814,12 @@ app.post('/api/products', async (req, res) => {
     
     const [result] = await pool.execute(`
       INSERT INTO products (
-        name, code, maincode, subcode, weight, size,
-        cost1, cost2, memo, partner_id, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+        user_id, name, maincode, subcode, weight, size,
+        cost1, cost2, memo, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
     `, [
-      name, code, maincode, subcode, weight, size,
-      cost1 || 0, cost2 || 0, memo, partner_id
+      1, name, maincode, subcode, weight, size,
+      cost1 || 0, cost2 || 0, memo
     ]);
     
     console.log('✅ 상품 생성 성공:', { id: result.insertId, name });
@@ -2830,7 +2830,6 @@ app.post('/api/products', async (req, res) => {
       product: {
         id: result.insertId,
         name,
-        code,
         maincode,
         subcode
       }
