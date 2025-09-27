@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Package2, Plus, Search, Trash2, X, Building } from 'lucide-react';
+import { Package2, Plus, Search, Trash2, X, Building, Edit } from 'lucide-react';
 import { productsAPI } from '../../services/api';
 import ProductForm from './ProductForm';
 
@@ -36,7 +36,8 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ onNavigateBack })
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null);
   const [showPartnerModal, setShowPartnerModal] = useState(false);
-  const [currentView, setCurrentView] = useState<'list' | 'add-form'>('list');
+  const [currentView, setCurrentView] = useState<'list' | 'add-form' | 'edit-form'>('list');
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
   // 상품 목록 로드 (현재는 목업 데이터)
   useEffect(() => {
@@ -102,11 +103,18 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ onNavigateBack })
 
   const handleFormSuccess = () => {
     setCurrentView('list');
+    setEditingProduct(null);
     loadProducts(); // 상품 목록 새로고침
   };
 
   const handleBackToList = () => {
     setCurrentView('list');
+    setEditingProduct(null);
+  };
+
+  const handleEditProduct = (product: Product) => {
+    setEditingProduct(product);
+    setCurrentView('edit-form');
   };
 
   const filteredProducts = products.filter(product => {
@@ -129,6 +137,17 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ onNavigateBack })
         onNavigateBack={handleBackToList}
         onSuccess={handleFormSuccess}
         selectedPartnerId={selectedPartner?.id}
+      />
+    );
+  }
+
+  if (currentView === 'edit-form' && editingProduct) {
+    return (
+      <ProductForm 
+        onNavigateBack={handleBackToList}
+        onSuccess={handleFormSuccess}
+        selectedPartnerId={selectedPartner?.id}
+        initialData={editingProduct}
       />
     );
   }
@@ -271,6 +290,13 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ onNavigateBack })
                       </div>
                       <div className="flex items-center justify-center gap-2">
                         <button
+                          onClick={() => handleEditProduct(product)}
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="수정"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
                           onClick={() => handleDeleteProduct(product.id)}
                           className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                           title="삭제"
@@ -367,6 +393,14 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ onNavigateBack })
           </div>
         </div>
       )}
+      
+      {/* 파일명 표시 */}
+      <div className="mt-6 text-center">
+        <div className="inline-flex items-center gap-2 px-3 py-1 bg-gray-100 rounded-lg text-xs text-gray-500">
+          <Package2 className="w-3 h-3" />
+          ProductManagement.tsx
+        </div>
+      </div>
       </div>
     </div>
   );
