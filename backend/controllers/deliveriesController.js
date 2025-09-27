@@ -31,7 +31,10 @@ const createDelivery = async (req, res) => {
       delivery_memo, special_instructions,
       
       // 파트너/사용자 정보
-      user_id
+      user_id,
+      
+      // 제품 배열 (AdminShippingForm에서 전송)
+      products
     } = req.body;
 
     // 필드명 통일 (customer_ 형식도 허용)
@@ -204,27 +207,53 @@ const createDelivery = async (req, res) => {
 
     // 배송 데이터 삽입
     const [result] = await pool.execute(insertQuery, finalValues);
+    const deliveryId = result.insertId;
     
     console.log('✅ [createDelivery] 배송 접수 생성 완료:', {
-      insertId: result.insertId,
+      insertId: deliveryId,
       trackingNumber: tracking_number,
       totalFields: finalColumns.length
     });
 
+    // products 배열이 있으면 delivery_details 테이블에 저장
+    let productsCount = 0;
+    if (products && Array.isArray(products) && products.length > 0) {
+      try {
+        console.log('📦 [createDelivery] 제품 정보 저장 시작:', products.length + '개');
+        
+        // products 배열을 JSON 문자열로 변환하여 delivery_details에 저장
+        const productsJson = JSON.stringify(products);
+        await pool.execute(`
+          INSERT INTO delivery_details (delivery_id, detail_type, detail_value, created_at)
+          VALUES (?, 'products', ?, NOW())
+        `, [deliveryId, productsJson]);
+        
+        productsCount = products.length;
+        console.log('✅ [createDelivery] 제품 정보 저장 완료:', productsCount + '개');
+      } catch (error) {
+        console.error('❌ [createDelivery] 제품 정보 저장 실패:', error);
+        // 제품 저장 실패해도 배송 생성은 성공으로 처리
+      }
+    } else {
+      console.log('📦 [createDelivery] 저장할 제품 정보 없음');
+    }
+
     // 응답 데이터 구성
     const responseData = {
       success: true,
-      message: '배송 접수가 성공적으로 생성되었습니다.',
+      message: `배송 접수가 성공적으로 생성되었습니다.${productsCount > 0 ? ` (제품 ${productsCount}개 포함)` : ''}`,
       delivery: {
-        id: result.insertId,
+        id: deliveryId,
         tracking_number: tracking_number,
         status: '접수완료',
         sender_name: sender_name,
         customer_name: finalReceiverName,
         product_name: product_name,
         created_at: new Date().toISOString(),
-        fieldsStored: finalColumns.length
-      }
+        fieldsStored: finalColumns.length,
+        productsCount: productsCount
+      },
+      trackingNumber: tracking_number
     };
 
     res.status(201).json(responseData);
