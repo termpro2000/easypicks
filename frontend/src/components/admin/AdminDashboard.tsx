@@ -22,7 +22,7 @@ interface AdminDashboardProps {
   onLogout: () => void;
 }
 
-type AdminPageType = 'main' | 'new-order' | 'assignment' | 'products' | 'select-partner' | 'users' | 'drivers' | 'managers' | 'test' | 'delivery-status' | 'delivery-detail' | 'user-dashboard';
+type AdminPageType = 'main' | 'new-order' | 'assignment' | 'products' | 'select-partner' | 'select-partner-for-shipping' | 'users' | 'drivers' | 'managers' | 'test' | 'delivery-status' | 'delivery-detail' | 'user-dashboard';
 
 // 카드 데이터 인터페이스
 interface DashboardCard {
@@ -217,7 +217,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
   const handleCardClick = (action: string) => {
     switch (action) {
       case '새배송접수':
-        setCurrentPage('new-order');
+        setCurrentPage('select-partner-for-shipping');
         break;
       case '기사배정':
         setCurrentPage('assignment');
@@ -243,11 +243,27 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
     }
   };
 
-  // 새배송접수 페이지 표시
+  // 배송접수용 파트너 선택 페이지 표시
+  if (currentPage === 'select-partner-for-shipping') {
+    return (
+      <SelectPartnerForm
+        onNavigateBack={() => setCurrentPage('main')}
+        onPartnerSelect={(partnerId, partnerName) => {
+          setSelectedPartnerId(partnerId);
+          setSelectedPartnerName(partnerName);
+          setCurrentPage('new-order');
+        }}
+      />
+    );
+  }
+
+  // 새배송접수 페이지 표시 (파트너 선택 후)
   if (currentPage === 'new-order') {
     return (
       <AdminShippingForm
-        onNavigateBack={() => setCurrentPage('main')}
+        onNavigateBack={() => setCurrentPage('select-partner-for-shipping')}
+        selectedPartnerId={selectedPartnerId}
+        selectedPartnerName={selectedPartnerName}
       />
     );
   }

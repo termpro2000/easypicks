@@ -56,6 +56,8 @@ interface DeliveryData {
 
 interface AdminShippingFormProps {
   onNavigateBack: () => void;
+  selectedPartnerId?: number | null;
+  selectedPartnerName?: string;
 }
 
 interface InfoCellProps {
@@ -99,7 +101,7 @@ const InfoCell: React.FC<InfoCellProps> = ({ label, icon: Icon, children, requir
   );
 };
 
-const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack }) => {
+const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack, selectedPartnerId, selectedPartnerName }) => {
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitResult, setSubmitResult] = useState<{ success: boolean; message: string; trackingNumber?: string } | null>(null);
@@ -648,6 +650,9 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
         customer_detail_address: data.customer_detail_address,
         product_name: products.length > 0 ? products[0].product_name || products[0].product_code : '',
         
+        // 선택된 파트너 정보
+        user_id: selectedPartnerId,
+        
         // 배송 옵션
         request_type: data.request_type,
         construction_type: data.construction_type,
@@ -813,6 +818,11 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
               <div className="text-center">
                 <h1 className="text-2xl font-bold text-gray-900">배송접수_관리자용</h1>
                 <p className="text-sm text-red-600 font-medium">새로운 배송을 접수하세요 (관리자 전용)</p>
+                {selectedPartnerName && (
+                  <p className="text-sm text-blue-600 font-medium mt-1">
+                    파트너: {selectedPartnerName}
+                  </p>
+                )}
               </div>
             </div>
             
