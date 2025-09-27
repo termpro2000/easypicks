@@ -3,8 +3,8 @@ const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
 const { 
   createDelivery, 
-  getDeliveries, 
-  getDelivery, 
+  getAllDeliveries, 
+  getDeliveryById, 
   trackDelivery,
   updateDeliveryStatus,
   updateDelivery,
@@ -23,10 +23,10 @@ const {
 router.post('/', authenticateToken, createDelivery);
 
 // 배송 목록 조회 (JWT 인증 필요)
-router.get('/', authenticateToken, getDeliveries);
+router.get('/', authenticateToken, getAllDeliveries);
 
 // 특정 배송 상세 조회 (JWT 인증 필요)
-router.get('/:id', authenticateToken, getDelivery);
+router.get('/:id', authenticateToken, getDeliveryById);
 
 // 배송 정보 전체 업데이트 (JWT 인증 필요)
 router.put('/:id', authenticateToken, updateDelivery);
