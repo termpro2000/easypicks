@@ -28,7 +28,10 @@ const createDelivery = async (req, res) => {
       is_fragile, is_frozen, requires_signature, insurance_amount,
       
       // 추가 메모
-      delivery_memo, special_instructions
+      delivery_memo, special_instructions,
+      
+      // 파트너/사용자 정보
+      user_id
     } = req.body;
 
     // 필드명 통일 (customer_ 형식도 허용)
@@ -100,6 +103,7 @@ const createDelivery = async (req, res) => {
       
       // 배송 기본 정보  
       { column: 'driver_id', value: req.body.driver_id || null },
+      { column: 'user_id', value: user_id || null },
       { column: 'construction_type', value: req.body.construction_type },
       { column: 'visit_date', value: preferred_delivery_date || req.body.visit_date },
       { column: 'visit_time', value: req.body.visit_time },
