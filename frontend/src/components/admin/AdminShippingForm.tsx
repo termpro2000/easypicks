@@ -1361,6 +1361,7 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack, s
         isOpen={isProductModalOpen}
         onClose={() => setIsProductModalOpen(false)}
         onSelectProduct={handleSelectProduct}
+        userId={selectedPartnerId || undefined}
       />
 
     </div>

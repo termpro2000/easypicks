@@ -23,6 +23,7 @@ interface ProductSelectionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSelectProduct: (product: Product) => void;
+  userId?: number; // 선택된 파트너의 user_id
 }
 
 interface ProductCardProps {
@@ -101,17 +102,27 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
 const ProductSelectionModal: React.FC<ProductSelectionModalProps> = ({ 
   isOpen, 
   onClose, 
-  onSelectProduct 
+  onSelectProduct,
+  userId
 }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // 상품 목록 조회
+  // 상품 목록 조회 (파트너별 필터링)
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const response = await productsAPI.getAllProducts();
+      
+      let response;
+      if (userId) {
+        // 특정 파트너의 상품만 조회
+        response = await productsAPI.getProductsByPartner(userId);
+      } else {
+        // userId가 없으면 모든 상품 조회
+        response = await productsAPI.getAllProducts();
+      }
+      
       setProducts(response.products || []);
     } catch (error) {
       console.error('상품 목록 조회 오류:', error);
@@ -124,7 +135,7 @@ const ProductSelectionModal: React.FC<ProductSelectionModalProps> = ({
     if (isOpen) {
       fetchProducts();
     }
-  }, [isOpen]);
+  }, [isOpen, userId]);
 
   // 검색 필터링
   const filteredProducts = products.filter(product => 
