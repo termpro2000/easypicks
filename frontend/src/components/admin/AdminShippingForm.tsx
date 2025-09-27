@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { 
   User, Phone, Building, MapPin, Package, Truck, 
   Calendar, Clock, AlertTriangle, FileText, Shield, 
-  Home, Wrench, Weight, Box, Settings, ArrowLeft, Check, Search, Plus, Trash2, Zap
+  Home, Wrench, Weight, Box, Settings, ArrowLeft, Check, Search, Plus, Trash2, Zap, ChevronDown, ChevronRight
 } from 'lucide-react';
 import { shippingAPI, userAPI, deliveriesAPI, productsAPI } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
@@ -106,6 +106,7 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
   const [requestTypes, setRequestTypes] = useState<string[]>([]);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [isPartnerModalOpen, setIsPartnerModalOpen] = useState(false);
+  const [isCostSectionExpanded, setIsCostSectionExpanded] = useState(false);
   const [users, setUsers] = useState<UserOption[]>([]);
   const [selectedUser, setSelectedUser] = useState<UserOption | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -1109,8 +1110,8 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
                 <select
                   {...register('building_type', { required: '건물 유형은 필수입니다' })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  defaultValue="apartment"
                 >
-                  <option value="">선택하세요</option>
                   <option value="apartment">아파트</option>
                   <option value="villa">빌라</option>
                   <option value="house">단독주택</option>
@@ -1158,7 +1159,7 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
                       {...register('disposal')}
                       className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                     />
-                    <span className="text-sm">폐기물 처리</span>
+                    <span className="text-sm">폐기물 처리(내림 이동)</span>
                   </label>
                   <label className="flex items-center gap-2">
                     <input
@@ -1375,12 +1376,21 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
 
           {/* 배송 비용 및 옵션 */}
           <div className="bg-white rounded-xl shadow-lg border p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+            <h2 
+              className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2 cursor-pointer hover:text-indigo-600 transition-colors"
+              onClick={() => setIsCostSectionExpanded(!isCostSectionExpanded)}
+            >
               <Shield className="w-6 h-6 text-indigo-600" />
               배송 비용 및 특별 옵션
+              {isCostSectionExpanded ? (
+                <ChevronDown className="w-5 h-5 ml-auto" />
+              ) : (
+                <ChevronRight className="w-5 h-5 ml-auto" />
+              )}
             </h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {isCostSectionExpanded && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <InfoCell label="배송비 (원)" icon={Shield}>
                 <input
                   type="number"
@@ -1443,7 +1453,8 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack })
                   <span className="text-sm text-red-600">깨지기 쉬운 물품</span>
                 </label>
               </InfoCell>
-            </div>
+              </div>
+            )}
           </div>
 
           {/* 메모 및 특별 지시사항 */}
