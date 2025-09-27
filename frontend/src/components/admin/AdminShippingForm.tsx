@@ -5,10 +5,9 @@ import {
   Calendar, Clock, AlertTriangle, FileText, Shield, 
   Home, Wrench, Weight, Box, Settings, ArrowLeft, Check, Search, Plus, Trash2, Zap, ChevronDown, ChevronRight
 } from 'lucide-react';
-import { shippingAPI, userAPI, deliveriesAPI, productsAPI } from '../../services/api';
+import { shippingAPI, deliveriesAPI, productsAPI } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
 import ProductSelectionModal from '../partner/ProductSelectionModal';
-import PartnerSelectionModal from './PartnerSelectionModal';
 
 // Daum 우편번호 서비스 타입 선언
 declare global {
@@ -68,18 +67,6 @@ interface InfoCellProps {
   error?: string;
 }
 
-interface UserOption {
-  id: string;
-  name: string;
-  username: string;
-  company?: string;
-  phone?: string;
-  default_sender_name?: string;
-  default_sender_address?: string;
-  default_sender_detail_address?: string;
-  default_sender_company?: string;
-  default_sender_phone?: string;
-}
 
 const InfoCell: React.FC<InfoCellProps> = ({ label, icon: Icon, children, required = false, error }) => {
   return (
@@ -107,13 +94,7 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack, s
   const [submitResult, setSubmitResult] = useState<{ success: boolean; message: string; trackingNumber?: string } | null>(null);
   const [requestTypes, setRequestTypes] = useState<string[]>([]);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
-  const [isPartnerModalOpen, setIsPartnerModalOpen] = useState(false);
   const [isCostSectionExpanded, setIsCostSectionExpanded] = useState(false);
-  const [users, setUsers] = useState<UserOption[]>([]);
-  const [selectedUser, setSelectedUser] = useState<UserOption | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<UserOption[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
   const [products, setProducts] = useState<{
     id?: number; 
     product_code: string;
@@ -314,101 +295,7 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack, s
     console.log('🎲 테스트용 자동 채움 완료:', randomData);
   };
 
-  // 파트너사 검색 함수
-  const handleSearchPartner = async () => {
-    if (!searchQuery.trim()) {
-      return;
-    }
 
-    setIsSearching(true);
-    try {
-      const response = await userAPI.getAllUsers(1, 50, searchQuery);
-      if (response.success && response.data) {
-        setSearchResults(response.data.filter((user: UserOption) => 
-          user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          user.company?.toLowerCase().includes(searchQuery.toLowerCase())
-        ));
-      } else {
-        setSearchResults([]);
-      }
-    } catch (error) {
-      console.error('파트너사 검색 실패:', error);
-      setSearchResults([]);
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  // 검색 결과에서 파트너사 선택
-  const handleSelectFromSearch = (user: UserOption) => {
-    setSelectedUser(user);
-    setSearchQuery('');
-    setSearchResults([]);
-    
-    // 발송인 정보 자동 설정
-    if (user.default_sender_name) {
-      setValue('sender_name', user.default_sender_name);
-    } else if (user.name) {
-      setValue('sender_name', user.name);
-    }
-
-    if (user.default_sender_address) {
-      setValue('sender_address', user.default_sender_address);
-    }
-
-    if (user.default_sender_detail_address) {
-      setValue('sender_detail_address', user.default_sender_detail_address);
-    }
-
-    if (user.default_sender_company || user.company) {
-      setValue('furniture_company', user.default_sender_company || user.company);
-    }
-
-    if (user.default_sender_phone || user.phone) {
-      setValue('emergency_contact', user.default_sender_phone || user.phone);
-    }
-  };
-
-  // 사용자 선택 핸들러
-  const handleUserSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const userId = e.target.value;
-    const selectedUser = users.find(user => user.id === userId);
-    
-    if (selectedUser) {
-      setSelectedUser(selectedUser);
-      
-      // 발송인 정보 자동 설정
-      if (selectedUser.default_sender_name) {
-        setValue('sender_name', selectedUser.default_sender_name);
-      } else if (selectedUser.name) {
-        setValue('sender_name', selectedUser.name);
-      }
-
-      if (selectedUser.default_sender_address) {
-        setValue('sender_address', selectedUser.default_sender_address);
-      }
-
-      if (selectedUser.default_sender_detail_address) {
-        setValue('sender_detail_address', selectedUser.default_sender_detail_address);
-      }
-
-      if (selectedUser.default_sender_company || selectedUser.company) {
-        setValue('furniture_company', selectedUser.default_sender_company || selectedUser.company);
-      }
-
-      if (selectedUser.default_sender_phone || selectedUser.phone) {
-        setValue('emergency_contact', selectedUser.default_sender_phone || selectedUser.phone);
-      }
-    } else {
-      setSelectedUser(null);
-      // 필드 초기화
-      setValue('sender_name', '');
-      setValue('sender_address', '');
-      setValue('sender_detail_address', '');
-      setValue('furniture_company', '');
-      setValue('emergency_contact', '');
-    }
-  };
 
   // 주소 검색 함수
   const openAddressSearch = (type: 'sender' | 'customer') => {
@@ -431,43 +318,6 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack, s
   };
 
 
-  // 파트너사 선택 핸들러 (모달에서)
-  const handleSelectPartner = (partner: any) => {
-    setSelectedUser(partner);
-    
-    // 발송인 정보 자동 설정
-    if (partner.default_sender_name || partner.name) {
-      setValue('sender_name', partner.default_sender_name || partner.name);
-    }
-
-    if (partner.default_sender_address) {
-      setValue('sender_address', partner.default_sender_address);
-    }
-
-    if (partner.default_sender_detail_address) {
-      setValue('sender_detail_address', partner.default_sender_detail_address);
-    }
-
-    // sender_zipcode는 폼 타입에 정의되어 있지 않으므로 주석 처리
-    // if (partner.default_sender_zipcode) {
-    //   setValue('sender_zipcode', partner.default_sender_zipcode);
-    // }
-
-    if (partner.default_sender_company || partner.company) {
-      setValue('furniture_company', partner.default_sender_company || partner.company);
-    }
-
-    if (partner.default_sender_phone || partner.phone) {
-      setValue('emergency_contact', partner.default_sender_phone || partner.phone);
-    }
-
-    // sender_email은 폼 타입에 정의되어 있지 않으므로 주석 처리
-    // if (partner.email) {
-    //   setValue('sender_email', partner.email);
-    // }
-
-    setIsPartnerModalOpen(false);
-  };
 
   // 제품 검색 함수
   const handleProductSearch = async (query: string) => {
@@ -845,90 +695,6 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack, s
 
       <main className="max-w-7xl mx-auto px-6 py-8">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          {/* 사용자 선택 섹션 - 관리자용 고유 기능 */}
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl shadow-lg border-2 border-blue-200 p-6">
-            <h2 className="text-xl font-bold text-blue-800 mb-6 flex items-center gap-2">
-              <User className="w-6 h-6 text-blue-600" />
-              파트너사 선택 (관리자 전용)
-            </h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <InfoCell label="발송 업체 선택" icon={Building} required>
-                <div className="space-y-3">
-                  {/* 검색 입력 필드와 버튼 */}
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => {
-                        setSearchQuery(e.target.value);
-                        if (e.target.value.trim()) {
-                          handleSearchPartner();
-                        }
-                      }}
-                      onKeyPress={(e) => e.key === 'Enter' && handleSearchPartner()}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="파트너사명 또는 업체명으로 검색"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setIsPartnerModalOpen(true)}
-                      className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors flex items-center gap-1"
-                      title="파트너사 선택 화면으로 이동"
-                    >
-                      <Building className="w-4 h-4" />
-                      선택화면
-                    </button>
-                  </div>
-                  
-                  {/* 검색 결과 */}
-                  {searchResults.length > 0 && (
-                    <div className="max-h-40 overflow-y-auto border border-gray-300 rounded-lg bg-white">
-                      {searchResults.map((user) => (
-                        <button
-                          key={user.id}
-                          type="button"
-                          onClick={() => handleSelectFromSearch(user)}
-                          className="w-full text-left px-3 py-2 hover:bg-blue-50 border-b border-gray-100 last:border-b-0"
-                        >
-                          <div className="text-sm">
-                            <span className="font-medium">{user.name}</span>
-                            <span className="text-gray-500"> ({user.username})</span>
-                            {user.company && <span className="text-blue-600"> - {user.company}</span>}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  
-                  {/* 기존 드롭다운 선택 */}
-                  <select
-                    onChange={handleUserSelect}
-                    value={selectedUser?.id || ''}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">또는 목록에서 선택하세요</option>
-                    {users.map((user) => (
-                      <option key={user.id} value={user.id}>
-                        {user.name} ({user.username}) {user.company && `- ${user.company}`}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </InfoCell>
-              
-              {selectedUser && (
-                <InfoCell label="선택된 업체 정보" icon={User}>
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <p className="text-sm"><strong>이름:</strong> {selectedUser.name}</p>
-                    <p className="text-sm"><strong>아이디:</strong> {selectedUser.username}</p>
-                    {selectedUser.company && <p className="text-sm"><strong>회사:</strong> {selectedUser.company}</p>}
-                    {selectedUser.phone && <p className="text-sm"><strong>전화:</strong> {selectedUser.phone}</p>}
-                  </div>
-                </InfoCell>
-              )}
-            </div>
-          </div>
 
           {/* 발송인 정보 섹션 */}
           <div className="bg-white rounded-xl shadow-lg border p-6">
@@ -1558,12 +1324,6 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack, s
         onSelectProduct={handleSelectProduct}
       />
 
-      {/* 파트너사 선택 모달 */}
-      <PartnerSelectionModal
-        isOpen={isPartnerModalOpen}
-        onClose={() => setIsPartnerModalOpen(false)}
-        onSelectPartner={handleSelectPartner}
-      />
     </div>
   );
 };
