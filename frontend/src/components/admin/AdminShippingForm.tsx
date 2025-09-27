@@ -5,7 +5,7 @@ import {
   Calendar, Clock, AlertTriangle, FileText, Shield, 
   Home, Wrench, Weight, Box, Settings, ArrowLeft, Check, Search, Plus, Trash2, Zap, ChevronDown, ChevronRight
 } from 'lucide-react';
-import { shippingAPI, deliveriesAPI, productsAPI } from '../../services/api';
+import { shippingAPI, deliveriesAPI, productsAPI, userAPI } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
 import ProductSelectionModal from '../partner/ProductSelectionModal';
 
@@ -67,6 +67,17 @@ interface InfoCellProps {
   error?: string;
 }
 
+interface PartnerInfo {
+  id: number;
+  name: string;
+  username: string;
+  phone?: string;
+  email?: string;
+  company?: string;
+  address?: string;
+  detail_address?: string;
+}
+
 
 const InfoCell: React.FC<InfoCellProps> = ({ label, icon: Icon, children, required = false, error }) => {
   return (
@@ -95,6 +106,8 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack, s
   const [requestTypes, setRequestTypes] = useState<string[]>([]);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [isCostSectionExpanded, setIsCostSectionExpanded] = useState(false);
+  const [partnerInfo, setPartnerInfo] = useState<PartnerInfo | null>(null);
+  const [isLoadingPartner, setIsLoadingPartner] = useState(false);
   const [products, setProducts] = useState<{
     id?: number; 
     product_code: string;
@@ -134,22 +147,61 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack, s
   }, []);
 
   // 사용자 목록 로드
+  // 선택된 파트너 정보 로드
   useEffect(() => {
-    const loadUsers = async () => {
+    const loadPartnerInfo = async () => {
+      if (!selectedPartnerId) {
+        setPartnerInfo(null);
+        return;
+      }
+
+      setIsLoadingPartner(true);
       try {
-        const response = await userAPI.getAllUsers();
+        const response = await userAPI.getUserById(selectedPartnerId.toString());
         if (response.success && response.data) {
-          setUsers(response.data);
+          setPartnerInfo(response.data);
+          
+          // 파트너 정보로 발송인 정보 자동 채우기
+          const partner = response.data;
+          
+          // 발송인 이름 설정
+          if (partner.name) {
+            setValue('sender_name', partner.name);
+          }
+          
+          // 발송인 주소 설정
+          if (partner.address) {
+            setValue('sender_address', partner.address);
+          }
+          
+          // 발송인 상세주소 설정
+          if (partner.detail_address) {
+            setValue('sender_detail_address', partner.detail_address);
+          }
+          
+          // 가구회사명 설정
+          if (partner.company) {
+            setValue('furniture_company', partner.company);
+          }
+          
+          // 긴급연락처 설정
+          if (partner.phone) {
+            setValue('emergency_contact', partner.phone);
+          }
         } else {
-          console.error('사용자 목록 로드 실패');
+          console.error('파트너 정보 로드 실패');
+          setPartnerInfo(null);
         }
       } catch (error) {
-        console.error('사용자 목록 로드 실패:', error);
+        console.error('파트너 정보 로드 실패:', error);
+        setPartnerInfo(null);
+      } finally {
+        setIsLoadingPartner(false);
       }
     };
 
-    loadUsers();
-  }, []);
+    loadPartnerInfo();
+  }, [selectedPartnerId, setValue]);
 
   // 의뢰종류 목록 로드
   useEffect(() => {
@@ -701,6 +753,17 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack, s
             <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
               <User className="w-6 h-6 text-blue-600" />
               발송인 정보
+              {selectedPartnerId && (
+                <span className="text-sm text-blue-600 font-medium">
+                  - {selectedPartnerName}
+                </span>
+              )}
+              {isLoadingPartner && (
+                <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                  파트너 정보 불러오는 중...
+                </div>
+              )}
             </h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
