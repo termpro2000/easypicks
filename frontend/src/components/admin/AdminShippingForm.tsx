@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { shippingAPI, deliveriesAPI, productsAPI, userAPI } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
-// import ProductSelectionModal from '../partner/ProductSelectionModal';
+import ProductSelectionModal from '../partner/ProductSelectionModal';
 
 // Daum 우편번호 서비스 타입 선언
 declare global {
@@ -1356,12 +1356,12 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack, s
         </form>
       </main>
 
-      {/* 상품 선택 모달 - 임시 비활성화 */}
-      {/* <ProductSelectionModal
+      {/* 상품 선택 모달 */}
+      <ProductSelectionModal
         isOpen={isProductModalOpen}
         onClose={() => setIsProductModalOpen(false)}
         onSelectProduct={handleSelectProduct}
-      /> */}
+      />
 
     </div>
   );
