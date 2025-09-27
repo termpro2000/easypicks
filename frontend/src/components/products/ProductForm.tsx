@@ -92,13 +92,25 @@ const ProductForm: React.FC<ProductFormProps> = ({ onNavigateBack, onSuccess, se
         name: formData.name.trim(),
         maincode: formData.maincode.trim(),
         subcode: formData.subcode.trim(),
-        weight: formData.weight ? parseFloat(formData.weight) : undefined,
-        size: formData.size.trim() || undefined,
-        cost1: formData.cost1 ? parseFloat(formData.cost1) : undefined,
-        cost2: formData.cost2 ? parseFloat(formData.cost2) : undefined,
-        memo: formData.memo.trim() || undefined,
         user_id: selectedPartnerId
       };
+
+      // 선택적 필드들은 값이 있을 때만 추가
+      if (formData.weight) {
+        productData.weight = parseFloat(formData.weight);
+      }
+      if (formData.size && formData.size.trim()) {
+        productData.size = formData.size.trim();
+      }
+      if (formData.cost1) {
+        productData.cost1 = parseFloat(formData.cost1);
+      }
+      if (formData.cost2) {
+        productData.cost2 = parseFloat(formData.cost2);
+      }
+      if (formData.memo && formData.memo.trim()) {
+        productData.memo = formData.memo.trim();
+      }
 
       await productsAPI.createProduct(productData);
       
