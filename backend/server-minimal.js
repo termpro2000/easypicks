@@ -3760,6 +3760,10 @@ app.use('/api/auth', authRoutes);
 const userRoutes = require('./routes/users');
 app.use('/api/users', userRoutes);
 
+// Delivery Details 라우트 추가 (제품 정보 조회 등)
+const deliveryDetailsRoutes = require('./routes/deliveryDetails');
+app.use('/api/delivery-details', deliveryDetailsRoutes);
+
 // 디버그 엔드포인트: 테이블 컬럼 조회
 app.get('/api/debug/columns/:table', async (req, res) => {
   try {

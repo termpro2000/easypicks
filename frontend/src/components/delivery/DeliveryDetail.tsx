@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Package, User, MapPin, Calendar, Truck, Phone, Clock, FileText, Edit, Save, X } from 'lucide-react';
-import { deliveriesAPI } from '../../services/api';
+import { deliveriesAPI, deliveryDetailsAPI } from '../../services/api';
 
 interface Delivery {
   id: number;
@@ -60,10 +60,21 @@ interface DeliveryDetailProps {
   onNavigateBack: () => void;
 }
 
+interface Product {
+  id?: string;
+  product_code?: string;
+  product_name?: string;
+  product_size?: string;
+  box_size?: string;
+  product_weight?: string;
+}
+
 const DeliveryDetail: React.FC<DeliveryDetailProps> = ({ delivery: initialDelivery, onNavigateBack }) => {
   const [delivery, setDelivery] = useState<Delivery>(initialDelivery);
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [productsLoading, setProductsLoading] = useState(false);
   const [editData, setEditData] = useState({
     status: delivery.status,
     visit_date: delivery.visit_date || '',
@@ -131,6 +142,26 @@ const DeliveryDetail: React.FC<DeliveryDetailProps> = ({ delivery: initialDelive
       setLoading(false);
     }
   };
+
+  // 제품 정보 조회
+  const fetchProducts = async () => {
+    try {
+      setProductsLoading(true);
+      const response = await deliveryDetailsAPI.getDeliveryProducts(delivery.id);
+      if (response.success && response.products) {
+        setProducts(response.products);
+      }
+    } catch (error) {
+      console.error('제품 정보 조회 실패:', error);
+    } finally {
+      setProductsLoading(false);
+    }
+  };
+
+  // 컴포넌트 마운트시 제품 정보 로드
+  useEffect(() => {
+    fetchProducts();
+  }, [delivery.id]);
 
   // 편집 모드 시작
   const handleEditStart = () => {
@@ -343,63 +374,100 @@ const DeliveryDetail: React.FC<DeliveryDetailProps> = ({ delivery: initialDelive
         <div className="bg-white rounded-lg shadow-sm border p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <Package className="w-5 h-5 text-blue-600" />
-            상품 정보
+            상품 정보 {products.length > 0 && `(${products.length}개)`}
           </h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">상품명</label>
-              <div className="text-gray-900">{delivery.product_name || '-'}</div>
+          {productsLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="text-gray-500">상품 정보를 불러오는 중...</div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">상품코드</label>
-              <div className="text-gray-900 font-mono">{delivery.product_code || '-'}</div>
+          ) : products.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      상품코드
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      상품명
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      상품크기
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      박스크기
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      무게
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {products.map((product, index) => (
+                    <tr key={product.id || index} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">
+                        {product.product_code || '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {product.product_name || '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {product.product_size || '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {product.box_size || '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {product.product_weight || '-'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">SKU</label>
-              <div className="text-gray-900 font-mono">{delivery.product_sku || '-'}</div>
+          ) : (
+            <div className="text-center py-8">
+              <Package className="mx-auto h-12 w-12 text-gray-400" />
+              <div className="mt-2 text-sm text-gray-500">
+                이 배송에 등록된 상품 정보가 없습니다.
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">수량</label>
-              <div className="text-gray-900">{delivery.product_quantity || '-'}</div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">크기</label>
-              <div className="text-gray-900">{delivery.product_size || '-'}</div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">무게</label>
-              <div className="text-gray-900">{delivery.product_weight || '-'}</div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">의뢰종류</label>
-              <div className="text-gray-900">{delivery.request_type || '-'}</div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">의뢰타입</label>
-              <div className="text-gray-900">{delivery.request_category || '-'}</div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">특성</label>
-              <div className="flex gap-2 flex-wrap">
-                {delivery.is_fragile && (
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                    취급주의
-                  </span>
-                )}
-                {delivery.is_frozen && (
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    냉동
-                  </span>
-                )}
-                {delivery.requires_signature && (
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                    서명필요
-                  </span>
-                )}
-                {!delivery.is_fragile && !delivery.is_frozen && !delivery.requires_signature && (
-                  <span className="text-gray-500">-</span>
-                )}
+          )}
+          
+          {/* 기존 배송 정보의 특성 표시 */}
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">의뢰종류</label>
+                <div className="text-gray-900">{delivery.request_type || '-'}</div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">의뢰타입</label>
+                <div className="text-gray-900">{delivery.request_category || '-'}</div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">특성</label>
+                <div className="flex gap-2 flex-wrap">
+                  {delivery.is_fragile && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                      취급주의
+                    </span>
+                  )}
+                  {delivery.is_frozen && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      냉동
+                    </span>
+                  )}
+                  {delivery.requires_signature && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      서명필요
+                    </span>
+                  )}
+                  {!delivery.is_fragile && !delivery.is_frozen && !delivery.requires_signature && (
+                    <span className="text-gray-500">-</span>
+                  )}
+                </div>
               </div>
             </div>
           </div>
