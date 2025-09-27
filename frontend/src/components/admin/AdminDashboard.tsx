@@ -11,6 +11,7 @@ import UserDashboardForm from './UserDashboardForm';
 import UserProfileModal from './UserProfileModal';
 import TestPage from '../test/TestPage';
 import ProductManagement from '../products/ProductManagement';
+import SelectPartnerForm from '../products/SelectPartnerForm';
 import DriverAssignment from '../assignment/DriverAssignment';
 import DriverManagement from '../drivers/DriverManagement';
 import ManagerManagement from './ManagerManagement';
@@ -21,7 +22,7 @@ interface AdminDashboardProps {
   onLogout: () => void;
 }
 
-type AdminPageType = 'main' | 'new-order' | 'assignment' | 'products' | 'users' | 'drivers' | 'managers' | 'test' | 'delivery-status' | 'delivery-detail' | 'user-dashboard';
+type AdminPageType = 'main' | 'new-order' | 'assignment' | 'products' | 'select-partner' | 'users' | 'drivers' | 'managers' | 'test' | 'delivery-status' | 'delivery-detail' | 'user-dashboard';
 
 // 카드 데이터 인터페이스
 interface DashboardCard {
@@ -46,6 +47,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
   const [currentPage, setCurrentPage] = useState<AdminPageType>('main');
   const [selectedDelivery, setSelectedDelivery] = useState<any>(null);
   const [showUserProfile, setShowUserProfile] = useState(false);
+  const [selectedPartnerId, setSelectedPartnerId] = useState<number | null>(null);
+  const [selectedPartnerName, setSelectedPartnerName] = useState<string>('');
   
   // 실시간 통계 데이터 상태
   const [dashboardStats, setDashboardStats] = useState({
@@ -220,7 +223,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
         setCurrentPage('assignment');
         break;
       case '상품관리':
-        setCurrentPage('products');
+        setCurrentPage('select-partner');
         break;
       case '사용자관리':
         setCurrentPage('user-dashboard');
@@ -258,11 +261,27 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
     );
   }
 
-  // 상품관리 페이지 표시
+  // 파트너 선택 페이지 표시
+  if (currentPage === 'select-partner') {
+    return (
+      <SelectPartnerForm
+        onNavigateBack={() => setCurrentPage('main')}
+        onPartnerSelect={(partnerId, partnerName) => {
+          setSelectedPartnerId(partnerId);
+          setSelectedPartnerName(partnerName);
+          setCurrentPage('products');
+        }}
+      />
+    );
+  }
+
+  // 상품관리 페이지 표시 (파트너 선택 후)
   if (currentPage === 'products') {
     return (
       <ProductManagement
-        onNavigateBack={() => setCurrentPage('main')}
+        onNavigateBack={() => setCurrentPage('select-partner')}
+        selectedPartnerId={selectedPartnerId}
+        selectedPartnerName={selectedPartnerName}
       />
     );
   }

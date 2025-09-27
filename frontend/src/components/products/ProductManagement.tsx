@@ -22,24 +22,31 @@ interface Product {
 
 interface ProductManagementProps {
   onNavigateBack: () => void;
+  selectedPartnerId?: number | null;
+  selectedPartnerName?: string;
 }
 
-const ProductManagement: React.FC<ProductManagementProps> = ({ onNavigateBack }) => {
+const ProductManagement: React.FC<ProductManagementProps> = ({ onNavigateBack, selectedPartnerId, selectedPartnerName }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentView, setCurrentView] = useState<'list' | 'add-form' | 'edit-form'>('list');
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
-  // 상품 목록 로드 (현재는 목업 데이터)
+  // 상품 목록 로드 (파트너 변경 시에도 재로드)
   useEffect(() => {
     loadProducts();
-  }, []);
+  }, [selectedPartnerId]);
 
   const loadProducts = async () => {
     setIsLoading(true);
     try {
-      const response = await productsAPI.getAllProducts();
+      let response;
+      if (selectedPartnerId) {
+        response = await productsAPI.getProductsByPartner(selectedPartnerId);
+      } else {
+        response = await productsAPI.getAllProducts();
+      }
       setProducts(response.products || []);
     } catch (error) {
       console.error('상품 목록 로드 실패:', error);
@@ -99,6 +106,7 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ onNavigateBack })
       <ProductForm 
         onNavigateBack={handleBackToList}
         onSuccess={handleFormSuccess}
+        selectedPartnerId={selectedPartnerId}
       />
     );
   }
@@ -120,7 +128,7 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ onNavigateBack })
           onClick={onNavigateBack}
           className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors mb-4"
         >
-          ← 관리자화면으로 돌아가기
+          ← 파트너 선택으로 돌아가기
         </button>
       </div>
       
@@ -131,8 +139,18 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ onNavigateBack })
             <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
               <Package2 className="w-7 h-7 text-blue-600" />
               상품 관리
+              {selectedPartnerName && (
+                <span className="text-lg font-normal text-blue-600">
+                  - {selectedPartnerName}
+                </span>
+              )}
             </h1>
-            <p className="text-gray-600 mt-1">배송 상품 정보를 관리합니다</p>
+            <p className="text-gray-600 mt-1">
+              {selectedPartnerName 
+                ? `${selectedPartnerName}의 상품을 관리합니다` 
+                : '배송 상품 정보를 관리합니다'
+              }
+            </p>
           </div>
         <div className="flex items-center gap-3">
           <button

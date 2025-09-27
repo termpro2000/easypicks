@@ -445,6 +445,12 @@ export const productsAPI = {
     return response.data;
   },
 
+  // 파트너별 상품 조회
+  getProductsByPartner: async (partnerId: number) => {
+    const response = await apiClient.get(`/products?user_id=${partnerId}`);
+    return response.data;
+  },
+
   // 특정 상품 조회
   getProduct: async (id: number) => {
     const response = await apiClient.get(`/products/${id}`);
@@ -454,17 +460,14 @@ export const productsAPI = {
   // 새 상품 생성
   createProduct: async (data: {
     name: string;
-    code?: string;
     maincode?: string;
     subcode?: string;
     weight?: number;
     size?: string;
-    category?: string;
-    description?: string;
     cost1?: number;
     cost2?: number;
     memo?: string;
-    partner_id?: number;
+    user_id?: number | null;
   }) => {
     const response = await apiClient.post('/products', data);
     return response.data;

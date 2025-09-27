@@ -5,6 +5,7 @@ import { productsAPI } from '../../services/api';
 interface ProductFormProps {
   onNavigateBack: () => void;
   onSuccess?: () => void;
+  selectedPartnerId?: number | null;
 }
 
 interface ProductFormData {
@@ -18,7 +19,7 @@ interface ProductFormData {
   memo: string;
 }
 
-const ProductForm: React.FC<ProductFormProps> = ({ onNavigateBack, onSuccess }) => {
+const ProductForm: React.FC<ProductFormProps> = ({ onNavigateBack, onSuccess, selectedPartnerId }) => {
   const [formData, setFormData] = useState<ProductFormData>({
     name: '',
     maincode: '',
@@ -95,7 +96,8 @@ const ProductForm: React.FC<ProductFormProps> = ({ onNavigateBack, onSuccess }) 
         size: formData.size.trim() || undefined,
         cost1: formData.cost1 ? parseFloat(formData.cost1) : undefined,
         cost2: formData.cost2 ? parseFloat(formData.cost2) : undefined,
-        memo: formData.memo.trim() || undefined
+        memo: formData.memo.trim() || undefined,
+        user_id: selectedPartnerId
       };
 
       await productsAPI.createProduct(productData);
