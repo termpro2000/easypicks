@@ -1,5 +1,6 @@
-import React from 'react';
-import { X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Package, AlertTriangle } from 'lucide-react';
+import { deliveryDetailsAPI } from '../../services/api';
 
 interface DeliveryDetailModalProps {
   isOpen: boolean;
@@ -12,6 +13,36 @@ const DeliveryDetailModal: React.FC<DeliveryDetailModalProps> = ({
   onClose,
   delivery,
 }) => {
+  const [products, setProducts] = useState<any[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
+  const [productsError, setProductsError] = useState<string>('');
+
+  // 배송 상세 정보에서 제품 목록 로드
+  useEffect(() => {
+    if (!isOpen || !delivery?.id) {
+      setProducts([]);
+      return;
+    }
+
+    const loadProducts = async () => {
+      setIsLoadingProducts(true);
+      setProductsError('');
+      try {
+        const response = await deliveryDetailsAPI.getDeliveryProducts(delivery.id);
+        console.log('📦 제품 목록 로드 완료:', response);
+        setProducts(response.products || []);
+      } catch (error: any) {
+        console.error('❌ 제품 목록 로드 실패:', error);
+        setProductsError(error.response?.data?.message || '제품 정보를 불러올 수 없습니다.');
+        setProducts([]);
+      } finally {
+        setIsLoadingProducts(false);
+      }
+    };
+
+    loadProducts();
+  }, [isOpen, delivery?.id]);
+
   if (!isOpen || !delivery) return null;
 
   const formatDate = (dateString: string) => {
@@ -113,34 +144,116 @@ const DeliveryDetailModal: React.FC<DeliveryDetailModalProps> = ({
               </div>
             </div>
 
+            {/* 상품 정보 테이블 */}
             <div className="bg-green-50 p-4 rounded-lg">
-              <h3 className="text-lg font-semibold mb-3 text-gray-800">상품 정보</h3>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">상품명:</span>
-                  <span className="font-medium">{delivery.product_name || '-'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">상품코드:</span>
-                  <span className="font-medium">{delivery.furniture_product_code || '-'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">무게:</span>
-                  <span className="font-medium">{delivery.weight || delivery.product_weight || '-'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">크기:</span>
-                  <span className="font-medium">{delivery.product_size || '-'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">깨지기쉬움:</span>
-                  <span className={`px-2 py-1 rounded text-sm font-medium ${
-                    delivery.fragile ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
-                  }`}>
-                    {delivery.fragile ? '주의' : '일반'}
+              <div className="flex items-center gap-2 mb-4">
+                <Package className="w-5 h-5 text-green-600" />
+                <h3 className="text-lg font-semibold text-gray-800">상품 정보</h3>
+                {isLoadingProducts && (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
+                )}
+                {products.length > 0 && (
+                  <span className="bg-green-600 text-white px-2 py-1 rounded-full text-xs font-medium">
+                    {products.length}개
                   </span>
-                </div>
+                )}
               </div>
+
+              {/* 로딩 상태 */}
+              {isLoadingProducts && (
+                <div className="text-center py-4 text-gray-600">
+                  제품 정보를 불러오는 중...
+                </div>
+              )}
+
+              {/* 에러 상태 */}
+              {productsError && (
+                <div className="flex items-center gap-2 text-red-600 bg-red-50 p-3 rounded-lg">
+                  <AlertTriangle className="w-4 h-4" />
+                  <span className="text-sm">{productsError}</span>
+                </div>
+              )}
+
+              {/* 제품 목록이 있는 경우 테이블 표시 */}
+              {!isLoadingProducts && !productsError && products.length > 0 && (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full bg-white rounded-lg overflow-hidden">
+                    <thead className="bg-green-100">
+                      <tr>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-green-800 uppercase tracking-wider">
+                          제품코드
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-green-800 uppercase tracking-wider">
+                          제품명
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-green-800 uppercase tracking-wider">
+                          무게
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-green-800 uppercase tracking-wider">
+                          크기
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-green-800 uppercase tracking-wider">
+                          박스크기
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {products.map((product, index) => (
+                        <tr key={index} className="hover:bg-gray-50">
+                          <td className="px-3 py-2 whitespace-nowrap text-sm font-mono text-gray-900">
+                            {product.product_code || '-'}
+                          </td>
+                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+                            {product.product_name || '-'}
+                          </td>
+                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-600">
+                            {product.product_weight || '-'}
+                          </td>
+                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-600">
+                            {product.product_size || '-'}
+                          </td>
+                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-600">
+                            {product.box_size || '-'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* 제품 목록이 없는 경우 기본 상품 정보 표시 */}
+              {!isLoadingProducts && !productsError && products.length === 0 && (
+                <div className="space-y-2">
+                  <div className="text-sm text-gray-600 mb-3">
+                    상세 제품 목록이 없습니다. 기본 상품 정보를 표시합니다.
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">상품명:</span>
+                    <span className="font-medium">{delivery.product_name || '-'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">상품코드:</span>
+                    <span className="font-medium">{delivery.furniture_product_code || '-'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">무게:</span>
+                    <span className="font-medium">{delivery.weight || delivery.product_weight || '-'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">크기:</span>
+                    <span className="font-medium">{delivery.product_size || '-'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">깨지기쉬움:</span>
+                    <span className={`px-2 py-1 rounded text-sm font-medium ${
+                      delivery.fragile ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                    }`}>
+                      {delivery.fragile ? '주의' : '일반'}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

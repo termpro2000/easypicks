@@ -435,6 +435,34 @@ export const testAPI = {
 };
 
 /**
+ * 배송 상세 정보 API 함수들
+ * delivery_details 테이블 관련 API 함수들
+ */
+export const deliveryDetailsAPI = {
+  // 특정 배송의 모든 상세 정보 조회
+  getDeliveryDetails: async (deliveryId: number) => {
+    const response = await apiClient.get(`/delivery-details/${deliveryId}`);
+    return response.data;
+  },
+
+  // 특정 배송의 제품 정보만 조회
+  getDeliveryProducts: async (deliveryId: number) => {
+    const response = await apiClient.get(`/delivery-details/${deliveryId}/products`);
+    return response.data;
+  },
+
+  // 배송 상세 정보 생성
+  createDeliveryDetail: async (deliveryId: number, detailType: string, detailValue: any) => {
+    const response = await apiClient.post('/delivery-details', {
+      deliveryId,
+      detailType,
+      detailValue
+    });
+    return response.data;
+  }
+};
+
+/**
  * 상품 관리 API 함수들
  * 상품 CRUD 작업을 위한 API 함수들
  */
