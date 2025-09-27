@@ -203,9 +203,9 @@ const EditProductForm: React.FC<EditProductFormProps> = ({ onNavigateBack, onSuc
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
             <Package2 className="w-8 h-8 text-blue-600" />
-            새 상품 추가
+            상품 수정
           </h1>
-          <p className="text-gray-600 mt-2">새로운 상품 정보를 입력하여 등록하세요</p>
+          <p className="text-gray-600 mt-2">상품 정보를 수정하세요</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
@@ -459,7 +459,7 @@ const EditProductForm: React.FC<EditProductFormProps> = ({ onNavigateBack, onSuc
               ) : (
                 <>
                   <Save className="w-4 h-4" />
-                  상품 등록
+                  상품 수정
                 </>
               )}
             </button>
@@ -514,11 +514,11 @@ const EditProductForm: React.FC<EditProductFormProps> = ({ onNavigateBack, onSuc
 
         {/* 파일명 표시 */}
         <div className="mt-8 text-xs text-gray-400 text-center">
-          ProductForm.tsx
+          EditProductForm.tsx
         </div>
       </div>
     </div>
   );
 };
 
-export default ProductForm;
+export default EditProductForm;
