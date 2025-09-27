@@ -144,9 +144,9 @@ app.get('/api/users', async (req, res) => {
     const params = [];
     
     if (search) {
-      whereClause += ' AND (username LIKE ? OR name LIKE ? OR email LIKE ? OR company LIKE ?)';
+      whereClause += ' AND (username LIKE ? OR name LIKE ? OR email LIKE ?)';
       const searchTerm = `%${search}%`;
-      params.push(searchTerm, searchTerm, searchTerm, searchTerm);
+      params.push(searchTerm, searchTerm, searchTerm);
     }
     
     if (role) {
@@ -222,7 +222,7 @@ app.get('/api/users/:id', async (req, res) => {
     
     const [users] = await pool.execute(`
       SELECT 
-        id, username, name, email, phone, company, role, is_active,
+        id, username, name, email, phone, role, is_active,
         last_login, created_at, updated_at,
         default_sender_address, default_sender_detail_address, default_sender_zipcode
       FROM users WHERE id = ?
@@ -263,11 +263,11 @@ app.post('/api/users', async (req, res) => {
     console.log('📋 요청 본문:', req.body);
     
     const {
-      username, password, name, email, phone, company, role = 'user',
+      username, password, name, email, phone, role = 'user',
       default_sender_address, default_sender_detail_address, default_sender_zipcode
     } = req.body;
     
-    console.log('📝 추출된 필드:', { username, name, email, phone, company, role });
+    console.log('📝 추출된 필드:', { username, name, email, phone, role });
     
     // 필수 필드 검증
     if (!username || !password || !name) {
@@ -298,7 +298,6 @@ app.post('/api/users', async (req, res) => {
     // undefined를 null로 변환
     const safeEmail = email || null;
     const safePhone = phone || null;
-    const safeCompany = company || null;
     const safeDefaultSenderAddress = default_sender_address || null;
     const safeDefaultSenderDetailAddress = default_sender_detail_address || null;
     const safeDefaultSenderZipcode = default_sender_zipcode || null;
@@ -312,12 +311,12 @@ app.post('/api/users', async (req, res) => {
     // 사용자 생성
     const [result] = await pool.execute(`
       INSERT INTO users (
-        username, password, name, email, phone, company, role,
+        username, password, name, email, phone, role,
         default_sender_address, default_sender_detail_address, default_sender_zipcode,
         is_active, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW(), NOW())
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW(), NOW())
     `, [
-      username, hashedPassword, name, safeEmail, safePhone, safeCompany, role,
+      username, hashedPassword, name, safeEmail, safePhone, role,
       safeDefaultSenderAddress, safeDefaultSenderDetailAddress, safeDefaultSenderZipcode
     ]);
     
@@ -360,7 +359,7 @@ app.put('/api/users/:id', async (req, res) => {
     }
     
     const {
-      username, password, name, email, phone, company, role,
+      username, password, name, email, phone, role,
       default_sender_address, default_sender_detail_address, default_sender_zipcode,
       is_active
     } = req.body;
@@ -399,7 +398,6 @@ app.put('/api/users/:id', async (req, res) => {
     if (name !== undefined) { updates.push('name = ?'); values.push(name); }
     if (email !== undefined) { updates.push('email = ?'); values.push(email); }
     if (phone !== undefined) { updates.push('phone = ?'); values.push(phone); }
-    if (company !== undefined) { updates.push('company = ?'); values.push(company); }
     if (role !== undefined) { updates.push('role = ?'); values.push(role); }
     if (default_sender_address !== undefined) { updates.push('default_sender_address = ?'); values.push(default_sender_address); }
     if (default_sender_detail_address !== undefined) { updates.push('default_sender_detail_address = ?'); values.push(default_sender_detail_address); }
@@ -1682,10 +1680,10 @@ app.get('/api/auth/check-username/:username', async (req, res) => {
 // 회원가입
 app.post('/api/auth/register', async (req, res) => {
   try {
-    const { username, user_id, password, name, phone, company } = req.body;
+    const { username, user_id, password, name, phone } = req.body;
     const registerId = username || user_id; // username 또는 user_id 둘 다 지원
     
-    console.log('👤 회원가입 요청:', { username, user_id, registerId, name, company });
+    console.log('👤 회원가입 요청:', { username, user_id, registerId, name });
 
     // 필수 필드 검증
     if (!registerId || !password || !name) {
@@ -1710,9 +1708,9 @@ app.post('/api/auth/register', async (req, res) => {
 
     // 사용자 생성 (비밀번호는 평문 저장 - 개발용)
     const [result] = await pool.execute(`
-      INSERT INTO users (username, password, name, phone, company, role, is_active, created_at, updated_at) 
-      VALUES (?, ?, ?, ?, ?, 'user', 1, NOW(), NOW())
-    `, [registerId, password, name, phone || null, company || null]);
+      INSERT INTO users (username, password, name, phone, role, is_active, created_at, updated_at) 
+      VALUES (?, ?, ?, ?, 'user', 1, NOW(), NOW())
+    `, [registerId, password, name, phone || null]);
 
     console.log('✅ 회원가입 성공:', { id: result.insertId, registerId });
 
