@@ -165,7 +165,6 @@ app.get('/api/users', async (req, res) => {
         name,
         email,
         phone,
-        company,
         role,
         is_active,
         last_login,
