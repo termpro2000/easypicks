@@ -33,8 +33,14 @@ const DeliveryListScreen = ({ navigation }) => {
     loadUserInfo();
     loadOrderMode(); // 저장된 배송순서 모드 로드
     loadSavedDate(); // 저장된 날짜 로드
-    fetchDeliveries();
   }, []);
+
+  // userInfo가 로드된 후에 배송 목록 조회
+  useEffect(() => {
+    if (userInfo) {
+      fetchDeliveries();
+    }
+  }, [userInfo]);
 
   const loadSavedDate = async () => {
     try {
@@ -70,12 +76,12 @@ const DeliveryListScreen = ({ navigation }) => {
     }
   };
 
-  // selectedDate가 변경될 때마다 배송 목록 다시 조회
+  // selectedDate가 변경될 때마다 배송 목록 다시 조회 (userInfo가 있을 때만)
   useEffect(() => {
-    if (selectedDate) {
+    if (selectedDate && userInfo) {
       fetchDeliveries();
     }
-  }, [selectedDate]);
+  }, [selectedDate, userInfo]);
 
   // orderMode 변경 시 배송목록 다시 정렬
   useEffect(() => {
@@ -201,14 +207,26 @@ const DeliveryListScreen = ({ navigation }) => {
 
   const fetchDeliveries = async () => {
     try {
-      // 기사별 필터링을 위해 user_id를 쿼리 파라미터로 전달
-      const driverId = userInfo?.id;
-      const apiUrl = driverId ? `/deliveries?driver_id=${driverId}` : '/deliveries';
+      // 사용자 역할에 따른 필터링
+      const userId = userInfo?.id;
+      const userRole = userInfo?.role;
+      
+      let apiUrl = '/deliveries';
+      if (userId) {
+        if (userRole === 'user') {
+          // 일반 사용자(파트너)인 경우 partner_id로 필터링
+          apiUrl = `/deliveries?partner_id=${userId}`;
+        } else {
+          // 기사인 경우 driver_id로 필터링
+          apiUrl = `/deliveries?driver_id=${userId}`;
+        }
+      }
       
       console.log('📡 배송목록 API 호출:', {
         url: apiUrl,
-        driverId,
-        userInfo: userInfo ? { id: userInfo.id, name: userInfo.name } : null
+        userId,
+        userRole,
+        userInfo: userInfo ? { id: userInfo.id, name: userInfo.name, role: userInfo.role } : null
       });
       
       const response = await api.get(apiUrl);
@@ -366,7 +384,9 @@ const DeliveryListScreen = ({ navigation }) => {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchDeliveries();
+    if (userInfo) {
+      await fetchDeliveries();
+    }
     setRefreshing(false);
   };
 

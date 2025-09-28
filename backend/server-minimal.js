@@ -1192,6 +1192,7 @@ app.post('/api/deliveries', async (req, res) => {
     const additionalFields = [
       { column: 'weight', value: parseNumber(req.body.weight || req.body.product_weight) },
       { column: 'driver_id', value: req.body.driver_id || null },
+      { column: 'partner_id', value: req.body.partner_id || null },
       { column: 'construction_type', value: req.body.construction_type },
       { column: 'visit_date', value: preferred_delivery_date || req.body.visit_date },
       { column: 'visit_time', value: req.body.visit_time },

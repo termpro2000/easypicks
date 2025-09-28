@@ -194,12 +194,26 @@ const createDelivery = async (req, res) => {
       existingColumns.includes(field.column)
     );
 
+    // partner_id 디버깅 로그
+    const partnerIdField = additionalFields.find(f => f.column === 'partner_id');
+    console.log('🔍 [createDelivery] partner_id 필드 확인:', partnerIdField);
+    console.log('🔍 [createDelivery] partner_id 컬럼 존재 여부:', existingColumns.includes('partner_id'));
+    
+    // 필터링된 필드들 확인
+    const filteredFields = additionalFields.filter(field => 
+      !existingColumns.includes(field.column)
+    );
+    if (filteredFields.length > 0) {
+      console.log('⚠️ [createDelivery] 제외된 필드들:', filteredFields.map(f => f.column));
+    }
+
     // 최종 컬럼과 값 배열 생성
     const finalColumns = [...baseColumns, ...validAdditionalFields.map(f => f.column)];
     const finalValues = [...baseValues, ...validAdditionalFields.map(f => f.value)];
 
     console.log('📋 [createDelivery] 최종 사용할 컬럼들:', finalColumns);
     console.log('📋 [createDelivery] 유효한 추가 필드:', validAdditionalFields.length);
+    console.log('📋 [createDelivery] partner_id가 최종 컬럼에 포함됨:', finalColumns.includes('partner_id'));
 
     // 동적 INSERT 쿼리 생성
     const placeholders = finalColumns.map(() => '?').join(', ');
@@ -323,15 +337,41 @@ const createDelivery = async (req, res) => {
 
 /**
  * 모든 배송 목록 조회 (52개 필드 완전 지원)
+ * 쿼리 파라미터: partner_id, driver_id로 필터링 지원
  */
 const getAllDeliveries = async (req, res) => {
   try {
-    console.log('📋 [getAllDeliveries] 모든 배송 목록 조회 시작');
+    const { partner_id, driver_id } = req.query;
+    
+    console.log('📋 [getAllDeliveries] 배송 목록 조회 시작', {
+      partner_id,
+      driver_id,
+      query: req.query
+    });
 
-    const [deliveries] = await pool.execute(`
-      SELECT * FROM deliveries 
-      ORDER BY created_at DESC
-    `);
+    let query = 'SELECT * FROM deliveries';
+    let params = [];
+    let conditions = [];
+
+    if (partner_id) {
+      conditions.push('partner_id = ?');
+      params.push(partner_id);
+    }
+
+    if (driver_id) {
+      conditions.push('driver_id = ?');
+      params.push(driver_id);
+    }
+
+    if (conditions.length > 0) {
+      query += ' WHERE ' + conditions.join(' AND ');
+    }
+
+    query += ' ORDER BY created_at DESC';
+
+    console.log('📋 [getAllDeliveries] 실행할 쿼리:', query, 'params:', params);
+
+    const [deliveries] = await pool.execute(query, params);
 
     console.log(`✅ [getAllDeliveries] 배송 목록 조회 완료: ${deliveries.length}건`);
 

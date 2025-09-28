@@ -50,25 +50,16 @@ async function ensurePartnerIdColumn() {
     `);
     
     if (columns.length === 0) {
-      console.log('✅ [ensurePartnerIdColumn] partner_id 컬럼이 없음, 추가 시도 중...');
+      console.log('❌ [ensurePartnerIdColumn] partner_id 컬럼이 없음!');
+      console.log('⚠️ [ensurePartnerIdColumn] DDL 권한 제한으로 자동 생성 불가');
+      console.log('📋 [ensurePartnerIdColumn] 수동으로 다음 SQL 실행 필요:');
+      console.log('   ALTER TABLE deliveries ADD COLUMN partner_id INT NULL COMMENT "파트너 ID";');
       
-      try {
-        await pool.execute(`
-          ALTER TABLE deliveries 
-          ADD COLUMN partner_id INT NULL COMMENT '파트너 ID (사용자 배송 등록시 사용)'
-        `);
-        console.log('✅ [ensurePartnerIdColumn] partner_id 컬럼 추가 완료');
-      } catch (alterError) {
-        if (alterError.code === 'ER_DBACCESS_DENIED_ERROR') {
-          console.log('⚠️ [ensurePartnerIdColumn] DDL 권한 없음 - PlanetScale 제한사항');
-          console.log('ℹ️ [ensurePartnerIdColumn] 관리자에게 수동으로 컬럼 추가 요청 필요:');
-          console.log('   ALTER TABLE deliveries ADD COLUMN partner_id INT NULL;');
-        } else {
-          console.error('❌ [ensurePartnerIdColumn] partner_id 컬럼 추가 실패:', alterError);
-        }
-      }
+      // PlanetScale에서는 DDL 권한이 제한되어 있어서 컬럼 추가 시도하지 않음
+      console.log('⏭️ [ensurePartnerIdColumn] 컬럼 추가 건너뛰기 - DDL 권한 필요');
     } else {
       console.log('✅ [ensurePartnerIdColumn] partner_id 컬럼이 이미 존재함');
+      console.log('📋 [ensurePartnerIdColumn] 컬럼 정보:', columns[0]);
     }
   } catch (error) {
     console.error('❌ [ensurePartnerIdColumn] 컬럼 확인 중 오류:', error);
