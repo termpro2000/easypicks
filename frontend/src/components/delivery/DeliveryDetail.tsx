@@ -269,7 +269,7 @@ const DeliveryDetail: React.FC<DeliveryDetailProps> = ({ delivery: initialDelive
                   <Package className="w-7 h-7 text-blue-600" />
                   배송 상세정보
                 </h1>
-                <p className="text-gray-600 mt-1">트래킹번호: {delivery.tracking_number}</p>
+                <p className="text-gray-600 mt-1">배송번호: {delivery.tracking_number}</p>
               </div>
             </div>
             

@@ -166,7 +166,7 @@ const DeliveryStatus: React.FC<DeliveryStatusProps> = ({ onNavigateBack, onViewD
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
                 type="text"
-                placeholder="트래킹번호, 상품명, 상품코드, 발송인, 수취인으로 검색..."
+                placeholder="배송번호, 상품명, 상품코드, 발송인, 수취인으로 검색..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-9 pr-4 py-2.5 border border-white/30 bg-white/50 backdrop-blur-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white/80 transition-all text-sm"
@@ -234,7 +234,7 @@ const DeliveryStatus: React.FC<DeliveryStatusProps> = ({ onNavigateBack, onViewD
                 <thead className="bg-white/30 backdrop-blur-sm">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                      트래킹번호
+                      배송번호
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                       상품정보

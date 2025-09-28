@@ -11,6 +11,8 @@ import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 import DeliveryListScreen from './src/screens/DeliveryListScreen';
 import UserDeliveryListScreen from './src/screens/UserDeliveryListScreen';
+import MobileDashboard from './src/screens/MobileDashboard';
+import UserShippingForm from './src/screens/UserShippingForm';
 import DeliveryDetailScreen from './src/screens/DeliveryDetailScreen';
 import LoadingConfirmScreen from './src/screens/LoadingConfirmScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
@@ -256,10 +258,26 @@ const App = () => {
               {userRole === 'user' ? (
                 <>
                   <Stack.Screen
+                    name="MobileDashboard"
+                    component={MobileDashboard}
+                    options={{ 
+                      title: '모바일 대시보드',
+                      headerShown: false 
+                    }}
+                  />
+                  <Stack.Screen
+                    name="UserShippingForm"
+                    component={UserShippingForm}
+                    options={{ 
+                      title: '새배송접수',
+                      headerShown: false 
+                    }}
+                  />
+                  <Stack.Screen
                     name="UserDeliveryList"
                     component={UserDeliveryListScreen}
                     options={{ 
-                      title: '이지픽스',
+                      title: '배송현황',
                       headerShown: false 
                     }}
                   />
