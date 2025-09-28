@@ -25,6 +25,7 @@ const UserDeliveryListScreen = ({ navigation }) => {
   const [stats, setStats] = useState({ total: 0, completed: 0 });
   const [slideMenuVisible, setSlideMenuVisible] = useState(false);
   const [slideAnimation] = useState(new Animated.Value(Dimensions.get('window').width));
+  const [expandedItems, setExpandedItems] = useState(new Set());
 
   useEffect(() => {
     loadUserInfo();
@@ -213,6 +214,137 @@ const UserDeliveryListScreen = ({ navigation }) => {
     navigation.navigate('UserDeliveryDetail', { delivery });
   };
 
+  const toggleStatusTimeline = (itemId) => {
+    const newExpandedItems = new Set(expandedItems);
+    if (newExpandedItems.has(itemId)) {
+      newExpandedItems.delete(itemId);
+    } else {
+      newExpandedItems.add(itemId);
+    }
+    setExpandedItems(newExpandedItems);
+  };
+
+  const DeliveryStatusTimeline = ({ currentStatus, createdAt, updatedAt, actual_delivery }) => {
+    const statusSteps = [
+      { key: '접수완료', label: '접수완료', icon: '📝', color: '#4CAF50' },
+      { key: '배차완료', label: '배차완료', icon: '🚛', color: '#2196F3' },
+      { key: '배송중', label: '배송중', icon: '🚚', color: '#FF9800' },
+      { key: '배송완료', label: '배송완료', icon: '✅', color: '#4CAF50' },
+      { key: '후처리완료', label: '후처리완료', icon: '📋', color: '#9C27B0' }
+    ];
+
+    const currentIndex = statusSteps.findIndex(step => step.key === currentStatus);
+
+    const formatDateTime = (dateTime) => {
+      if (!dateTime) return null;
+      
+      let datetime;
+      if (typeof dateTime === 'number') {
+        datetime = new Date(dateTime * 1000);
+      } else if (typeof dateTime === 'string') {
+        if (dateTime.includes('T')) {
+          datetime = new Date(dateTime);
+        } else if (dateTime.includes(' ')) {
+          datetime = new Date(dateTime.replace(' ', 'T'));
+        } else {
+          datetime = new Date(dateTime);
+        }
+      } else {
+        return null;
+      }
+      
+      if (isNaN(datetime.getTime())) {
+        return null;
+      }
+      
+      const displayDate = datetime.toLocaleDateString('ko-KR');
+      const displayTime = datetime.toLocaleTimeString('ko-KR', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: false 
+      });
+      
+      return `${displayDate} ${displayTime}`;
+    };
+
+    return (
+      <View style={styles.timelineContainer}>
+        <Text style={styles.timelineTitle}>🔄 배송 진행상황</Text>
+        
+        {statusSteps.map((step, index) => {
+          const isCompleted = index <= currentIndex;
+          const isCurrent = index === currentIndex;
+          const isLast = index === statusSteps.length - 1;
+          
+          let stepTime = null;
+          if (index === 0 && createdAt) {
+            stepTime = formatDateTime(createdAt);
+          } else if (index === currentIndex && actual_delivery) {
+            stepTime = formatDateTime(actual_delivery);
+          } else if (index === currentIndex && updatedAt) {
+            stepTime = formatDateTime(updatedAt);
+          }
+
+          return (
+            <View key={step.key} style={styles.timelineStep}>
+              <View style={styles.timelineLeft}>
+                <View style={[
+                  styles.timelineCircle,
+                  {
+                    backgroundColor: isCompleted ? step.color : '#E0E0E0',
+                    borderColor: isCurrent ? step.color : (isCompleted ? step.color : '#E0E0E0'),
+                    borderWidth: isCurrent ? 3 : 2,
+                  }
+                ]}>
+                  <Text style={[
+                    styles.timelineIcon,
+                    { color: isCompleted ? '#fff' : '#999' }
+                  ]}>
+                    {step.icon}
+                  </Text>
+                </View>
+                
+                {!isLast && (
+                  <View style={[
+                    styles.timelineLine,
+                    { backgroundColor: isCompleted ? step.color : '#E0E0E0' }
+                  ]} />
+                )}
+              </View>
+              
+              <View style={styles.timelineRight}>
+                <Text style={[
+                  styles.timelineLabel,
+                  { 
+                    color: isCompleted ? '#333' : '#999',
+                    fontWeight: isCurrent ? 'bold' : 'normal'
+                  }
+                ]}>
+                  {isCompleted ? '✓' : '○'} {step.label}
+                </Text>
+                
+                {stepTime && (
+                  <Text style={[
+                    styles.timelineTime,
+                    { color: isCurrent ? step.color : '#666' }
+                  ]}>
+                    {stepTime}
+                  </Text>
+                )}
+                
+                {!isCompleted && index === currentIndex + 1 && (
+                  <Text style={styles.timelineWaiting}>
+                    대기중
+                  </Text>
+                )}
+              </View>
+            </View>
+          );
+        })}
+      </View>
+    );
+  };
+
   const renderDeliveryItem = ({ item }) => {
     return (
       <TouchableOpacity 
@@ -303,6 +435,30 @@ const UserDeliveryListScreen = ({ navigation }) => {
               <Text style={styles.driverInfo}>기사: {item.driverName}</Text>
             )}
           </View>
+          
+          {/* 배송상태 보기 토글 버튼 */}
+          <TouchableOpacity 
+            style={styles.statusToggleButton}
+            onPress={(e) => {
+              e.stopPropagation(); // 부모 TouchableOpacity 이벤트 방지
+              toggleStatusTimeline(item.id);
+            }}
+          >
+            <Text style={styles.statusToggleText}>📊 배송상태 보기</Text>
+            <Text style={styles.statusToggleIcon}>
+              {expandedItems.has(item.id) ? '▲' : '▼'}
+            </Text>
+          </TouchableOpacity>
+          
+          {/* 수직 타임라인 (펼쳐졌을 때만 표시) */}
+          {expandedItems.has(item.id) && (
+            <DeliveryStatusTimeline 
+              currentStatus={item.status}
+              createdAt={item.createdAt}
+              updatedAt={item.updatedAt}
+              actual_delivery={item.actual_delivery}
+            />
+          )}
         </View>
       </TouchableOpacity>
     );
@@ -647,6 +803,96 @@ const styles = StyleSheet.create({
   },
   logoutText: {
     color: '#f44336',
+  },
+  
+  // 배송상태 토글 버튼
+  statusToggleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+    marginTop: 8,
+  },
+  statusToggleText: {
+    fontSize: 14,
+    color: '#2196F3',
+    fontWeight: '500',
+    marginRight: 4,
+  },
+  statusToggleIcon: {
+    fontSize: 12,
+    color: '#2196F3',
+  },
+  
+  // 수직 타임라인 컨테이너
+  timelineContainer: {
+    backgroundColor: '#f8f9fa',
+    padding: 16,
+    marginTop: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+  },
+  timelineTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  
+  // 타임라인 스텝
+  timelineStep: {
+    flexDirection: 'row',
+    marginBottom: 8,
+  },
+  timelineLeft: {
+    width: 40,
+    alignItems: 'center',
+    position: 'relative',
+  },
+  timelineCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  timelineIcon: {
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  timelineLine: {
+    position: 'absolute',
+    top: 28,
+    width: 2,
+    height: 20,
+    left: 11,
+  },
+  timelineRight: {
+    flex: 1,
+    paddingLeft: 8,
+    paddingTop: 2,
+  },
+  timelineLabel: {
+    fontSize: 13,
+    fontWeight: '500',
+    marginBottom: 2,
+  },
+  timelineTime: {
+    fontSize: 11,
+    fontWeight: '400',
+  },
+  timelineWaiting: {
+    fontSize: 11,
+    color: '#999',
+    fontStyle: 'italic',
   },
 });
 
