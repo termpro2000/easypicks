@@ -138,14 +138,37 @@ const UserShippingForm = ({ navigation }) => {
     return true;
   };
 
+  const scrollViewRef = React.useRef(null);
+
+  const scrollToSection = (step) => {
+    setCurrentStep(step);
+    // 각 섹션의 대략적인 위치로 스크롤
+    const scrollPositions = {
+      1: 400,   // 수취인 정보
+      2: 800,   // 제품 정보  
+      3: 1200,  // 배송 옵션
+      4: 1600,  // 건물 정보
+      5: 2000   // 기타 정보
+    };
+    
+    if (scrollViewRef.current && scrollPositions[step]) {
+      scrollViewRef.current.scrollTo({
+        y: scrollPositions[step],
+        animated: true
+      });
+    }
+  };
+
   const handleNext = () => {
     if (validateStep(currentStep)) {
-      setCurrentStep(currentStep + 1);
+      const nextStep = currentStep + 1;
+      scrollToSection(nextStep);
     }
   };
 
   const handlePrevious = () => {
-    setCurrentStep(currentStep - 1);
+    const prevStep = currentStep - 1;
+    scrollToSection(prevStep);
   };
 
   const getStepTitle = () => {
@@ -253,9 +276,13 @@ const UserShippingForm = ({ navigation }) => {
           />
         )}
       </TouchableOpacity>
-      <View style={!expanded ? styles.hiddenStep : null}>
-        {children}
-      </View>
+      {collapsible ? (
+        <View style={!expanded ? styles.hiddenStep : null}>
+          {children}
+        </View>
+      ) : (
+        children
+      )}
     </View>
   );
 
@@ -354,7 +381,12 @@ const UserShippingForm = ({ navigation }) => {
           <View style={styles.placeholder} />
         </View>
 
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <ScrollView 
+          ref={scrollViewRef}
+          style={styles.scrollView} 
+          showsVerticalScrollIndicator={false} 
+          keyboardShouldPersistTaps="handled"
+        >
           {/* 발송인 정보 - 접을 수 있는 섹션 */}
           <FormSection 
             title="발송인 정보" 
@@ -385,200 +417,190 @@ const UserShippingForm = ({ navigation }) => {
             />
           </FormSection>
 
-          {/* 단계별 폼 내용 - 조건부 렌더링 대신 display 속성 사용 */}
-          <View style={currentStep !== 1 ? styles.hiddenStep : null}>
-            <FormSection title="수취인 정보" icon="location-outline">
-              <InputField
-                label="수취인 이름"
-                value={customerName}
-                onChangeText={setCustomerName}
-                placeholder="수취인 이름을 입력하세요"
-                required
-              />
-              <InputField
-                label="수취인 전화번호"
-                value={customerPhone}
-                onChangeText={setCustomerPhone}
-                placeholder="수취인 전화번호를 입력하세요"
-                keyboardType="phone-pad"
-                required
-              />
-              <InputField
-                label="수취인 주소"
-                value={customerAddress}
-                onChangeText={setCustomerAddress}
-                placeholder="수취인 주소를 입력하세요"
-                required
-              />
-              <InputField
-                label="상세 주소"
-                value={customerDetailAddress}
-                onChangeText={setCustomerDetailAddress}
-                placeholder="상세 주소를 입력하세요"
-              />
-            </FormSection>
-          </View>
+          {/* 모든 섹션을 항상 렌더링 - 단계 표시만 변경 */}
+          <FormSection title={`수취인 정보 ${currentStep === 1 ? '← 현재 단계' : ''}`} icon="location-outline">
+            <InputField
+              label="수취인 이름"
+              value={customerName}
+              onChangeText={setCustomerName}
+              placeholder="수취인 이름을 입력하세요"
+              required
+            />
+            <InputField
+              label="수취인 전화번호"
+              value={customerPhone}
+              onChangeText={setCustomerPhone}
+              placeholder="수취인 전화번호를 입력하세요"
+              keyboardType="phone-pad"
+              required
+            />
+            <InputField
+              label="수취인 주소"
+              value={customerAddress}
+              onChangeText={setCustomerAddress}
+              placeholder="수취인 주소를 입력하세요"
+              required
+            />
+            <InputField
+              label="상세 주소"
+              value={customerDetailAddress}
+              onChangeText={setCustomerDetailAddress}
+              placeholder="상세 주소를 입력하세요"
+            />
+          </FormSection>
 
-          <View style={currentStep !== 2 ? styles.hiddenStep : null}>
-            <FormSection title="제품 정보" icon="cube-outline">
-              <InputField
-                label="제품명"
-                value={productName}
-                onChangeText={setProductName}
-                placeholder="제품명을 입력하세요"
-                required
-              />
-              <InputField
-                label="제품 코드"
-                value={productCode}
-                onChangeText={setProductCode}
-                placeholder="제품 코드를 입력하세요"
-              />
-              <View style={styles.row}>
-                <View style={styles.halfWidth}>
-                  <InputField
-                    label="제품 무게"
-                    value={productWeight}
-                    onChangeText={setProductWeight}
-                    placeholder="예: 50kg"
-                  />
-                </View>
-                <View style={styles.halfWidth}>
-                  <InputField
-                    label="제품 크기"
-                    value={productSize}
-                    onChangeText={setProductSize}
-                    placeholder="예: 1200x800x600mm"
-                  />
-                </View>
+          <FormSection title={`제품 정보 ${currentStep === 2 ? '← 현재 단계' : ''}`} icon="cube-outline">
+            <InputField
+              label="제품명"
+              value={productName}
+              onChangeText={setProductName}
+              placeholder="제품명을 입력하세요"
+              required
+            />
+            <InputField
+              label="제품 코드"
+              value={productCode}
+              onChangeText={setProductCode}
+              placeholder="제품 코드를 입력하세요"
+            />
+            <View style={styles.row}>
+              <View style={styles.halfWidth}>
+                <InputField
+                  label="제품 무게"
+                  value={productWeight}
+                  onChangeText={setProductWeight}
+                  placeholder="예: 50kg"
+                />
               </View>
-              <InputField
-                label="박스 크기"
-                value={boxSize}
-                onChangeText={setBoxSize}
-                placeholder="예: 1300x900x700mm"
-              />
-            </FormSection>
-          </View>
+              <View style={styles.halfWidth}>
+                <InputField
+                  label="제품 크기"
+                  value={productSize}
+                  onChangeText={setProductSize}
+                  placeholder="예: 1200x800x600mm"
+                />
+              </View>
+            </View>
+            <InputField
+              label="박스 크기"
+              value={boxSize}
+              onChangeText={setBoxSize}
+              placeholder="예: 1300x900x700mm"
+            />
+          </FormSection>
 
-          <View style={currentStep !== 3 ? styles.hiddenStep : null}>
-            <FormSection title="배송 옵션" icon="time-outline">
-              <View style={styles.row}>
-                <View style={styles.halfWidth}>
-                  <InputField
-                    label="방문 희망일"
-                    value={visitDate}
-                    onChangeText={setVisitDate}
-                    placeholder="YYYY-MM-DD"
-                  />
-                </View>
-                <View style={styles.halfWidth}>
-                  <InputField
-                    label="방문 희망시간"
-                    value={visitTime}
-                    onChangeText={setVisitTime}
-                    placeholder="HH:MM"
-                  />
-                </View>
+          <FormSection title={`배송 옵션 ${currentStep === 3 ? '← 현재 단계' : ''}`} icon="time-outline">
+            <View style={styles.row}>
+              <View style={styles.halfWidth}>
+                <InputField
+                  label="방문 희망일"
+                  value={visitDate}
+                  onChangeText={setVisitDate}
+                  placeholder="YYYY-MM-DD"
+                />
               </View>
-              <View style={styles.row}>
-                <View style={styles.halfWidth}>
-                  <InputField
-                    label="배송비"
-                    value={deliveryFee}
-                    onChangeText={setDeliveryFee}
-                    placeholder="배송비 (원)"
-                    keyboardType="numeric"
-                  />
-                </View>
-                <View style={styles.halfWidth}>
-                  <InputField
-                    label="보험가액"
-                    value={insuranceValue}
-                    onChangeText={setInsuranceValue}
-                    placeholder="보험가액 (원)"
-                    keyboardType="numeric"
-                  />
-                </View>
+              <View style={styles.halfWidth}>
+                <InputField
+                  label="방문 희망시간"
+                  value={visitTime}
+                  onChangeText={setVisitTime}
+                  placeholder="HH:MM"
+                />
               </View>
-              <InputField
-                label="착불금액"
-                value={codAmount}
-                onChangeText={setCodAmount}
-                placeholder="착불금액 (원)"
-                keyboardType="numeric"
-              />
-            </FormSection>
-          </View>
+            </View>
+            <View style={styles.row}>
+              <View style={styles.halfWidth}>
+                <InputField
+                  label="배송비"
+                  value={deliveryFee}
+                  onChangeText={setDeliveryFee}
+                  placeholder="배송비 (원)"
+                  keyboardType="numeric"
+                />
+              </View>
+              <View style={styles.halfWidth}>
+                <InputField
+                  label="보험가액"
+                  value={insuranceValue}
+                  onChangeText={setInsuranceValue}
+                  placeholder="보험가액 (원)"
+                  keyboardType="numeric"
+                />
+              </View>
+            </View>
+            <InputField
+              label="착불금액"
+              value={codAmount}
+              onChangeText={setCodAmount}
+              placeholder="착불금액 (원)"
+              keyboardType="numeric"
+            />
+          </FormSection>
 
-          <View style={currentStep !== 4 ? styles.hiddenStep : null}>
-            <FormSection title="건물 정보" icon="business-outline">
-              <View style={styles.row}>
-                <View style={styles.halfWidth}>
-                  <InputField
-                    label="건물 유형"
-                    value={buildingType}
-                    onChangeText={setBuildingType}
-                    placeholder="예: 아파트, 빌라, 단독주택"
-                  />
-                </View>
-                <View style={styles.halfWidth}>
-                  <InputField
-                    label="층수"
-                    value={floorCount}
-                    onChangeText={setFloorCount}
-                    placeholder="층수"
-                    keyboardType="numeric"
-                  />
-                </View>
+          <FormSection title={`건물 정보 ${currentStep === 4 ? '← 현재 단계' : ''}`} icon="business-outline">
+            <View style={styles.row}>
+              <View style={styles.halfWidth}>
+                <InputField
+                  label="건물 유형"
+                  value={buildingType}
+                  onChangeText={setBuildingType}
+                  placeholder="예: 아파트, 빌라, 단독주택"
+                />
               </View>
-              <SwitchField
-                label="엘리베이터 사용 가능"
-                value={elevatorAvailable}
-                onValueChange={setElevatorAvailable}
-                description="엘리베이터를 사용할 수 있는 경우 활성화"
-              />
-              <SwitchField
-                label="사다리차 필요"
-                value={ladderTruck}
-                onValueChange={setLadderTruck}
-                description="사다리차가 필요한 경우 활성화"
-              />
-              <SwitchField
-                label="폐기물 처리"
-                value={disposal}
-                onValueChange={setDisposal}
-                description="폐기물 처리가 필요한 경우 활성화"
-              />
-            </FormSection>
-          </View>
+              <View style={styles.halfWidth}>
+                <InputField
+                  label="층수"
+                  value={floorCount}
+                  onChangeText={setFloorCount}
+                  placeholder="층수"
+                  keyboardType="numeric"
+                />
+              </View>
+            </View>
+            <SwitchField
+              label="엘리베이터 사용 가능"
+              value={elevatorAvailable}
+              onValueChange={setElevatorAvailable}
+              description="엘리베이터를 사용할 수 있는 경우 활성화"
+            />
+            <SwitchField
+              label="사다리차 필요"
+              value={ladderTruck}
+              onValueChange={setLadderTruck}
+              description="사다리차가 필요한 경우 활성화"
+            />
+            <SwitchField
+              label="폐기물 처리"
+              value={disposal}
+              onValueChange={setDisposal}
+              description="폐기물 처리가 필요한 경우 활성화"
+            />
+          </FormSection>
 
-          <View style={currentStep !== 5 ? styles.hiddenStep : null}>
-            <FormSection title="기타 정보" icon="document-text-outline">
-              <SwitchField
-                label="파손 주의"
-                value={fragile}
-                onValueChange={setFragile}
-                description="파손 주의가 필요한 제품인 경우 활성화"
-              />
-              <InputField
-                label="메인 메모"
-                value={mainMemo}
-                onChangeText={setMainMemo}
-                placeholder="주요 전달사항을 입력하세요"
-                multiline
-                numberOfLines={3}
-              />
-              <InputField
-                label="특별 지시사항"
-                value={specialInstructions}
-                onChangeText={setSpecialInstructions}
-                placeholder="특별한 지시사항이 있으면 입력하세요"
-                multiline
-                numberOfLines={3}
-              />
-            </FormSection>
-          </View>
+          <FormSection title={`기타 정보 ${currentStep === 5 ? '← 현재 단계' : ''}`} icon="document-text-outline">
+            <SwitchField
+              label="파손 주의"
+              value={fragile}
+              onValueChange={setFragile}
+              description="파손 주의가 필요한 제품인 경우 활성화"
+            />
+            <InputField
+              label="메인 메모"
+              value={mainMemo}
+              onChangeText={setMainMemo}
+              placeholder="주요 전달사항을 입력하세요"
+              multiline
+              numberOfLines={3}
+            />
+            <InputField
+              label="특별 지시사항"
+              value={specialInstructions}
+              onChangeText={setSpecialInstructions}
+              placeholder="특별한 지시사항이 있으면 입력하세요"
+              multiline
+              numberOfLines={3}
+            />
+          </FormSection>
 
           {/* 네비게이션 버튼 */}
           <NavigationButtons />
