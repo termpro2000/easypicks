@@ -224,14 +224,38 @@ const UserDeliveryListScreen = ({ navigation }) => {
     setExpandedItems(newExpandedItems);
   };
 
-  const DeliveryStatusTimeline = ({ currentStatus, createdAt, updatedAt, actual_delivery }) => {
-    const statusSteps = [
-      { key: '접수완료', label: '접수완료', icon: '📝', color: '#4CAF50' },
-      { key: '배차완료', label: '배차완료', icon: '🚛', color: '#2196F3' },
-      { key: '배송중', label: '배송중', icon: '🚚', color: '#FF9800' },
-      { key: '배송완료', label: '배송완료', icon: '✅', color: '#4CAF50' },
-      { key: '후처리완료', label: '후처리완료', icon: '📋', color: '#9C27B0' }
-    ];
+  const DeliveryStatusTimeline = ({ currentStatus, createdAt, updatedAt, actual_delivery, requestType }) => {
+    // request_type에 따른 타임라인 선택
+    const getStatusSteps = (requestType) => {
+      switch (requestType) {
+        case '회수':
+          // 기본옵션2: 접수완료,배차완료,수거중,수거완료
+          return [
+            { key: '접수완료', label: '접수완료', icon: '📝', color: '#FF9800' },
+            { key: '배차완료', label: '배차완료', icon: '🚛', color: '#2196F3' },
+            { key: '수거중', label: '수거중', icon: '📦', color: '#FF9800' },
+            { key: '수거완료', label: '수거완료', icon: '✅', color: '#4CAF50' }
+          ];
+        case '조치':
+          // 기본옵션3: 접수완료,배차완료,조처진행,조처완료
+          return [
+            { key: '접수완료', label: '접수완료', icon: '📝', color: '#FF9800' },
+            { key: '배차완료', label: '배차완료', icon: '🚛', color: '#2196F3' },
+            { key: '조처진행', label: '조처진행', icon: '🔧', color: '#FF9800' },
+            { key: '조처완료', label: '조처완료', icon: '✅', color: '#4CAF50' }
+          ];
+        default:
+          // 기본옵션1: 접수완료,배차완료,배송중,배송완료 (일반 및 기타)
+          return [
+            { key: '접수완료', label: '접수완료', icon: '📝', color: '#FF9800' },
+            { key: '배차완료', label: '배차완료', icon: '🚛', color: '#2196F3' },
+            { key: '배송중', label: '배송중', icon: '🚚', color: '#FF9800' },
+            { key: '배송완료', label: '배송완료', icon: '✅', color: '#4CAF50' }
+          ];
+      }
+    };
+
+    const statusSteps = getStatusSteps(requestType);
 
     const currentIndex = statusSteps.findIndex(step => step.key === currentStatus);
 
@@ -457,6 +481,7 @@ const UserDeliveryListScreen = ({ navigation }) => {
               createdAt={item.createdAt}
               updatedAt={item.updatedAt}
               actual_delivery={item.actual_delivery}
+              requestType={item.requestType}
             />
           )}
         </View>
