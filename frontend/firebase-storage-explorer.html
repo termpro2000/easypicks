@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Storage 탐색기</title>
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getStorage, ref, listAll, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
+
+        // Firebase 설정
+        const firebaseConfig = {
+            apiKey: "AIzaSyCKb2Rs9vOF6pppEO_HfQ3Qub5L9OACAng",
+            authDomain: "easypicks-delivery.firebaseapp.com",
+            projectId: "easypicks-delivery",
+            storageBucket: "easypicks-delivery.firebasestorage.app",
+            messagingSenderId: "992445415586",
+            appId: "1:992445415586:web:2e00d58272a1107ca4d7fb"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const storage = getStorage(app);
+
+        // 전체 파일 목록 조회
+        async function listAllFiles() {
+            try {
+                console.log('🔍 Firebase Storage 파일 탐색 시작...');
+                const storageRef = ref(storage, 'delivery-photos');
+                const result = await listAll(storageRef);
+                
+                document.getElementById('status').textContent = '로딩 중...';
+                const fileList = document.getElementById('fileList');
+                fileList.innerHTML = '';
+                
+                // 폴더 목록
+                for (const folderRef of result.prefixes) {
+                    console.log('📁 폴더 발견:', folderRef.name);
+                    
+                    const folderDiv = document.createElement('div');
+                    folderDiv.style.marginBottom = '20px';
+                    folderDiv.innerHTML = `<h3>📁 ${folderRef.name}</h3>`;
+                    
+                    // 폴더 내 파일 목록
+                    const folderResult = await listAll(folderRef);
+                    const fileGrid = document.createElement('div');
+                    fileGrid.style.display = 'grid';
+                    fileGrid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(200px, 1fr))';
+                    fileGrid.style.gap = '10px';
+                    
+                    for (const itemRef of folderResult.items) {
+                        const url = await getDownloadURL(itemRef);
+                        console.log('📷 파일:', itemRef.name, url);
+                        
+                        const fileDiv = document.createElement('div');
+                        fileDiv.style.border = '1px solid #ddd';
+                        fileDiv.style.borderRadius = '8px';
+                        fileDiv.style.padding = '10px';
+                        fileDiv.innerHTML = `
+                            <img src="${url}" alt="${itemRef.name}" style="width: 100%; height: 150px; object-fit: cover; border-radius: 4px;">
+                            <p style="margin: 5px 0 0 0; font-size: 12px; word-break: break-all;">${itemRef.name}</p>
+                            <a href="${url}" target="_blank" style="font-size: 11px; color: blue;">다운로드</a>
+                        `;
+                        fileGrid.appendChild(fileDiv);
+                    }
+                    
+                    folderDiv.appendChild(fileGrid);
+                    fileList.appendChild(folderDiv);
+                }
+                
+                document.getElementById('status').textContent = `✅ 총 ${result.prefixes.length}개 폴더 발견`;
+                
+            } catch (error) {
+                console.error('❌ 파일 목록 조회 오류:', error);
+                document.getElementById('status').textContent = `❌ 오류: ${error.message}`;
+            }
+        }
+
+        // 특정 배송 번호의 파일 조회
+        async function listDeliveryPhotos() {
+            const trackingNumber = document.getElementById('trackingInput').value.trim();
+            if (!trackingNumber) {
+                alert('배송 추적 번호를 입력하세요.');
+                return;
+            }
+            
+            try {
+                console.log('🔍 배송 사진 조회:', trackingNumber);
+                const folderRef = ref(storage, `delivery-photos/${trackingNumber}`);
+                const result = await listAll(folderRef);
+                
+                const photoList = document.getElementById('photoList');
+                photoList.innerHTML = `<h3>📷 ${trackingNumber} 배송 사진</h3>`;
+                
+                if (result.items.length === 0) {
+                    photoList.innerHTML += '<p>❌ 해당 배송 번호의 사진이 없습니다.</p>';
+                    return;
+                }
+                
+                const photoGrid = document.createElement('div');
+                photoGrid.style.display = 'grid';
+                photoGrid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(250px, 1fr))';
+                photoGrid.style.gap = '15px';
+                
+                for (const itemRef of result.items) {
+                    const url = await getDownloadURL(itemRef);
+                    console.log('📷 사진:', itemRef.name, url);
+                    
+                    const photoDiv = document.createElement('div');
+                    photoDiv.style.border = '2px solid #e5e5e5';
+                    photoDiv.style.borderRadius = '12px';
+                    photoDiv.style.padding = '15px';
+                    photoDiv.style.backgroundColor = '#f9f9f9';
+                    photoDiv.innerHTML = `
+                        <img src="${url}" alt="${itemRef.name}" style="width: 100%; height: 200px; object-fit: cover; border-radius: 8px; margin-bottom: 10px;">
+                        <p style="margin: 0; font-weight: bold; font-size: 14px;">${itemRef.name}</p>
+                        <a href="${url}" target="_blank" style="color: #007bff; text-decoration: none; font-size: 13px;">🔗 원본 보기</a>
+                    `;
+                    photoGrid.appendChild(photoDiv);
+                }
+                
+                photoList.appendChild(photoGrid);
+                
+            } catch (error) {
+                console.error('❌ 배송 사진 조회 오류:', error);
+                document.getElementById('photoList').innerHTML = `<p>❌ 오류: ${error.message}</p>`;
+            }
+        }
+
+        // 페이지 로드 시 자동 실행
+        window.addEventListener('load', () => {
+            document.getElementById('listAllBtn').addEventListener('click', listAllFiles);
+            document.getElementById('searchBtn').addEventListener('click', listDeliveryPhotos);
+            
+            // 자동으로 전체 목록 로드
+            listAllFiles();
+        });
+    </script>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            padding: 20px; 
+            background-color: #f5f5f5;
+        }
+        .container { 
+            background: white; 
+            padding: 30px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        button { 
+            background: #007bff; 
+            color: white; 
+            border: none; 
+            padding: 12px 24px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        button:hover { background: #0056b3; }
+        input { 
+            padding: 10px; 
+            border: 1px solid #ddd; 
+            border-radius: 4px; 
+            width: 200px; 
+            margin-right: 10px;
+        }
+        #status { 
+            font-weight: bold; 
+            margin: 15px 0; 
+            padding: 10px;
+            background: #e7f3ff;
+            border-radius: 4px;
+        }
+        h1 { color: #333; margin-bottom: 20px; }
+        h2 { color: #555; border-bottom: 2px solid #007bff; padding-bottom: 5px; }
+    </style>
+</head>
+<body>
+    <h1>🔥 Firebase Storage 탐색기</h1>
+    
+    <div class="container">
+        <h2>📂 전체 파일 목록</h2>
+        <button id="listAllBtn">🔄 전체 파일 새로고침</button>
+        <div id="status">로딩 중...</div>
+        <div id="fileList"></div>
+    </div>
+    
+    <div class="container">
+        <h2>🔍 특정 배송 번호 검색</h2>
+        <input type="text" id="trackingInput" placeholder="배송 추적 번호 입력" value="">
+        <button id="searchBtn">🔍 검색</button>
+        <div id="photoList"></div>
+    </div>
+    
+    <div class="container">
+        <h2>📖 사용법</h2>
+        <ul>
+            <li><strong>전체 목록</strong>: Firebase Storage의 모든 delivery-photos 폴더 내용을 표시</li>
+            <li><strong>특정 검색</strong>: 배송 추적 번호를 입력하여 해당 배송의 사진만 조회</li>
+            <li><strong>다운로드</strong>: 각 이미지의 "다운로드" 또는 "원본 보기" 링크 클릭</li>
+            <li><strong>새로고침</strong>: "전체 파일 새로고침" 버튼으로 최신 상태 확인</li>
+        </ul>
+    </div>
+</body>
+</html>

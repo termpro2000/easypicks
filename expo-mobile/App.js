@@ -10,6 +10,7 @@ import Constants from 'expo-constants';
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 import DeliveryListScreen from './src/screens/DeliveryListScreen';
+import UserDeliveryListScreen from './src/screens/UserDeliveryListScreen';
 import DeliveryDetailScreen from './src/screens/DeliveryDetailScreen';
 import LoadingConfirmScreen from './src/screens/LoadingConfirmScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
@@ -24,6 +25,7 @@ const Stack = createStackNavigator();
 const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [userRole, setUserRole] = useState(null); // 'driver' or 'user'
   const [globalMapPreference, setGlobalMapPreference] = useState(0); // 0: 네이버, 1: 카카오, 2: 티맵, 3: 구글
 
   useEffect(() => {
@@ -33,9 +35,10 @@ const App = () => {
     // 로그아웃 이벤트 리스너 (전역적으로 로그아웃 처리)
     const handleLogout = () => {
       setIsLoggedIn(false);
+      setUserRole(null);
       // 로그아웃 시 지도 설정을 기본값으로 초기화 (다른 사용자 로그인을 위해)
       setGlobalMapPreference(0);
-      console.log('로그아웃: 지도 설정을 기본값(0)으로 초기화');
+      console.log('로그아웃: 지도 설정을 기본값(0)으로 초기화, 사용자 역할 초기화');
     };
     
     // 글로벌 함수들 설정
@@ -201,16 +204,31 @@ const App = () => {
   const checkLoginStatus = async () => {
     try {
       const token = await AsyncStorage.getItem('auth_token');
-      if (token) {
+      const userInfoString = await AsyncStorage.getItem('user_info');
+      
+      if (token && userInfoString) {
+        const userInfo = JSON.parse(userInfoString);
         setIsLoggedIn(true);
+        
+        // 사용자 역할 확인 (role 필드 기준)
+        if (userInfo.role === 'user') {
+          setUserRole('user');
+          console.log('일반 사용자로 로그인됨');
+        } else {
+          setUserRole('driver');
+          console.log('기사로 로그인됨');
+        }
+        
         // 로그인된 상태라면 지도 설정도 로드
         await loadMapPreference();
       } else {
         setIsLoggedIn(false);
+        setUserRole(null);
       }
     } catch (error) {
       console.log('토큰 확인 오류:', error);
       setIsLoggedIn(false);
+      setUserRole(null);
     } finally {
       setLoading(false);
     }
@@ -235,44 +253,74 @@ const App = () => {
           }}>
           {isLoggedIn ? (
             <>
-              <Stack.Screen
-                name="DeliveryList"
-                component={DeliveryListScreen}
-                options={{ 
-                  title: '이지픽스',
-                  headerShown: false 
-                }}
-              />
-              <Stack.Screen
-                name="DeliveryDetail"
-                component={DeliveryDetailScreen}
-                options={{ title: '배송 상세정보' }}
-              />
-              <Stack.Screen
-                name="LoadingConfirm"
-                component={LoadingConfirmScreen}
-                options={{ title: '상차확인', headerShown: false }}
-              />
-              <Stack.Screen
-                name="Profile"
-                component={ProfileScreen}
-                options={{ title: '기사 프로필' }}
-              />
-              <Stack.Screen
-                name="MapSetting"
-                component={MapSettingScreen}
-                options={{ title: '지도 설정' }}
-              />
-              <Stack.Screen
-                name="AppInfo"
-                component={AppInfoScreen}
-                options={{ title: '앱 정보', headerShown: false }}
-              />
-              <Stack.Screen
-                name="DeliveryMapView"
-                component={DeliveryMapViewScreen}
-                options={{ title: '지도로 보기', headerShown: false }}
-              />
+              {userRole === 'user' ? (
+                <>
+                  <Stack.Screen
+                    name="UserDeliveryList"
+                    component={UserDeliveryListScreen}
+                    options={{ 
+                      title: '이지픽스',
+                      headerShown: false 
+                    }}
+                  />
+                  <Stack.Screen
+                    name="DeliveryDetail"
+                    component={DeliveryDetailScreen}
+                    options={{ title: '배송 상세정보' }}
+                  />
+                  <Stack.Screen
+                    name="Profile"
+                    component={ProfileScreen}
+                    options={{ title: '사용자 프로필' }}
+                  />
+                  <Stack.Screen
+                    name="AppInfo"
+                    component={AppInfoScreen}
+                    options={{ title: '앱 정보', headerShown: false }}
+                  />
+                </>
+              ) : (
+                <>
+                  <Stack.Screen
+                    name="DeliveryList"
+                    component={DeliveryListScreen}
+                    options={{ 
+                      title: '이지픽스',
+                      headerShown: false 
+                    }}
+                  />
+                  <Stack.Screen
+                    name="DeliveryDetail"
+                    component={DeliveryDetailScreen}
+                    options={{ title: '배송 상세정보' }}
+                  />
+                  <Stack.Screen
+                    name="LoadingConfirm"
+                    component={LoadingConfirmScreen}
+                    options={{ title: '상차확인', headerShown: false }}
+                  />
+                  <Stack.Screen
+                    name="Profile"
+                    component={ProfileScreen}
+                    options={{ title: '기사 프로필' }}
+                  />
+                  <Stack.Screen
+                    name="MapSetting"
+                    component={MapSettingScreen}
+                    options={{ title: '지도 설정' }}
+                  />
+                  <Stack.Screen
+                    name="AppInfo"
+                    component={AppInfoScreen}
+                    options={{ title: '앱 정보', headerShown: false }}
+                  />
+                  <Stack.Screen
+                    name="DeliveryMapView"
+                    component={DeliveryMapViewScreen}
+                    options={{ title: '지도로 보기', headerShown: false }}
+                  />
+                </>
+              )}
             </>
           ) : (
             <>
