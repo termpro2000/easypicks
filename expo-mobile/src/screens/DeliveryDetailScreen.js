@@ -280,8 +280,16 @@ const DeliveryDetailScreen = ({ route, navigation }) => {
         customerRequestedCompletion: customerRequestedCompletion,
         furnitureCompanyRequestedCompletion: furnitureCompanyRequestedCompletion,
         completionAudioFile: audioFileName,
-        completedAt: new Date().toISOString()
+        completedAt: new Date().toISOString(),
+        // 서명 데이터 포함 (모바일 서명이 있을 때만)
+        customer_signature: mobileSignatureData || loadedSignature
       };
+      
+      console.log('🔍 배송완료 데이터 확인:', {
+        hasSignature: !!(mobileSignatureData || loadedSignature),
+        signatureDataLength: (mobileSignatureData || loadedSignature)?.length || 0,
+        signaturePreview: (mobileSignatureData || loadedSignature)?.substring(0, 50) + '...'
+      });
       
       // 배송완료 처리 API 호출 (axios 인스턴스 사용)
       const response = await api.post(`/deliveries/complete/${delivery.id}`, completionData);
