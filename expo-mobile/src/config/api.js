@@ -168,4 +168,33 @@ api.interceptors.request.use(
   }
 );
 
+// Delivery Details API functions
+export const deliveryDetailsAPI = {
+  // Get products for a specific delivery
+  getDeliveryProducts: async (deliveryId) => {
+    try {
+      console.log(`[API] Fetching products for delivery ID: ${deliveryId}`);
+      const response = await api.get(`/delivery-details/${deliveryId}/products`);
+      console.log(`[API] Products response:`, response.data);
+      return response.data;
+    } catch (error) {
+      console.error(`[API] Error fetching products for delivery ${deliveryId}:`, error);
+      throw error;
+    }
+  },
+
+  // Get all delivery details
+  getDeliveryDetails: async (deliveryId) => {
+    try {
+      console.log(`[API] Fetching delivery details for ID: ${deliveryId}`);
+      const response = await api.get(`/delivery-details/${deliveryId}`);
+      console.log(`[API] Delivery details response:`, response.data);
+      return response.data;
+    } catch (error) {
+      console.error(`[API] Error fetching delivery details for ${deliveryId}:`, error);
+      throw error;
+    }
+  }
+};
+
 export default api;

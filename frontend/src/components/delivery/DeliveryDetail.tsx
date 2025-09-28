@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Package, User, MapPin, Calendar, Truck, Phone, Clock, FileText, Edit, Save, X } from 'lucide-react';
+import { ArrowLeft, Package, User, MapPin, Calendar, Truck, Phone, Clock, FileText, Edit, Save, X, Camera, Eye } from 'lucide-react';
 import { deliveriesAPI, deliveryDetailsAPI } from '../../services/api';
+import { getDeliveryPhotos, isFirebaseStorageConfigured } from '../../utils/firebaseStorage';
 
 interface Delivery {
   id: number;
@@ -69,12 +70,24 @@ interface Product {
   product_weight?: string;
 }
 
+interface DeliveryPhoto {
+  id: string;
+  url: string;
+  name: string;
+  path: string;
+}
+
 const DeliveryDetail: React.FC<DeliveryDetailProps> = ({ delivery: initialDelivery, onNavigateBack }) => {
   const [delivery, setDelivery] = useState<Delivery>(initialDelivery);
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [productsLoading, setProductsLoading] = useState(false);
+  
+  // 시공설치사진 관련 상태
+  const [deliveryPhotos, setDeliveryPhotos] = useState<DeliveryPhoto[]>([]);
+  const [photosLoading, setPhotosLoading] = useState(false);
+  const [selectedPhoto, setSelectedPhoto] = useState<DeliveryPhoto | null>(null);
   const [editData, setEditData] = useState({
     status: delivery.status,
     visit_date: delivery.visit_date || '',
@@ -158,9 +171,42 @@ const DeliveryDetail: React.FC<DeliveryDetailProps> = ({ delivery: initialDelive
     }
   };
 
-  // 컴포넌트 마운트시 제품 정보 로드
+  // 시공설치사진 로드 함수
+  const fetchDeliveryPhotos = async () => {
+    try {
+      setPhotosLoading(true);
+      
+      const trackingNumber = delivery.tracking_number;
+      if (!trackingNumber) {
+        console.log('배송 추적 번호가 없어서 사진을 로드할 수 없습니다.');
+        return;
+      }
+      
+      console.log(`[DeliveryDetail] 사진 로드 시작 - 배송번호: ${trackingNumber}`);
+      
+      // Firebase Storage 설정 확인
+      const isConfigured = isFirebaseStorageConfigured();
+      if (!isConfigured) {
+        console.log('Firebase Storage가 설정되지 않았습니다.');
+        return;
+      }
+      
+      const photos = await getDeliveryPhotos(trackingNumber);
+      setDeliveryPhotos(photos);
+      console.log(`[DeliveryDetail] 사진 로드 완료: ${photos.length}장`);
+      
+    } catch (error) {
+      console.error('[DeliveryDetail] 사진 로드 오류:', error);
+      setDeliveryPhotos([]);
+    } finally {
+      setPhotosLoading(false);
+    }
+  };
+
+  // 컴포넌트 마운트시 제품 정보 및 사진 로드
   useEffect(() => {
     fetchProducts();
+    fetchDeliveryPhotos();
   }, [delivery.id]);
 
   // 편집 모드 시작
@@ -648,49 +694,70 @@ const DeliveryDetail: React.FC<DeliveryDetailProps> = ({ delivery: initialDelive
           </div>
         </div>
 
-        {/* 설치 사진 */}
-        {delivery.installation_photos && (
-          <div className="bg-white rounded-lg shadow-sm border p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <FileText className="w-5 h-5 text-purple-600" />
-              설치 사진
-            </h2>
-            
-            <div className="space-y-2">
-              {Array.isArray(delivery.installation_photos) ? (
-                delivery.installation_photos.length > 0 ? (
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {delivery.installation_photos.map((photo, index) => (
-                      <div key={index} className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
-                        <img 
-                          src={photo} 
-                          alt={`설치 사진 ${index + 1}`}
-                          className="w-full h-full object-cover hover:scale-105 transition-transform cursor-pointer"
-                          onClick={() => window.open(photo, '_blank')}
-                        />
+        {/* 시공설치사진 */}
+        <div className="bg-white rounded-lg shadow-sm border p-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <Camera className="w-5 h-5 text-purple-600" />
+            📷 시공설치사진 {deliveryPhotos.length > 0 && `(${deliveryPhotos.length}장)`}
+          </h2>
+          
+          <div className="space-y-4">
+            {photosLoading ? (
+              <div className="flex items-center justify-center p-8">
+                <div className="flex items-center gap-2 text-gray-500">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600"></div>
+                  <span>사진을 불러오는 중...</span>
+                </div>
+              </div>
+            ) : deliveryPhotos.length > 0 ? (
+              <div className="space-y-4">
+                {/* 사진 갤러리 */}
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {deliveryPhotos.map((photo, index) => (
+                    <div key={photo.id} className="group relative aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                      <img 
+                        src={photo.url}
+                        alt={`시공설치사진 ${index + 1}`}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200 cursor-pointer"
+                        onClick={() => setSelectedPhoto(photo)}
+                        loading="lazy"
+                      />
+                      
+                      {/* 호버 오버레이 */}
+                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center">
+                        <Eye className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
                       </div>
-                    ))}
+                      
+                      {/* 사진 인덱스 */}
+                      <div className="absolute top-2 left-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded">
+                        {index + 1}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                {/* 사진 정보 요약 */}
+                <div className="bg-purple-50 p-3 rounded-lg border border-purple-200">
+                  <div className="flex items-center gap-2 text-sm text-purple-700">
+                    <Camera className="w-4 h-4" />
+                    <span className="font-medium">총 {deliveryPhotos.length}장의 시공설치사진이 업로드되었습니다.</span>
                   </div>
-                ) : (
-                  <div className="text-gray-500">설치 사진이 없습니다.</div>
-                )
-              ) : (
-                typeof delivery.installation_photos === 'string' && delivery.installation_photos ? (
-                  <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden max-w-xs">
-                    <img 
-                      src={delivery.installation_photos} 
-                      alt="설치 사진"
-                      className="w-full h-full object-cover hover:scale-105 transition-transform cursor-pointer"
-                      onClick={() => window.open(delivery.installation_photos as string, '_blank')}
-                    />
+                  <div className="text-xs text-purple-600 mt-1">
+                    사진을 클릭하면 크게 볼 수 있습니다.
                   </div>
-                ) : (
-                  <div className="text-gray-500">설치 사진이 없습니다.</div>
-                )
-              )}
-            </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <Camera className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                <div className="text-gray-500 font-medium">업로드된 시공설치사진이 없습니다.</div>
+                <div className="text-sm text-gray-400 mt-1">
+                  모바일 앱에서 사진을 업로드하면 여기에 표시됩니다.
+                </div>
+              </div>
+            )}
           </div>
-        )}
+        </div>
 
         {/* 시간 정보 */}
         <div className="bg-white rounded-lg shadow-sm border p-6">
@@ -710,6 +777,34 @@ const DeliveryDetail: React.FC<DeliveryDetailProps> = ({ delivery: initialDelive
             </div>
           </div>
         </div>
+
+        {/* 사진 모달 */}
+        {selectedPhoto && (
+          <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+            <div className="relative max-w-4xl max-h-full">
+              {/* 닫기 버튼 */}
+              <button
+                onClick={() => setSelectedPhoto(null)}
+                className="absolute top-4 right-4 z-10 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 transition-all"
+              >
+                <X className="w-6 h-6" />
+              </button>
+              
+              {/* 사진 */}
+              <img
+                src={selectedPhoto.url}
+                alt={selectedPhoto.name}
+                className="max-w-full max-h-full object-contain rounded-lg"
+              />
+              
+              {/* 사진 정보 */}
+              <div className="absolute bottom-4 left-4 bg-black bg-opacity-60 text-white p-3 rounded-lg">
+                <div className="font-medium">{selectedPhoto.name}</div>
+                <div className="text-sm text-gray-300">시공설치사진</div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* 파일명 표시 */}
         <div className="text-xs text-gray-400 text-center">

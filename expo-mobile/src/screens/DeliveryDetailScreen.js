@@ -21,7 +21,7 @@ import SignatureCanvas from 'react-native-signature-canvas';
 import SimpleNaverMap from '../components/map/SimpleNaverMap';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
-import api from '../config/api';
+import api, { deliveryDetailsAPI } from '../config/api';
 import { 
   uploadMultipleDeliveryPhotos, 
   getDeliveryPhotos, 
@@ -77,6 +77,10 @@ const DeliveryDetailScreen = ({ route, navigation }) => {
   const [uploadProgress, setUploadProgress] = useState(0); // 업로드 진행률
   const [isPostponeModalVisible, setIsPostponeModalVisible] = useState(false); // 배송연기 모달 표시 상태
   const [postponeDate, setPostponeDate] = useState(''); // 연기 날짜
+  
+  // 상품 정보 상태
+  const [products, setProducts] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
   const [postponeReason, setPostponeReason] = useState(''); // 연기 사유
   const [showDatePicker, setShowDatePicker] = useState(false); // 날짜 선택기 표시 상태
   const [selectedCalendarDate, setSelectedCalendarDate] = useState(new Date()); // 달력에서 선택된 날짜
@@ -99,6 +103,7 @@ const DeliveryDetailScreen = ({ route, navigation }) => {
   useEffect(() => {
     loadExistingSignature();
     loadUploadedPhotos();
+    loadDeliveryProducts();
   }, []);
 
   // AsyncStorage에서 지도 설정 로드
@@ -864,6 +869,37 @@ Storage Bucket: ${firebaseConfig?.storageBucket || '없음'}
       setUploadedPhotos([]);
     } finally {
       setLoadingPhotos(false);
+    }
+  };
+
+  // 배송 상품 정보를 불러오는 함수
+  const loadDeliveryProducts = async () => {
+    try {
+      setLoadingProducts(true);
+      
+      const deliveryId = delivery.id;
+      if (!deliveryId) {
+        console.log('배송 ID가 없어서 상품 정보를 로드할 수 없습니다.');
+        return;
+      }
+      
+      console.log(`[DeliveryDetail] 상품 정보 로드 시작 - 배송 ID: ${deliveryId}`);
+      
+      const response = await deliveryDetailsAPI.getDeliveryProducts(deliveryId);
+      
+      if (response.success) {
+        setProducts(response.products || []);
+        console.log(`[DeliveryDetail] 상품 정보 로드 완료: ${response.products?.length || 0}개`);
+      } else {
+        console.log('[DeliveryDetail] 상품 정보 응답 실패:', response.message);
+        setProducts([]);
+      }
+      
+    } catch (error) {
+      console.error('[DeliveryDetail] 상품 정보 로드 오류:', error);
+      setProducts([]);
+    } finally {
+      setLoadingProducts(false);
     }
   };
 
@@ -2094,7 +2130,51 @@ Storage Bucket: ${firebaseConfig?.storageBucket || '없음'}
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>📦 상품 정보</Text>
-            <DetailItem label="상품명" value={delivery.productInfo} />
+            
+            {loadingProducts ? (
+              <View style={styles.loadingContainer}>
+                <Text style={styles.loadingText}>상품 정보를 불러오는 중...</Text>
+              </View>
+            ) : products.length > 0 ? (
+              <View style={styles.productsContainer}>
+                {/* 테이블 헤더 */}
+                <View style={styles.productTableHeader}>
+                  <Text style={[styles.productTableHeaderText, { flex: 1 }]}>상품코드</Text>
+                  <Text style={[styles.productTableHeaderText, { flex: 1.5 }]}>상품명</Text>
+                  <Text style={[styles.productTableHeaderText, { flex: 1 }]}>크기</Text>
+                  <Text style={[styles.productTableHeaderText, { flex: 1 }]}>무게</Text>
+                </View>
+                
+                {/* 테이블 내용 */}
+                {products.map((product, index) => (
+                  <View key={product.id || index} style={styles.productTableRow}>
+                    <Text style={[styles.productTableCell, { flex: 1 }]}>
+                      {product.product_code || '-'}
+                    </Text>
+                    <Text style={[styles.productTableCell, { flex: 1.5 }]}>
+                      {product.product_name || '-'}
+                    </Text>
+                    <Text style={[styles.productTableCell, { flex: 1 }]}>
+                      {product.product_size || '-'}
+                    </Text>
+                    <Text style={[styles.productTableCell, { flex: 1 }]}>
+                      {product.product_weight || '-'}
+                    </Text>
+                  </View>
+                ))}
+                
+                <View style={styles.productsSummary}>
+                  <Text style={styles.productsSummaryText}>
+                    총 {products.length}개 상품
+                  </Text>
+                </View>
+              </View>
+            ) : (
+              <View style={styles.noProductsContainer}>
+                <Text style={styles.noProductsText}>등록된 상품이 없습니다.</Text>
+              </View>
+            )}
+            
             <DetailItem label="의뢰타입" value={delivery.requestType} />
             <DetailItem label="시공유형" value={delivery.constructionType} />
           </View>
@@ -4398,6 +4478,76 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     textAlign: 'center',
+  },
+  
+  // 상품 정보 테이블 스타일
+  loadingContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 14,
+    color: '#666',
+    fontStyle: 'italic',
+  },
+  productsContainer: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    marginVertical: 10,
+    overflow: 'hidden',
+  },
+  productTableHeader: {
+    flexDirection: 'row',
+    backgroundColor: '#e3f2fd',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+  },
+  productTableHeaderText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#1976d2',
+    textAlign: 'center',
+  },
+  productTableRow: {
+    flexDirection: 'row',
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+    backgroundColor: '#fff',
+  },
+  productTableCell: {
+    fontSize: 11,
+    color: '#333',
+    textAlign: 'center',
+    lineHeight: 16,
+  },
+  productsSummary: {
+    backgroundColor: '#e8f5e8',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#ddd',
+  },
+  productsSummaryText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#2e7d32',
+    textAlign: 'center',
+  },
+  noProductsContainer: {
+    padding: 20,
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    marginVertical: 10,
+  },
+  noProductsText: {
+    fontSize: 14,
+    color: '#999',
+    fontStyle: 'italic',
   },
 });
 
