@@ -159,42 +159,42 @@ const DeliveryStatus: React.FC<DeliveryStatusProps> = ({ onNavigateBack, onViewD
 
       <main className="max-w-7xl mx-auto px-6 py-8">
         {/* 검색 및 필터 */}
-        <div className="bg-white/60 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6 mb-6">
-          <div className="flex flex-col sm:flex-row gap-4">
+        <div className="bg-white/60 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-5 mb-5">
+          <div className="flex flex-col sm:flex-row gap-3">
             {/* 검색창 */}
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
                 type="text"
                 placeholder="트래킹번호, 상품명, 상품코드, 발송인, 수취인으로 검색..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-white/30 bg-white/50 backdrop-blur-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white/80 transition-all"
+                className="w-full pl-9 pr-4 py-2.5 border border-white/30 bg-white/50 backdrop-blur-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white/80 transition-all text-sm"
               />
             </div>
 
             {/* 필터 버튼 */}
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center gap-2 px-4 py-3 bg-white/50 backdrop-blur-sm text-gray-700 rounded-xl hover:bg-white/80 transition-all shadow-lg border border-white/30"
+              className="flex items-center gap-2 px-4 py-2.5 bg-white/50 backdrop-blur-sm text-gray-700 rounded-xl hover:bg-white/80 transition-all shadow-lg border border-white/30 text-sm"
             >
-              <Filter className="w-5 h-5" />
+              <Filter className="w-4 h-4" />
               필터
             </button>
           </div>
 
           {/* 필터 옵션 */}
           {showFilters && (
-            <div className="mt-4 pt-4 border-t border-white/30">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="mt-3 pt-3 border-t border-white/30">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-xs font-medium text-gray-700 mb-1.5">
                     배송 상태
                   </label>
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className="w-full px-3 py-2 border border-white/30 bg-white/50 backdrop-blur-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white/80 transition-all"
+                    className="w-full px-3 py-2 border border-white/30 bg-white/50 backdrop-blur-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white/80 transition-all text-sm"
                   >
                     {statusOptions.map(option => (
                       <option key={option.value} value={option.value}>
