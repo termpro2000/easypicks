@@ -259,7 +259,7 @@ const UserShippingForm = ({ navigation }) => {
     </View>
   );
 
-  const InputField = ({ label, value, onChangeText, placeholder, required = false, ...props }) => (
+  const InputField = React.memo(({ label, value, onChangeText, placeholder, required = false, ...props }) => (
     <View style={styles.inputContainer}>
       <Text style={styles.inputLabel}>
         {label}
@@ -271,10 +271,13 @@ const UserShippingForm = ({ navigation }) => {
         onChangeText={onChangeText}
         placeholder={placeholder}
         placeholderTextColor="#999"
+        autoCapitalize="none"
+        autoCorrect={false}
+        key={`input-${label}`}
         {...props}
       />
     </View>
-  );
+  ));
 
   const SwitchField = ({ label, value, onValueChange, description }) => (
     <View style={styles.switchContainer}>
@@ -658,7 +661,8 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   hiddenStep: {
-    display: 'none',
+    height: 0,
+    overflow: 'hidden',
   },
   inputContainer: {
     marginBottom: 15,
