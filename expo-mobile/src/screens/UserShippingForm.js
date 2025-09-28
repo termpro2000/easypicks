@@ -23,6 +23,10 @@ const UserShippingForm = ({ navigation }) => {
   const [userInfo, setUserInfo] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitResult, setSubmitResult] = useState(null);
+  
+  // 스텝 관리
+  const [currentStep, setCurrentStep] = useState(1);
+  const [senderInfoExpanded, setSenderInfoExpanded] = useState(false);
 
   // 발송인 정보
   const [senderName, setSenderName] = useState('');
@@ -81,7 +85,41 @@ const UserShippingForm = ({ navigation }) => {
     }
   };
 
+  const validateStep = (step) => {
+    switch (step) {
+      case 1: // 수취인 정보
+        if (!customerName.trim()) {
+          Alert.alert('입력 오류', '수취인 이름을 입력해주세요.');
+          return false;
+        }
+        if (!customerPhone.trim()) {
+          Alert.alert('입력 오류', '수취인 전화번호를 입력해주세요.');
+          return false;
+        }
+        if (!customerAddress.trim()) {
+          Alert.alert('입력 오류', '수취인 주소를 입력해주세요.');
+          return false;
+        }
+        return true;
+      case 2: // 제품 정보
+        if (!productName.trim()) {
+          Alert.alert('입력 오류', '제품명을 입력해주세요.');
+          return false;
+        }
+        return true;
+      case 3: // 배송 옵션
+        return true; // 배송 옵션은 선택사항
+      case 4: // 건물 정보
+        return true; // 건물 정보는 선택사항
+      case 5: // 기타 정보
+        return true; // 기타 정보는 선택사항
+      default:
+        return true;
+    }
+  };
+
   const validateForm = () => {
+    // 발송인 정보 검증
     if (!senderName.trim()) {
       Alert.alert('입력 오류', '발송인 이름을 입력해주세요.');
       return false;
@@ -90,23 +128,35 @@ const UserShippingForm = ({ navigation }) => {
       Alert.alert('입력 오류', '발송인 주소를 입력해주세요.');
       return false;
     }
-    if (!customerName.trim()) {
-      Alert.alert('입력 오류', '수취인 이름을 입력해주세요.');
-      return false;
-    }
-    if (!customerPhone.trim()) {
-      Alert.alert('입력 오류', '수취인 전화번호를 입력해주세요.');
-      return false;
-    }
-    if (!customerAddress.trim()) {
-      Alert.alert('입력 오류', '수취인 주소를 입력해주세요.');
-      return false;
-    }
-    if (!productName.trim()) {
-      Alert.alert('입력 오류', '제품명을 입력해주세요.');
-      return false;
+    
+    // 모든 스텝 검증
+    for (let i = 1; i <= 5; i++) {
+      if (!validateStep(i)) {
+        return false;
+      }
     }
     return true;
+  };
+
+  const handleNext = () => {
+    if (validateStep(currentStep)) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const handlePrevious = () => {
+    setCurrentStep(currentStep - 1);
+  };
+
+  const getStepTitle = () => {
+    switch (currentStep) {
+      case 1: return '수취인 정보';
+      case 2: return '제품 정보';
+      case 3: return '배송 옵션';
+      case 4: return '건물 정보';
+      case 5: return '기타 정보';
+      default: return '';
+    }
   };
 
   const handleSubmit = async () => {
@@ -185,13 +235,25 @@ const UserShippingForm = ({ navigation }) => {
     }
   };
 
-  const FormSection = ({ title, icon, children }) => (
+  const FormSection = ({ title, icon, children, collapsible = false, expanded = true, onToggle }) => (
     <View style={styles.section}>
-      <View style={styles.sectionHeader}>
+      <TouchableOpacity 
+        style={styles.sectionHeader} 
+        onPress={collapsible ? onToggle : undefined}
+        disabled={!collapsible}
+      >
         <Ionicons name={icon} size={24} color="#2196F3" />
         <Text style={styles.sectionTitle}>{title}</Text>
-      </View>
-      {children}
+        {collapsible && (
+          <Ionicons 
+            name={expanded ? "chevron-up" : "chevron-down"} 
+            size={20} 
+            color="#666" 
+            style={styles.toggleIcon}
+          />
+        )}
+      </TouchableOpacity>
+      {expanded && children}
     </View>
   );
 
@@ -227,6 +289,47 @@ const UserShippingForm = ({ navigation }) => {
     </View>
   );
 
+  const NavigationButtons = () => (
+    <View style={styles.navigationContainer}>
+      {currentStep > 1 && (
+        <TouchableOpacity 
+          style={styles.previousButton}
+          onPress={handlePrevious}
+        >
+          <Ionicons name="arrow-back" size={20} color="#2196F3" />
+          <Text style={styles.previousButtonText}>이전</Text>
+        </TouchableOpacity>
+      )}
+      
+      <View style={styles.buttonSpacer} />
+      
+      {currentStep < 5 ? (
+        <TouchableOpacity 
+          style={styles.nextButton}
+          onPress={handleNext}
+        >
+          <Text style={styles.nextButtonText}>다음</Text>
+          <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity
+          style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]}
+          onPress={handleSubmit}
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <>
+              <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
+              <Text style={styles.submitButtonText}>배송접수 완료</Text>
+            </>
+          )}
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
@@ -239,13 +342,22 @@ const UserShippingForm = ({ navigation }) => {
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#333" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>새배송접수</Text>
+          <View style={styles.headerTitleContainer}>
+            <Text style={styles.headerTitle}>새배송접수</Text>
+            <Text style={styles.stepIndicator}>{currentStep}/5 단계 - {getStepTitle()}</Text>
+          </View>
           <View style={styles.placeholder} />
         </View>
 
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-          {/* 발송인 정보 */}
-          <FormSection title="발송인 정보" icon="person-outline">
+          {/* 발송인 정보 - 접을 수 있는 섹션 */}
+          <FormSection 
+            title="발송인 정보" 
+            icon="person-outline"
+            collapsible={true}
+            expanded={senderInfoExpanded}
+            onToggle={() => setSenderInfoExpanded(!senderInfoExpanded)}
+          >
             <InputField
               label="발송인 이름"
               value={senderName}
@@ -268,212 +380,203 @@ const UserShippingForm = ({ navigation }) => {
             />
           </FormSection>
 
-          {/* 수취인 정보 */}
-          <FormSection title="수취인 정보" icon="location-outline">
-            <InputField
-              label="수취인 이름"
-              value={customerName}
-              onChangeText={setCustomerName}
-              placeholder="수취인 이름을 입력하세요"
-              required
-            />
-            <InputField
-              label="수취인 전화번호"
-              value={customerPhone}
-              onChangeText={setCustomerPhone}
-              placeholder="수취인 전화번호를 입력하세요"
-              keyboardType="phone-pad"
-              required
-            />
-            <InputField
-              label="수취인 주소"
-              value={customerAddress}
-              onChangeText={setCustomerAddress}
-              placeholder="수취인 주소를 입력하세요"
-              required
-            />
-            <InputField
-              label="상세 주소"
-              value={customerDetailAddress}
-              onChangeText={setCustomerDetailAddress}
-              placeholder="상세 주소를 입력하세요"
-            />
-          </FormSection>
+          {/* 단계별 폼 내용 */}
+          {currentStep === 1 && (
+            <FormSection title="수취인 정보" icon="location-outline">
+              <InputField
+                label="수취인 이름"
+                value={customerName}
+                onChangeText={setCustomerName}
+                placeholder="수취인 이름을 입력하세요"
+                required
+              />
+              <InputField
+                label="수취인 전화번호"
+                value={customerPhone}
+                onChangeText={setCustomerPhone}
+                placeholder="수취인 전화번호를 입력하세요"
+                keyboardType="phone-pad"
+                required
+              />
+              <InputField
+                label="수취인 주소"
+                value={customerAddress}
+                onChangeText={setCustomerAddress}
+                placeholder="수취인 주소를 입력하세요"
+                required
+              />
+              <InputField
+                label="상세 주소"
+                value={customerDetailAddress}
+                onChangeText={setCustomerDetailAddress}
+                placeholder="상세 주소를 입력하세요"
+              />
+            </FormSection>
+          )}
 
-          {/* 제품 정보 */}
-          <FormSection title="제품 정보" icon="cube-outline">
-            <InputField
-              label="제품명"
-              value={productName}
-              onChangeText={setProductName}
-              placeholder="제품명을 입력하세요"
-              required
-            />
-            <InputField
-              label="제품 코드"
-              value={productCode}
-              onChangeText={setProductCode}
-              placeholder="제품 코드를 입력하세요"
-            />
-            <View style={styles.row}>
-              <View style={styles.halfWidth}>
-                <InputField
-                  label="제품 무게"
-                  value={productWeight}
-                  onChangeText={setProductWeight}
-                  placeholder="예: 50kg"
-                />
+          {currentStep === 2 && (
+            <FormSection title="제품 정보" icon="cube-outline">
+              <InputField
+                label="제품명"
+                value={productName}
+                onChangeText={setProductName}
+                placeholder="제품명을 입력하세요"
+                required
+              />
+              <InputField
+                label="제품 코드"
+                value={productCode}
+                onChangeText={setProductCode}
+                placeholder="제품 코드를 입력하세요"
+              />
+              <View style={styles.row}>
+                <View style={styles.halfWidth}>
+                  <InputField
+                    label="제품 무게"
+                    value={productWeight}
+                    onChangeText={setProductWeight}
+                    placeholder="예: 50kg"
+                  />
+                </View>
+                <View style={styles.halfWidth}>
+                  <InputField
+                    label="제품 크기"
+                    value={productSize}
+                    onChangeText={setProductSize}
+                    placeholder="예: 1200x800x600mm"
+                  />
+                </View>
               </View>
-              <View style={styles.halfWidth}>
-                <InputField
-                  label="제품 크기"
-                  value={productSize}
-                  onChangeText={setProductSize}
-                  placeholder="예: 1200x800x600mm"
-                />
-              </View>
-            </View>
-            <InputField
-              label="박스 크기"
-              value={boxSize}
-              onChangeText={setBoxSize}
-              placeholder="예: 1300x900x700mm"
-            />
-          </FormSection>
+              <InputField
+                label="박스 크기"
+                value={boxSize}
+                onChangeText={setBoxSize}
+                placeholder="예: 1300x900x700mm"
+              />
+            </FormSection>
+          )}
 
-          {/* 배송 옵션 */}
-          <FormSection title="배송 옵션" icon="time-outline">
-            <View style={styles.row}>
-              <View style={styles.halfWidth}>
-                <InputField
-                  label="방문 희망일"
-                  value={visitDate}
-                  onChangeText={setVisitDate}
-                  placeholder="YYYY-MM-DD"
-                />
+          {currentStep === 3 && (
+            <FormSection title="배송 옵션" icon="time-outline">
+              <View style={styles.row}>
+                <View style={styles.halfWidth}>
+                  <InputField
+                    label="방문 희망일"
+                    value={visitDate}
+                    onChangeText={setVisitDate}
+                    placeholder="YYYY-MM-DD"
+                  />
+                </View>
+                <View style={styles.halfWidth}>
+                  <InputField
+                    label="방문 희망시간"
+                    value={visitTime}
+                    onChangeText={setVisitTime}
+                    placeholder="HH:MM"
+                  />
+                </View>
               </View>
-              <View style={styles.halfWidth}>
-                <InputField
-                  label="방문 희망시간"
-                  value={visitTime}
-                  onChangeText={setVisitTime}
-                  placeholder="HH:MM"
-                />
+              <View style={styles.row}>
+                <View style={styles.halfWidth}>
+                  <InputField
+                    label="배송비"
+                    value={deliveryFee}
+                    onChangeText={setDeliveryFee}
+                    placeholder="배송비 (원)"
+                    keyboardType="numeric"
+                  />
+                </View>
+                <View style={styles.halfWidth}>
+                  <InputField
+                    label="보험가액"
+                    value={insuranceValue}
+                    onChangeText={setInsuranceValue}
+                    placeholder="보험가액 (원)"
+                    keyboardType="numeric"
+                  />
+                </View>
               </View>
-            </View>
-            <View style={styles.row}>
-              <View style={styles.halfWidth}>
-                <InputField
-                  label="배송비"
-                  value={deliveryFee}
-                  onChangeText={setDeliveryFee}
-                  placeholder="배송비 (원)"
-                  keyboardType="numeric"
-                />
-              </View>
-              <View style={styles.halfWidth}>
-                <InputField
-                  label="보험가액"
-                  value={insuranceValue}
-                  onChangeText={setInsuranceValue}
-                  placeholder="보험가액 (원)"
-                  keyboardType="numeric"
-                />
-              </View>
-            </View>
-            <InputField
-              label="착불금액"
-              value={codAmount}
-              onChangeText={setCodAmount}
-              placeholder="착불금액 (원)"
-              keyboardType="numeric"
-            />
-          </FormSection>
+              <InputField
+                label="착불금액"
+                value={codAmount}
+                onChangeText={setCodAmount}
+                placeholder="착불금액 (원)"
+                keyboardType="numeric"
+              />
+            </FormSection>
+          )}
 
-          {/* 건물 정보 */}
-          <FormSection title="건물 정보" icon="business-outline">
-            <View style={styles.row}>
-              <View style={styles.halfWidth}>
-                <InputField
-                  label="건물 유형"
-                  value={buildingType}
-                  onChangeText={setBuildingType}
-                  placeholder="예: 아파트, 빌라, 단독주택"
-                />
+          {currentStep === 4 && (
+            <FormSection title="건물 정보" icon="business-outline">
+              <View style={styles.row}>
+                <View style={styles.halfWidth}>
+                  <InputField
+                    label="건물 유형"
+                    value={buildingType}
+                    onChangeText={setBuildingType}
+                    placeholder="예: 아파트, 빌라, 단독주택"
+                  />
+                </View>
+                <View style={styles.halfWidth}>
+                  <InputField
+                    label="층수"
+                    value={floorCount}
+                    onChangeText={setFloorCount}
+                    placeholder="층수"
+                    keyboardType="numeric"
+                  />
+                </View>
               </View>
-              <View style={styles.halfWidth}>
-                <InputField
-                  label="층수"
-                  value={floorCount}
-                  onChangeText={setFloorCount}
-                  placeholder="층수"
-                  keyboardType="numeric"
-                />
-              </View>
-            </View>
-            <SwitchField
-              label="엘리베이터 사용 가능"
-              value={elevatorAvailable}
-              onValueChange={setElevatorAvailable}
-              description="엘리베이터를 사용할 수 있는 경우 활성화"
-            />
-            <SwitchField
-              label="사다리차 필요"
-              value={ladderTruck}
-              onValueChange={setLadderTruck}
-              description="사다리차가 필요한 경우 활성화"
-            />
-            <SwitchField
-              label="폐기물 처리"
-              value={disposal}
-              onValueChange={setDisposal}
-              description="폐기물 처리가 필요한 경우 활성화"
-            />
-          </FormSection>
+              <SwitchField
+                label="엘리베이터 사용 가능"
+                value={elevatorAvailable}
+                onValueChange={setElevatorAvailable}
+                description="엘리베이터를 사용할 수 있는 경우 활성화"
+              />
+              <SwitchField
+                label="사다리차 필요"
+                value={ladderTruck}
+                onValueChange={setLadderTruck}
+                description="사다리차가 필요한 경우 활성화"
+              />
+              <SwitchField
+                label="폐기물 처리"
+                value={disposal}
+                onValueChange={setDisposal}
+                description="폐기물 처리가 필요한 경우 활성화"
+              />
+            </FormSection>
+          )}
 
-          {/* 기타 정보 */}
-          <FormSection title="기타 정보" icon="document-text-outline">
-            <SwitchField
-              label="파손 주의"
-              value={fragile}
-              onValueChange={setFragile}
-              description="파손 주의가 필요한 제품인 경우 활성화"
-            />
-            <InputField
-              label="메인 메모"
-              value={mainMemo}
-              onChangeText={setMainMemo}
-              placeholder="주요 전달사항을 입력하세요"
-              multiline
-              numberOfLines={3}
-            />
-            <InputField
-              label="특별 지시사항"
-              value={specialInstructions}
-              onChangeText={setSpecialInstructions}
-              placeholder="특별한 지시사항이 있으면 입력하세요"
-              multiline
-              numberOfLines={3}
-            />
-          </FormSection>
+          {currentStep === 5 && (
+            <FormSection title="기타 정보" icon="document-text-outline">
+              <SwitchField
+                label="파손 주의"
+                value={fragile}
+                onValueChange={setFragile}
+                description="파손 주의가 필요한 제품인 경우 활성화"
+              />
+              <InputField
+                label="메인 메모"
+                value={mainMemo}
+                onChangeText={setMainMemo}
+                placeholder="주요 전달사항을 입력하세요"
+                multiline
+                numberOfLines={3}
+              />
+              <InputField
+                label="특별 지시사항"
+                value={specialInstructions}
+                onChangeText={setSpecialInstructions}
+                placeholder="특별한 지시사항이 있으면 입력하세요"
+                multiline
+                numberOfLines={3}
+              />
+            </FormSection>
+          )}
 
-          {/* 접수 버튼 */}
-          <View style={styles.submitContainer}>
-            <TouchableOpacity
-              style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]}
-              onPress={handleSubmit}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <>
-                  <Ionicons name="checkmark-circle" size={24} color="#FFFFFF" />
-                  <Text style={styles.submitButtonText}>배송 접수 완료</Text>
-                </>
-              )}
-            </TouchableOpacity>
-          </View>
+          {/* 네비게이션 버튼 */}
+          <NavigationButtons />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -504,10 +607,19 @@ const styles = StyleSheet.create({
   backButton: {
     padding: 5,
   },
+  headerTitleContainer: {
+    alignItems: 'center',
+    flex: 1,
+  },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#333',
+  },
+  stepIndicator: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
   },
   placeholder: {
     width: 34,
@@ -531,11 +643,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 20,
+    justifyContent: 'space-between',
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
+    marginLeft: 10,
+    flex: 1,
+  },
+  toggleIcon: {
     marginLeft: 10,
   },
   inputContainer: {
@@ -589,6 +706,47 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 2,
   },
+  navigationContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 30,
+    marginBottom: 40,
+    paddingHorizontal: 20,
+  },
+  previousButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    borderWidth: 1,
+    borderColor: '#2196F3',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    gap: 8,
+  },
+  previousButtonText: {
+    color: '#2196F3',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  nextButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#2196F3',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    gap: 8,
+  },
+  nextButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  buttonSpacer: {
+    flex: 1,
+  },
   submitContainer: {
     marginTop: 20,
     marginBottom: 40,
@@ -612,7 +770,7 @@ const styles = StyleSheet.create({
   },
   submitButtonText: {
     color: '#FFFFFF',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
   },
 });
