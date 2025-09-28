@@ -14,6 +14,7 @@ import {
   Dimensions,
   Modal,
   Animated,
+  SafeAreaView,
 } from 'react-native';
 import { PinchGestureHandler, PanGestureHandler, State } from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -2566,7 +2567,7 @@ Storage Bucket: ${firebaseConfig?.storageBucket || '없음'}
         transparent={false}
         onRequestClose={handleCloseSignatureModal}
       >
-        <View style={styles.modalContainer}>
+        <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={handleCloseSignatureModal}>
               <Text style={styles.modalCloseButton}>× 닫기</Text>
@@ -2609,7 +2610,7 @@ Storage Bucket: ${firebaseConfig?.storageBucket || '없음'}
               confirmText="완료"
               autoClear={false}
               imageType={'image/png'}
-              dataURL=""
+              dataURL={loadedSignature || mobileSignatureData || ""}
               webStyle={`
                 .m-signature-pad {
                   box-shadow: none;
@@ -2660,7 +2661,7 @@ Storage Bucket: ${firebaseConfig?.storageBucket || '없음'}
               style={styles.fullSignatureCanvas}
             />
           </View>
-        </View>
+        </SafeAreaView>
       </Modal>
 
       {/* 날짜 선택 모달 */}
