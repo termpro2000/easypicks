@@ -759,6 +759,57 @@ const DeliveryDetail: React.FC<DeliveryDetailProps> = ({ delivery: initialDelive
           </div>
         </div>
 
+        {/* 고객서명 */}
+        <div className="bg-white rounded-lg shadow-sm border p-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            </svg>
+            ✒️ 고객서명
+          </h2>
+          
+          <div className="space-y-4">
+            {delivery.customer_signature ? (
+              <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                <div className="flex flex-col items-center space-y-4">
+                  {/* 서명 이미지 표시 */}
+                  <div className="border-2 border-gray-300 rounded-lg bg-white p-4 shadow-sm">
+                    <img
+                      src={`data:image/png;base64,${delivery.customer_signature}`}
+                      alt="고객 서명"
+                      className="max-w-full max-h-40 object-contain"
+                      style={{ minWidth: '300px', minHeight: '150px' }}
+                    />
+                  </div>
+                  
+                  {/* 서명 정보 */}
+                  <div className="text-center">
+                    <div className="flex items-center justify-center gap-2 text-green-600 font-medium">
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      서명 완료
+                    </div>
+                    <div className="text-sm text-gray-500 mt-1">
+                      고객님의 서명이 저장되었습니다.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+                <svg className="w-12 h-12 text-gray-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+                <div className="text-gray-500 font-medium">아직 서명이 없습니다.</div>
+                <div className="text-sm text-gray-400 mt-1">
+                  모바일 앱에서 고객 서명을 받으면 여기에 표시됩니다.
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* 시간 정보 */}
         <div className="bg-white rounded-lg shadow-sm border p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
