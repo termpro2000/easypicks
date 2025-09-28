@@ -3478,6 +3478,50 @@ app.post('/api/deliveries/cancel/:id', async (req, res) => {
 
 // ===== DELIVERY PRODUCTS API =====
 
+// 단일 배송 조회 (모바일 앱 서명 로드용)
+app.get('/api/deliveries/:id', async (req, res) => {
+  try {
+    const { id: deliveryId } = req.params;
+    
+    console.log('🔍 단일 배송 조회 요청:', deliveryId);
+    
+    const [deliveries] = await pool.execute(`
+      SELECT * FROM deliveries WHERE id = ?
+    `, [deliveryId]);
+    
+    if (deliveries.length === 0) {
+      console.log('❌ 배송을 찾을 수 없음:', deliveryId);
+      return res.status(404).json({
+        success: false,
+        error: '배송을 찾을 수 없습니다.',
+        deliveryId
+      });
+    }
+    
+    const delivery = deliveries[0];
+    
+    console.log('✅ 배송 조회 성공:', {
+      id: delivery.id,
+      tracking_number: delivery.tracking_number,
+      status: delivery.status,
+      hasSignature: !!delivery.customer_signature,
+      signatureLength: delivery.customer_signature?.length || 0
+    });
+    
+    res.json({
+      success: true,
+      delivery: delivery
+    });
+  } catch (error) {
+    console.error('❌ 단일 배송 조회 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '배송 조회 중 오류가 발생했습니다.',
+      details: error.message
+    });
+  }
+});
+
 // 배송별 제품 목록 조회
 app.get('/api/deliveries/:id/products', async (req, res) => {
   try {
