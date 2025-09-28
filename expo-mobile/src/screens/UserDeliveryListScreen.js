@@ -225,8 +225,30 @@ const UserDeliveryListScreen = ({ navigation }) => {
   };
 
   const DeliveryStatusTimeline = ({ currentStatus, createdAt, updatedAt, actual_delivery, requestType }) => {
-    // request_type에 따른 타임라인 선택
-    const getStatusSteps = (requestType) => {
+    // currentStatus에 따른 타임라인 선택 (우선순위: 현재상태 > request_type)
+    const getStatusSteps = (currentStatus, requestType) => {
+      // 현재 상태가 배송연기나 배송취소인 경우 해당 타임라인 적용
+      if (currentStatus === '배송연기') {
+        // 기본옵션4: 접수완료,배차완료,배송중,배송연기
+        return [
+          { key: '접수완료', label: '접수완료', icon: '📝', color: '#FF9800' },
+          { key: '배차완료', label: '배차완료', icon: '🚛', color: '#2196F3' },
+          { key: '배송중', label: '배송중', icon: '🚚', color: '#FF9800' },
+          { key: '배송연기', label: '배송연기', icon: '⏸️', color: '#FFC107' }
+        ];
+      }
+      
+      if (currentStatus === '배송취소') {
+        // 기본옵션5: 접수완료,배차완료,배송중,배송취소
+        return [
+          { key: '접수완료', label: '접수완료', icon: '📝', color: '#FF9800' },
+          { key: '배차완료', label: '배차완료', icon: '🚛', color: '#2196F3' },
+          { key: '배송중', label: '배송중', icon: '🚚', color: '#FF9800' },
+          { key: '배송취소', label: '배송취소', icon: '❌', color: '#F44336' }
+        ];
+      }
+
+      // request_type에 따른 기본 타임라인
       switch (requestType) {
         case '회수':
           // 기본옵션2: 접수완료,배차완료,수거중,수거완료
@@ -255,7 +277,7 @@ const UserDeliveryListScreen = ({ navigation }) => {
       }
     };
 
-    const statusSteps = getStatusSteps(requestType);
+    const statusSteps = getStatusSteps(currentStatus, requestType);
 
     const currentIndex = statusSteps.findIndex(step => step.key === currentStatus);
 
