@@ -1364,29 +1364,42 @@ app.post('/api/deliveries', async (req, res) => {
 // 배송 목록 조회
 app.get('/api/deliveries', async (req, res) => {
   try {
-    const { user_id } = req.query;  // 쿼리 파라미터로 user_id만 받기
+    const { user_id, partner_id } = req.query;  // 쿼리 파라미터로 user_id와 partner_id 받기
     
     let query = 'SELECT * FROM deliveries';
     let queryParams = [];
+    let whereConditions = [];
     
     // user_id로 필터링이 요청된 경우
     if (user_id) {
-      query += ' WHERE user_id = ?';
+      whereConditions.push('user_id = ?');
       queryParams.push(user_id);
       console.log(`👤 사용자별 배송 목록 조회: user_id=${user_id}`);
+    }
+    
+    // partner_id로 필터링이 요청된 경우 (UserDeliveryListScreen용)
+    if (partner_id) {
+      whereConditions.push('partner_id = ?');
+      queryParams.push(partner_id);
+      console.log(`🏢 파트너별 배송 목록 조회: partner_id=${partner_id}`);
+    }
+    
+    // WHERE 조건 추가
+    if (whereConditions.length > 0) {
+      query += ' WHERE ' + whereConditions.join(' AND ');
     }
     
     query += ' ORDER BY created_at DESC';
     
     const [deliveries] = await pool.execute(query, queryParams);
     
-    console.log(`📦 조회된 배송 개수: ${deliveries.length}${user_id ? ` (사용자 ID: ${user_id})` : ''}`);
+    console.log(`📦 조회된 배송 개수: ${deliveries.length}${user_id ? ` (사용자 ID: ${user_id})` : ''}${partner_id ? ` (파트너 ID: ${partner_id})` : ''}`);
     
     res.json({
       success: true,
       count: deliveries.length,
       deliveries: deliveries,
-      filter: { user_id: user_id || null }
+      filter: { user_id: user_id || null, partner_id: partner_id || null }
     });
   } catch (error) {
     console.error('❌ 배송 목록 조회 오류:', error);
@@ -3472,6 +3485,95 @@ app.post('/api/deliveries/cancel/:id', async (req, res) => {
     res.status(500).json({
       success: false,
       error: '배송 취소 처리 중 오류가 발생했습니다.',
+      details: error.message
+    });
+  }
+});
+
+// 배송 상태 업데이트 (ID 기반)
+app.patch('/api/deliveries/:id/status', async (req, res) => {
+  const deliveryId = req.params.id;
+  try {
+    const { status } = req.body;
+    
+    console.log('🔄 배송 상태 업데이트 요청:', {
+      deliveryId,
+      status
+    });
+
+    if (!status) {
+      return res.status(400).json({
+        success: false,
+        error: '상태 값이 필요합니다.'
+      });
+    }
+
+    // 영어 상태를 한국어로 변환
+    const statusMapping = {
+      'order_received': '접수완료',
+      'dispatch_completed': '배차완료',
+      'in_delivery': '배송중',
+      'delivery_cancelled': '배송취소',
+      'delivery_completed': '배송완료',
+      'in_collection': '수거중',
+      'collection_completed': '수거완료',
+      'in_processing': '조처진행',
+      'processing_completed': '조처완료',
+      'delivery_postponed': '배송연기'
+    };
+
+    // 상태 변환 (영어로 온 경우 한국어로 변환, 이미 한국어면 그대로 사용)
+    const finalStatus = statusMapping[status] || status;
+    
+    console.log('🔄 상태 변환:', { originalStatus: status, finalStatus });
+
+    // action_date, action_time 컬럼 존재 확인 및 생성
+    await ensureActionDateTimeColumns();
+
+    // 현재 한국 시간으로 action_date/time 설정
+    const now = new Date();
+    const koreaTime = new Date(now.getTime() + (9 * 60 * 60 * 1000));
+    const actionDate = koreaTime.toISOString().split('T')[0]; // YYYY-MM-DD
+    const actionTime = koreaTime.toTimeString().split(' ')[0]; // HH:MM:SS
+
+    // 배송 상태 업데이트
+    const [result] = await pool.execute(
+      'UPDATE deliveries SET status = ?, action_date = ?, action_time = ?, updated_at = NOW() WHERE id = ?',
+      [finalStatus, actionDate, actionTime, deliveryId]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        error: '배송을 찾을 수 없습니다.'
+      });
+    }
+
+    console.log('✅ 배송 상태 업데이트 완료:', { 
+      deliveryId, 
+      originalStatus: status,
+      finalStatus, 
+      actionDate, 
+      actionTime,
+      affectedRows: result.affectedRows 
+    });
+
+    res.json({
+      success: true,
+      message: '배송 상태가 업데이트되었습니다.',
+      data: {
+        deliveryId,
+        status: finalStatus,
+        action_date: actionDate,
+        action_time: actionTime
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ 배송 상태 업데이트 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '배송 상태 업데이트 중 오류가 발생했습니다.',
       details: error.message
     });
   }
