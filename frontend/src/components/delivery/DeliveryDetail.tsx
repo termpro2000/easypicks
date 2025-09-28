@@ -775,7 +775,7 @@ const DeliveryDetail: React.FC<DeliveryDetailProps> = ({ delivery: initialDelive
                   {/* 서명 이미지 표시 */}
                   <div className="border-2 border-gray-300 rounded-lg bg-white p-4 shadow-sm">
                     <img
-                      src={`data:image/png;base64,${delivery.customer_signature}`}
+                      src={delivery.customer_signature}
                       alt="고객 서명"
                       className="max-w-full max-h-40 object-contain"
                       style={{ minWidth: '300px', minHeight: '150px' }}
