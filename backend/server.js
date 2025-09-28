@@ -1364,42 +1364,29 @@ app.post('/api/deliveries', async (req, res) => {
 // 배송 목록 조회
 app.get('/api/deliveries', async (req, res) => {
   try {
-    const { driver_id, partner_id } = req.query;  // 쿼리 파라미터로 기사 ID와 파트너 ID 받기
+    const { user_id } = req.query;  // 쿼리 파라미터로 user_id만 받기
     
     let query = 'SELECT * FROM deliveries';
     let queryParams = [];
-    let whereConditions = [];
     
-    // 기사별 필터링이 요청된 경우
-    if (driver_id) {
-      whereConditions.push('driver_id = ?');
-      queryParams.push(driver_id);
-      console.log(`🚛 기사별 배송 목록 조회: driver_id=${driver_id}`);
-    }
-    
-    // 파트너별 필터링이 요청된 경우
-    if (partner_id) {
-      whereConditions.push('partner_id = ?');
-      queryParams.push(partner_id);
-      console.log(`🏢 파트너별 배송 목록 조회: partner_id=${partner_id}`);
-    }
-    
-    // WHERE 조건 추가
-    if (whereConditions.length > 0) {
-      query += ' WHERE ' + whereConditions.join(' AND ');
+    // user_id로 필터링이 요청된 경우
+    if (user_id) {
+      query += ' WHERE user_id = ?';
+      queryParams.push(user_id);
+      console.log(`👤 사용자별 배송 목록 조회: user_id=${user_id}`);
     }
     
     query += ' ORDER BY created_at DESC';
     
     const [deliveries] = await pool.execute(query, queryParams);
     
-    console.log(`📦 조회된 배송 개수: ${deliveries.length}${driver_id ? ` (기사 ID: ${driver_id})` : ''}${partner_id ? ` (파트너 ID: ${partner_id})` : ''}`);
+    console.log(`📦 조회된 배송 개수: ${deliveries.length}${user_id ? ` (사용자 ID: ${user_id})` : ''}`);
     
     res.json({
       success: true,
       count: deliveries.length,
       deliveries: deliveries,
-      filter: { driver_id: driver_id || null, partner_id: partner_id || null }
+      filter: { user_id: user_id || null }
     });
   } catch (error) {
     console.error('❌ 배송 목록 조회 오류:', error);

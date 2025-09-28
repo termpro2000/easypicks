@@ -207,25 +207,18 @@ const DeliveryListScreen = ({ navigation }) => {
 
   const fetchDeliveries = async () => {
     try {
-      // 사용자 역할에 따른 필터링
+      // 사용자 ID로 필터링 (역할 구분 없이 user_id만 사용)
       const userId = userInfo?.id;
-      const userRole = userInfo?.role;
       
       let apiUrl = '/deliveries';
       if (userId) {
-        if (userRole === 'user') {
-          // 일반 사용자(파트너)인 경우 partner_id로 필터링
-          apiUrl = `/deliveries?partner_id=${userId}`;
-        } else {
-          // 기사인 경우 driver_id로 필터링
-          apiUrl = `/deliveries?driver_id=${userId}`;
-        }
+        // 모든 사용자는 user_id로 필터링
+        apiUrl = `/deliveries?user_id=${userId}`;
       }
       
       console.log('📡 배송목록 API 호출:', {
         url: apiUrl,
         userId,
-        userRole,
         userInfo: userInfo ? { id: userInfo.id, name: userInfo.name, role: userInfo.role } : null
       });
       
