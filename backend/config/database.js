@@ -34,6 +34,48 @@ async function executeWithRetry(queryFunction, maxRetries = 3) {
 }
 
 /**
+ * partner_id 컬럼 존재 확인 및 추가 함수
+ */
+async function ensurePartnerIdColumn() {
+  try {
+    console.log('🔍 [ensurePartnerIdColumn] partner_id 컬럼 확인 중...');
+    
+    // deliveries 테이블의 컬럼 확인
+    const [columns] = await pool.execute(`
+      SELECT COLUMN_NAME 
+      FROM INFORMATION_SCHEMA.COLUMNS 
+      WHERE TABLE_SCHEMA = DATABASE() 
+      AND TABLE_NAME = 'deliveries' 
+      AND COLUMN_NAME = 'partner_id'
+    `);
+    
+    if (columns.length === 0) {
+      console.log('✅ [ensurePartnerIdColumn] partner_id 컬럼이 없음, 추가 시도 중...');
+      
+      try {
+        await pool.execute(`
+          ALTER TABLE deliveries 
+          ADD COLUMN partner_id INT NULL COMMENT '파트너 ID (사용자 배송 등록시 사용)'
+        `);
+        console.log('✅ [ensurePartnerIdColumn] partner_id 컬럼 추가 완료');
+      } catch (alterError) {
+        if (alterError.code === 'ER_DBACCESS_DENIED_ERROR') {
+          console.log('⚠️ [ensurePartnerIdColumn] DDL 권한 없음 - PlanetScale 제한사항');
+          console.log('ℹ️ [ensurePartnerIdColumn] 관리자에게 수동으로 컬럼 추가 요청 필요:');
+          console.log('   ALTER TABLE deliveries ADD COLUMN partner_id INT NULL;');
+        } else {
+          console.error('❌ [ensurePartnerIdColumn] partner_id 컬럼 추가 실패:', alterError);
+        }
+      }
+    } else {
+      console.log('✅ [ensurePartnerIdColumn] partner_id 컬럼이 이미 존재함');
+    }
+  } catch (error) {
+    console.error('❌ [ensurePartnerIdColumn] 컬럼 확인 중 오류:', error);
+  }
+}
+
+/**
  * 운송장 번호 생성 함수
  */
 function generateTrackingNumber() {
@@ -52,5 +94,6 @@ function generateTrackingNumber() {
 module.exports = {
   pool,
   executeWithRetry,
-  generateTrackingNumber
+  generateTrackingNumber,
+  ensurePartnerIdColumn
 };

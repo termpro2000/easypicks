@@ -515,6 +515,7 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack, s
     try {
       console.log('배송접수 폼 제출 데이터:', data);
       console.log('선택된 제품 목록:', products);
+      console.log('선택된 파트너 ID:', selectedPartnerId);
       
       // 데이터 형식을 deliveriesAPI에 맞게 변환 (멀티-프로덕트 지원)
       const deliveryData = {
@@ -530,6 +531,7 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack, s
         
         // 선택된 파트너 정보
         user_id: selectedPartnerId,
+        partner_id: selectedPartnerId,
         
         // 배송 옵션
         request_type: data.request_type,
@@ -564,6 +566,9 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack, s
         // 멀티-프로덕트 지원: products 배열 추가
         products: products
       };
+      
+      console.log('📦 AdminShippingForm: 전송할 deliveryData:', deliveryData);
+      console.log('🏢 전송할 Partner ID:', deliveryData.partner_id);
       
       const response = await deliveriesAPI.createDelivery(deliveryData);
       console.log('멀티-프로덕트 배송 생성 응답:', response);

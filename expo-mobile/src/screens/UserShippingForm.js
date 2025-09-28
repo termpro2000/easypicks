@@ -13,6 +13,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -147,6 +148,10 @@ const UserShippingForm = ({ navigation }) => {
         partner_id: userInfo?.id || null,
       };
 
+      console.log('📦 UserShippingForm: 배송 데이터 전송');
+      console.log('👤 사용자 정보:', userInfo);
+      console.log('🏢 Partner ID:', userInfo?.id || null);
+
       const response = await api.post('/deliveries', deliveryData);
       
       if (response.data.success) {
@@ -224,6 +229,7 @@ const UserShippingForm = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
       <KeyboardAvoidingView 
         style={styles.container} 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -478,6 +484,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
   header: {
     flexDirection: 'row',

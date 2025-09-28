@@ -1,4 +1,4 @@
-const { pool, generateTrackingNumber, executeWithRetry } = require('../config/database');
+const { pool, generateTrackingNumber, executeWithRetry, ensurePartnerIdColumn } = require('../config/database');
 
 /**
  * 새로운 배송 접수 생성 (52개 필드 완전 지원)
@@ -65,6 +65,9 @@ const createDelivery = async (req, res) => {
     // 운송장 번호 생성
     const tracking_number = generateTrackingNumber();
 
+    // partner_id 컬럼 확인 및 추가 (필요시)
+    await ensurePartnerIdColumn();
+
     // 실제 데이터베이스의 deliveries 테이블 컬럼 확인
     console.log('📋 [createDelivery] 데이터베이스 컬럼 확인 중...');
     const [columns] = await pool.execute(`
@@ -109,6 +112,7 @@ const createDelivery = async (req, res) => {
       // 배송 기본 정보  
       { column: 'driver_id', value: req.body.driver_id || null },
       { column: 'user_id', value: user_id || null },
+      { column: 'partner_id', value: req.body.partner_id || null },
       { column: 'construction_type', value: req.body.construction_type },
       { column: 'visit_date', value: preferred_delivery_date || req.body.visit_date },
       { column: 'visit_time', value: req.body.visit_time },

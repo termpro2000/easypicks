@@ -9,6 +9,8 @@ import {
   Dimensions,
   StatusBar,
   Platform,
+  Modal,
+  Animated,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +19,8 @@ const { width } = Dimensions.get('window');
 
 const MobileDashboard = ({ navigation }) => {
   const [userInfo, setUserInfo] = useState(null);
+  const [slideMenuVisible, setSlideMenuVisible] = useState(false);
+  const [slideAnimation] = useState(new Animated.Value(-width * 0.8));
 
   useEffect(() => {
     loadUserInfo();
@@ -79,6 +83,28 @@ const MobileDashboard = ({ navigation }) => {
     }
   };
 
+  // 슬라이드 메뉴 열기
+  const openSlideMenu = () => {
+    setSlideMenuVisible(true);
+    Animated.timing(slideAnimation, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+  };
+
+  // 슬라이드 메뉴 닫기
+  const closeSlideMenu = () => {
+    Animated.timing(slideAnimation, {
+      toValue: -width * 0.8,
+      duration: 300,
+      useNativeDriver: false,
+    }).start(() => {
+      setSlideMenuVisible(false);
+    });
+  };
+
+
   const DashboardButton = ({ icon, title, subtitle, onPress, color }) => (
     <TouchableOpacity style={[styles.button, { borderLeftColor: color }]} onPress={onPress}>
       <View style={styles.buttonContent}>
@@ -100,12 +126,17 @@ const MobileDashboard = ({ navigation }) => {
       {/* 헤더 */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
-          <View>
-            <Text style={styles.headerTitle}>모바일 대시보드</Text>
+          <TouchableOpacity onPress={openSlideMenu} style={styles.hamburgerButton}>
+            <Ionicons name="menu" size={24} color="#333" />
+          </TouchableOpacity>
+          
+          <View style={styles.headerTextContainer}>
+            <Text style={styles.headerTitle}>이지픽스for Partner</Text>
             <Text style={styles.headerSubtitle}>
               {userInfo ? `${userInfo.name || userInfo.username}님 환영합니다` : '사용자 대시보드'}
             </Text>
           </View>
+          
           <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
             <Ionicons name="log-out-outline" size={24} color="#666" />
           </TouchableOpacity>
@@ -148,6 +179,65 @@ const MobileDashboard = ({ navigation }) => {
         <Text style={styles.footerText}>이지픽스 배송 관리 시스템</Text>
         <Text style={styles.versionText}>모바일 대시보드 v1.0</Text>
       </View>
+
+      {/* 슬라이드 메뉴 */}
+      <Modal
+        visible={slideMenuVisible}
+        transparent={true}
+        animationType="none"
+        onRequestClose={closeSlideMenu}
+      >
+        <View style={styles.modalContainer}>
+          {/* 오버레이 */}
+          <TouchableOpacity 
+            style={styles.overlay} 
+            activeOpacity={1} 
+            onPress={closeSlideMenu}
+          />
+          
+          {/* 슬라이드 메뉴 */}
+          <Animated.View style={[styles.slideMenu, { left: slideAnimation }]}>
+            <View style={styles.menuHeader}>
+              <Text style={styles.slideMenuTitle}>설정</Text>
+              <TouchableOpacity onPress={closeSlideMenu}>
+                <Text style={styles.closeButtonText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.menuContent}>
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => {
+                  closeSlideMenu();
+                  navigation.navigate('AppInfo');
+                }}
+              >
+                <Text style={styles.menuItemText}>📱 앱 정보</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => {
+                  closeSlideMenu();
+                  navigation.navigate('Profile');
+                }}
+              >
+                <Text style={styles.menuItemText}>👤 사용자프로필</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.menuItem} 
+                onPress={() => {
+                  closeSlideMenu();
+                  handleLogout();
+                }}
+              >
+                <Text style={[styles.menuItemText, styles.logoutText]}>🚪 로그아웃</Text>
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -173,6 +263,13 @@ const styles = StyleSheet.create({
   headerContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  hamburgerButton: {
+    padding: 8,
+  },
+  headerTextContainer: {
+    flex: 1,
     alignItems: 'center',
   },
   headerTitle: {
@@ -250,6 +347,65 @@ const styles = StyleSheet.create({
   versionText: {
     fontSize: 12,
     color: '#999',
+  },
+  // 슬라이드 메뉴 스타일
+  modalContainer: {
+    flex: 1,
+    flexDirection: 'row',
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  slideMenu: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    width: width * 0.8,
+    backgroundColor: '#ffffff',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 2, height: 0 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  menuHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    backgroundColor: '#f8f9fa',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e9ecef',
+  },
+  slideMenuTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  closeButtonText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#666',
+  },
+  menuContent: {
+    flex: 1,
+    paddingVertical: 20,
+  },
+  menuItem: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  menuItemText: {
+    fontSize: 16,
+    color: '#333',
+    fontWeight: '500',
+  },
+  logoutText: {
+    color: '#F44336',
   },
 });
 
