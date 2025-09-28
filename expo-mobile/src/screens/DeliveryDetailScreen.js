@@ -2298,7 +2298,7 @@ Storage Bucket: ${firebaseConfig?.storageBucket || '없음'}
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>📷 시공 설치 사진</Text>
+            <Text style={styles.sectionTitle}>시공 설치 사진</Text>
             
             {/* 사진 추가 및 수정 버튼 영역 */}
             <View style={styles.photoButtonsContainer}>
@@ -2309,7 +2309,7 @@ Storage Bucket: ${firebaseConfig?.storageBucket || '없음'}
                 ]} 
                 onPress={handlePhotoUpload}
               >
-                <Text style={styles.photoUploadButtonText}>📸 사진 추가</Text>
+                <Text style={styles.photoUploadButtonText}>사진추가</Text>
               </TouchableOpacity>
               
               {uploadedPhotos.length > 0 && !isDeliveryCompleted(delivery.status) && (
