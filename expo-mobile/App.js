@@ -13,6 +13,7 @@ import DeliveryListScreen from './src/screens/DeliveryListScreen';
 import UserDeliveryListScreen from './src/screens/UserDeliveryListScreen';
 import MobileDashboard from './src/screens/MobileDashboard';
 import UserShippingForm from './src/screens/UserShippingForm';
+import UserDeliveryDetailScreen from './src/screens/UserDeliveryDetailScreen';
 import DeliveryDetailScreen from './src/screens/DeliveryDetailScreen';
 import LoadingConfirmScreen from './src/screens/LoadingConfirmScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
@@ -278,6 +279,14 @@ const App = () => {
                     component={UserDeliveryListScreen}
                     options={{ 
                       title: '배송현황',
+                      headerShown: false 
+                    }}
+                  />
+                  <Stack.Screen
+                    name="UserDeliveryDetail"
+                    component={UserDeliveryDetailScreen}
+                    options={{ 
+                      title: '배송 상세정보',
                       headerShown: false 
                     }}
                   />

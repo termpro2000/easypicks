@@ -199,7 +199,7 @@ const UserDeliveryListScreen = ({ navigation }) => {
   const navigateToDetail = (delivery) => {
     console.log('배송 상세로 이동:', delivery.id, delivery.trackingNumber);
     console.log('전달할 delivery 객체:', JSON.stringify(delivery, null, 2));
-    navigation.navigate('DeliveryDetail', { delivery });
+    navigation.navigate('UserDeliveryDetail', { delivery });
   };
 
   const renderDeliveryItem = ({ item }) => {
