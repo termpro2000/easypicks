@@ -98,7 +98,7 @@ const LoadingConfirmScreen = ({ route, navigation }) => {
       status: delivery.status,
       request_type: delivery.requestType,
       loaded: delivery.status === '상차완료' || 
-              delivery.status === 'in_delivery' || 
+              delivery.status === '배송중' || 
               delivery.status === 'in_collection' || 
               delivery.status === 'in_processing'
     }));
@@ -245,7 +245,7 @@ const LoadingConfirmScreen = ({ route, navigation }) => {
     const updatedDeliveries = deliveries.map(delivery => {
       if (selectedItems.includes(delivery.id)) {
         // 상차 상태로 변경 및 status를 배송중으로 변경
-        return { ...delivery, loaded: true, status: 'in_delivery' };
+        return { ...delivery, loaded: true, status: '배송중' };
       }
       return delivery;
     });
@@ -255,7 +255,7 @@ const LoadingConfirmScreen = ({ route, navigation }) => {
     // 카운트 업데이트 - 선택된 항목 중 아직 상차되지 않은 것들만 카운트에 추가
     const unloadedSelectedCount = selectedItems.filter(id => {
       const item = deliveries.find(d => d.id === id);
-      return item && !item.loaded && item.status !== 'in_delivery';
+      return item && !item.loaded && item.status !== '배송중';
     }).length;
 
     setLoadedCount(prev => prev + unloadedSelectedCount);
@@ -266,8 +266,8 @@ const LoadingConfirmScreen = ({ route, navigation }) => {
 
       const selectedUpdatePromises = selectedItems.map(async (itemId) => {
         try {
-          const response = await api.patch(`/deliveries/${itemId}/status`, {
-            status: 'in_delivery'
+          const response = await api.put(`/deliveries/${itemId}`, {
+            status: '배송중'
           });
           console.log(`배송 ${itemId} 상차완료 업데이트 성공:`, response.data);
           return { id: itemId, success: true };
@@ -285,7 +285,7 @@ const LoadingConfirmScreen = ({ route, navigation }) => {
         try {
           const statusUpdates = selectedItems.map(itemId => ({ 
             id: itemId, 
-            status: 'in_delivery' 
+            status: '배송중' 
           }));
           
           await AsyncStorage.setItem('updatedDeliveryStatus', JSON.stringify({
@@ -342,8 +342,8 @@ const LoadingConfirmScreen = ({ route, navigation }) => {
 
       const selectedUpdatePromises = selectedItems.map(async (itemId) => {
         try {
-          const response = await api.patch(`/deliveries/${itemId}/status`, {
-            status: 'dispatch_completed'
+          const response = await api.put(`/deliveries/${itemId}`, {
+            status: '배차완료'
           });
           console.log(`배송 ${itemId} 미상차 업데이트 성공:`, response.data);
           return { id: itemId, success: true };
@@ -463,7 +463,7 @@ const LoadingConfirmScreen = ({ route, navigation }) => {
   const renderDeliveryItem = ({ item }) => {
     const isSelected = selectedItems.includes(item.id);
     const isLoaded = item.loaded || 
-                      item.status === 'in_delivery' || 
+                      item.status === '배송중' || 
                       item.status === 'in_collection' || 
                       item.status === 'in_processing';
     const canSelect = true; // 모든 항목 선택 가능하도록 변경
@@ -619,7 +619,7 @@ const LoadingConfirmScreen = ({ route, navigation }) => {
             <Text style={styles.actionButtonText}>
               선택 상차 ({selectedItems.filter(id => {
                 const item = deliveries.find(d => d.id === id);
-                return item && !item.loaded && item.status !== 'in_delivery';
+                return item && !item.loaded && item.status !== '배송중';
               }).length})
             </Text>
           </TouchableOpacity>
@@ -634,7 +634,7 @@ const LoadingConfirmScreen = ({ route, navigation }) => {
             <Text style={styles.actionButtonText}>
               선택 하차 ({selectedItems.filter(id => {
                 const item = deliveries.find(d => d.id === id);
-                return item && (item.loaded || item.status === 'in_delivery');
+                return item && (item.loaded || item.status === '배송중');
               }).length})
             </Text>
           </TouchableOpacity>
