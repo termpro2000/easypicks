@@ -46,11 +46,22 @@ const UserDeliveryListScreen = ({ navigation }) => {
 
   const fetchDeliveries = async () => {
     try {
+      // 사용자 정보 새로고침
+      const userInfoString = await AsyncStorage.getItem('user_info');
+      const currentUserInfo = userInfoString ? JSON.parse(userInfoString) : null;
+      
+      let apiUrl = '/deliveries';
+      if (currentUserInfo?.id) {
+        // partner_id로 필터링
+        apiUrl = `/deliveries?partner_id=${currentUserInfo.id}`;
+      }
+      
       console.log('📡 사용자 배송목록 API 호출:', {
-        userInfo: userInfo ? { id: userInfo.id, name: userInfo.name } : null
+        url: apiUrl,
+        userInfo: currentUserInfo ? { id: currentUserInfo.id, name: currentUserInfo.name } : null
       });
       
-      const response = await api.get('/deliveries');
+      const response = await api.get(apiUrl);
       console.log('API 응답:', response.data);
       
       if (response.data.deliveries) {
