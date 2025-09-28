@@ -127,7 +127,7 @@ const MobileDashboard = ({ navigation }) => {
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <TouchableOpacity onPress={openSlideMenu} style={styles.hamburgerButton}>
-            <Ionicons name="menu" size={24} color="#333" />
+            <Ionicons name="menu" size={24} color="#ffffff" />
           </TouchableOpacity>
           
           <View style={styles.headerTextContainer}>
@@ -138,14 +138,13 @@ const MobileDashboard = ({ navigation }) => {
           </View>
           
           <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-            <Ionicons name="log-out-outline" size={24} color="#666" />
+            <Ionicons name="log-out-outline" size={24} color="#ffffff" />
           </TouchableOpacity>
         </View>
       </View>
 
       {/* 메인 콘텐츠 */}
       <View style={styles.content}>
-        <Text style={styles.sectionTitle}>주요 기능</Text>
         
         <View style={styles.buttonContainer}>
           <DashboardButton
@@ -249,7 +248,7 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
   header: {
-    backgroundColor: '#fff',
+    backgroundColor: '#2196F3',
     paddingHorizontal: 20,
     paddingVertical: 15,
     borderBottomWidth: 1,
@@ -275,11 +274,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#ffffff',
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#666',
+    color: '#ffffff',
     marginTop: 4,
   },
   logoutButton: {
@@ -338,6 +337,7 @@ const styles = StyleSheet.create({
   footer: {
     padding: 20,
     alignItems: 'center',
+    marginBottom: 200,
   },
   footerText: {
     fontSize: 14,

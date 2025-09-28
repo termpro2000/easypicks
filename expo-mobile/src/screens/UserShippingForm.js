@@ -26,7 +26,7 @@ const UserShippingForm = ({ navigation }) => {
   
   // 스텝 관리
   const [currentStep, setCurrentStep] = useState(1);
-  const [senderInfoExpanded, setSenderInfoExpanded] = useState(false);
+  const [senderInfoExpanded, setSenderInfoExpanded] = useState(true);
 
   // 발송인 정보
   const [senderName, setSenderName] = useState('');
@@ -253,7 +253,9 @@ const UserShippingForm = ({ navigation }) => {
           />
         )}
       </TouchableOpacity>
-      {expanded && children}
+      <View style={!expanded ? styles.hiddenStep : null}>
+        {children}
+      </View>
     </View>
   );
 
