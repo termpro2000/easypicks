@@ -380,8 +380,8 @@ const UserShippingForm = ({ navigation }) => {
             />
           </FormSection>
 
-          {/* 단계별 폼 내용 */}
-          {currentStep === 1 && (
+          {/* 단계별 폼 내용 - 조건부 렌더링 대신 display 속성 사용 */}
+          <View style={currentStep !== 1 ? styles.hiddenStep : null}>
             <FormSection title="수취인 정보" icon="location-outline">
               <InputField
                 label="수취인 이름"
@@ -412,9 +412,9 @@ const UserShippingForm = ({ navigation }) => {
                 placeholder="상세 주소를 입력하세요"
               />
             </FormSection>
-          )}
+          </View>
 
-          {currentStep === 2 && (
+          <View style={currentStep !== 2 ? styles.hiddenStep : null}>
             <FormSection title="제품 정보" icon="cube-outline">
               <InputField
                 label="제품명"
@@ -454,9 +454,9 @@ const UserShippingForm = ({ navigation }) => {
                 placeholder="예: 1300x900x700mm"
               />
             </FormSection>
-          )}
+          </View>
 
-          {currentStep === 3 && (
+          <View style={currentStep !== 3 ? styles.hiddenStep : null}>
             <FormSection title="배송 옵션" icon="time-outline">
               <View style={styles.row}>
                 <View style={styles.halfWidth}>
@@ -504,9 +504,9 @@ const UserShippingForm = ({ navigation }) => {
                 keyboardType="numeric"
               />
             </FormSection>
-          )}
+          </View>
 
-          {currentStep === 4 && (
+          <View style={currentStep !== 4 ? styles.hiddenStep : null}>
             <FormSection title="건물 정보" icon="business-outline">
               <View style={styles.row}>
                 <View style={styles.halfWidth}>
@@ -546,9 +546,9 @@ const UserShippingForm = ({ navigation }) => {
                 description="폐기물 처리가 필요한 경우 활성화"
               />
             </FormSection>
-          )}
+          </View>
 
-          {currentStep === 5 && (
+          <View style={currentStep !== 5 ? styles.hiddenStep : null}>
             <FormSection title="기타 정보" icon="document-text-outline">
               <SwitchField
                 label="파손 주의"
@@ -573,7 +573,7 @@ const UserShippingForm = ({ navigation }) => {
                 numberOfLines={3}
               />
             </FormSection>
-          )}
+          </View>
 
           {/* 네비게이션 버튼 */}
           <NavigationButtons />
@@ -654,6 +654,9 @@ const styles = StyleSheet.create({
   },
   toggleIcon: {
     marginLeft: 10,
+  },
+  hiddenStep: {
+    display: 'none',
   },
   inputContainer: {
     marginBottom: 15,
