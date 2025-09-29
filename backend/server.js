@@ -4331,11 +4331,13 @@ app.get('/api/f-price', async (req, res) => {
 app.get('/api/f-price/:category/:size', async (req, res) => {
   try {
     const { category, size } = req.params;
-    console.log(`💰 특정 가격 조회: ${category} - ${size}`);
+    const decodedCategory = decodeURIComponent(category);
+    const decodedSize = decodeURIComponent(size);
+    console.log(`💰 특정 가격 조회: ${decodedCategory} - ${decodedSize}`);
     
     const [rows] = await pool.execute(
       'SELECT * FROM f_price WHERE category LIKE ? AND size = ?',
-      [`%${category}%`, size]
+      [`%${decodedCategory}%`, decodedSize]
     );
     
     if (rows.length === 0) {
@@ -4388,11 +4390,12 @@ app.get('/api/f-price/categories', async (req, res) => {
 app.get('/api/f-price/sizes/:category', async (req, res) => {
   try {
     const { category } = req.params;
-    console.log(`📏 사이즈 목록 조회: ${category}`);
+    const decodedCategory = decodeURIComponent(category);
+    console.log(`📏 사이즈 목록 조회: ${decodedCategory}`);
     
     const [rows] = await pool.execute(
       'SELECT DISTINCT size FROM f_price WHERE category LIKE ? ORDER BY size',
-      [`%${category}%`]
+      [`%${decodedCategory}%`]
     );
     
     res.json({
