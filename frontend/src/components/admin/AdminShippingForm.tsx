@@ -379,12 +379,14 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack, s
     return `${hours[Math.floor(Math.random() * hours.length)]}:${minutes[Math.floor(Math.random() * minutes.length)]}`;
   };
 
-  // 자동 채움 핸들러
+  // 자동 채움 핸들러 (발송인 정보 섹션 제외)
   const handleAutoFill = () => {
     const randomData = {
-      sender_name: generateRandomName(),
-      sender_address: generateRandomAddress(),
-      sender_detail_address: `${Math.floor(Math.random() * 20) + 1}층 ${Math.floor(Math.random() * 10) + 1}호`,
+      // 발송인 정보 섹션은 제외 (파트너 선택으로 자동 채워짐)
+      // sender_name: generateRandomName(), - 제외
+      // sender_address: generateRandomAddress(), - 제외
+      // sender_detail_address: `${Math.floor(Math.random() * 20) + 1}층 ${Math.floor(Math.random() * 10) + 1}호`, - 제외
+      
       customer_name: generateRandomName(),
       customer_phone: generateRandomPhone(),
       customer_address: generateRandomAddress(),
@@ -393,7 +395,7 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack, s
       furniture_company: generateRandomCompany(),
       visit_date: generateRandomDate(),
       visit_time: generateRandomTime(),
-      emergency_contact: generateRandomName(),
+      emergency_contact: generateRandomPhone(),
       main_memo: '테스트용 자동 생성 데이터입니다.',
       special_instructions: '조심히 배송 부탁드립니다.',
       driver_notes: '배송 시 주의사항을 확인해주세요.',
@@ -413,7 +415,7 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack, s
       fragile: Math.random() > 0.5 // 50% 확률로 파손주의
     };
 
-    // 모든 필드에 값 설정
+    // 발송인 정보 섹션을 제외한 모든 필드에 값 설정
     Object.entries(randomData).forEach(([key, value]) => {
       setValue(key as keyof DeliveryData, value);
     });
