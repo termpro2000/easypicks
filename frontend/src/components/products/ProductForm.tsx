@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Save, Package2 } from 'lucide-react';
+import { Save, Package2, Calculator } from 'lucide-react';
 import { productsAPI } from '../../services/api';
+import ProductPriceModal from './ProductPriceModal';
 
 interface ProductFormProps {
   onNavigateBack: () => void;
@@ -33,6 +34,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ onNavigateBack, onSuccess, se
   
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showPriceModal, setShowPriceModal] = useState(false);
 
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -77,6 +79,21 @@ const ProductForm: React.FC<ProductFormProps> = ({ onNavigateBack, onSuccess, se
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  const handlePriceSelect = (price: number) => {
+    setFormData(prev => ({
+      ...prev,
+      cost1: price.toString()
+    }));
+    
+    // 에러 클리어
+    if (errors.cost1) {
+      setErrors(prev => ({
+        ...prev,
+        cost1: ''
+      }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -240,26 +257,37 @@ const ProductForm: React.FC<ProductFormProps> = ({ onNavigateBack, onSuccess, se
           </div>
 
 
-          {/* 가격 정보 섹션 */}
+          {/* 배송비용 섹션 */}
           <div className="bg-white rounded-lg shadow-sm border p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">가격 정보</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">배송비용</h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   비용 1 (원)
                 </label>
-                <input
-                  type="number"
-                  name="cost1"
-                  value={formData.cost1}
-                  onChange={handleInputChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                    errors.cost1 ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="첫 번째 비용을 입력하세요"
-                  min="0"
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    name="cost1"
+                    value={formData.cost1}
+                    onChange={handleInputChange}
+                    className={`flex-1 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                      errors.cost1 ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    placeholder="첫 번째 비용을 입력하세요"
+                    min="0"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPriceModal(true)}
+                    className="px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 whitespace-nowrap"
+                    title="배송비용 검색"
+                  >
+                    <Calculator className="w-4 h-4" />
+                    배송비용검색
+                  </button>
+                </div>
                 {errors.cost1 && <p className="text-red-500 text-sm mt-1">{errors.cost1}</p>}
               </div>
 
@@ -344,6 +372,13 @@ const ProductForm: React.FC<ProductFormProps> = ({ onNavigateBack, onSuccess, se
           ProductForm.tsx
         </div>
       </div>
+
+      {/* 배송비용 검색 모달 */}
+      <ProductPriceModal
+        isOpen={showPriceModal}
+        onClose={() => setShowPriceModal(false)}
+        onPriceSelect={handlePriceSelect}
+      />
     </div>
   );
 };
