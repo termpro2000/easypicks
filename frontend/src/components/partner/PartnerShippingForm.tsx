@@ -230,21 +230,22 @@ const PartnerShippingForm: React.FC<PartnerShippingFormProps> = ({ onNavigateBac
               className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />
-              <span className="hidden sm:inline">메인으로 돌아가기</span>
-              <span className="sm:hidden">돌아가기</span>
+              <span>이전화면</span>
             </button>
             
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
-                <Package className="w-6 h-6 text-white" />
-              </div>
-              <div className="text-center">
-                <h1 className="text-2xl font-bold text-gray-900">배송신청_업체용</h1>
-                <p className="text-sm text-blue-600 font-medium">간편하게 배송을 신청하세요</p>
+            <div className="flex-1 text-center">
+              <div className="flex items-center justify-center gap-3">
+                <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+                  <Package className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">배송신청_업체용</h1>
+                  <p className="text-sm text-blue-600 font-medium">간편하게 배송을 신청하세요</p>
+                </div>
               </div>
             </div>
             
-            <div className="w-32"></div>
+            <div className="w-[100px]"></div>
           </div>
         </div>
       </header>

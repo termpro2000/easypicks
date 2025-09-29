@@ -265,32 +265,36 @@ const UserEditForm: React.FC<UserEditFormProps> = ({
       {/* 헤더 */}
       <div className="bg-white/80 backdrop-blur-xl rounded-3xl border border-gray-200 p-8 mb-8 shadow-2xl">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <button
-              onClick={onNavigateBack}
-              className="p-3 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
-            >
-              <ArrowLeft className="w-6 h-6 text-gray-600" />
-            </button>
-            <div className="relative">
-              <div 
-                className="w-20 h-20 rounded-3xl flex items-center justify-center shadow-2xl"
-                style={{ backgroundColor: colorScheme.primary }}
-              >
-                <Building className="w-10 h-10 text-white" />
+          <button
+            onClick={onNavigateBack}
+            className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span>이전화면</span>
+          </button>
+          
+          <div className="flex-1 text-center">
+            <div className="flex items-center justify-center gap-6">
+              <div className="relative">
+                <div 
+                  className="w-20 h-20 rounded-3xl flex items-center justify-center shadow-2xl"
+                  style={{ backgroundColor: colorScheme.primary }}
+                >
+                  <Building className="w-10 h-10 text-white" />
+                </div>
+                <div 
+                  className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: colorScheme.secondary }}
+                >
+                  <Edit3 className="w-3 h-3 text-white" />
+                </div>
               </div>
-              <div 
-                className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center"
-                style={{ backgroundColor: colorScheme.secondary }}
-              >
-                <Edit3 className="w-3 h-3 text-white" />
+              <div>
+                <h1 className="text-4xl font-bold text-gray-800 mb-2">
+                  파트너사 정보 수정
+                </h1>
+                <p className="text-gray-600 text-lg">{user.name} 파트너사의 정보를 수정합니다</p>
               </div>
-            </div>
-            <div>
-              <h1 className="text-4xl font-bold text-gray-800 mb-2">
-                파트너사 정보 수정
-              </h1>
-              <p className="text-gray-600 text-lg">{user.name} 파트너사의 정보를 수정합니다</p>
             </div>
           </div>
           

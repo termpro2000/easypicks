@@ -613,18 +613,22 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack, s
                 className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 <ArrowLeft className="w-5 h-5" />
-                <span>돌아가기</span>
+                <span>이전화면</span>
               </button>
               
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center">
-                  <Package className="w-6 h-6 text-white" />
-                </div>
-                <div className="text-center">
-                  <h1 className="text-2xl font-bold text-gray-900">배송접수_관리자용</h1>
-                  <p className="text-sm text-red-600 font-medium">배송 접수 결과</p>
+              <div className="flex-1 text-center">
+                <div className="flex items-center justify-center gap-3">
+                  <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center">
+                    <Package className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h1 className="text-2xl font-bold text-gray-900">배송접수_관리자용</h1>
+                    <p className="text-sm text-red-600 font-medium">배송 접수 결과</p>
+                  </div>
                 </div>
               </div>
+              
+              <div className="w-[120px]"></div>
               
               <div className="w-24"></div>
             </div>
@@ -695,23 +699,27 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack, s
               className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />
-              <span>돌아가기</span>
+              <span>이전화면</span>
             </button>
             
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center">
-                <Package className="w-6 h-6 text-white" />
-              </div>
-              <div className="text-center">
-                <h1 className="text-2xl font-bold text-gray-900">배송접수_관리자용</h1>
-                <p className="text-sm text-red-600 font-medium">새로운 배송을 접수하세요 (관리자 전용)</p>
-                {selectedPartnerName && (
-                  <p className="text-sm text-blue-600 font-medium mt-1">
-                    파트너: {selectedPartnerName}
-                  </p>
-                )}
+            <div className="flex-1 text-center">
+              <div className="flex items-center justify-center gap-3">
+                <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center">
+                  <Package className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">배송접수_관리자용</h1>
+                  <p className="text-sm text-red-600 font-medium">새로운 배송을 접수하세요 (관리자 전용)</p>
+                  {selectedPartnerName && (
+                    <p className="text-sm text-blue-600 font-medium mt-1">
+                      파트너: {selectedPartnerName}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
+            
+            <div className="w-[120px]"></div>
             
             <div className="flex items-center gap-2">
               {user?.role === 'admin' && (

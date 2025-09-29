@@ -156,14 +156,34 @@ const EditProductForm: React.FC<EditProductFormProps> = ({ onNavigateBack, onSuc
   if (!canEditProduct) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="p-6">
-          <button
-            onClick={onNavigateBack}
-            className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors mb-4"
-          >
-            ← 상품관리로 돌아가기
-          </button>
-        </div>
+        {/* 헤더 */}
+        <header className="bg-white shadow-lg">
+          <div className="max-w-7xl mx-auto px-6 py-4">
+            <div className="flex items-center justify-between">
+              <button
+                onClick={onNavigateBack}
+                className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <Package2 className="w-5 h-5" />
+                <span>이전화면</span>
+              </button>
+              
+              <div className="flex-1 text-center">
+                <div className="flex items-center justify-center gap-3">
+                  <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center">
+                    <Package2 className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h1 className="text-2xl font-bold text-gray-900">접근 권한 없음</h1>
+                    <p className="text-sm text-red-600 font-medium">이 상품을 수정할 권한이 없습니다</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="w-[100px]"></div>
+            </div>
+          </div>
+        </header>
         <div className="container mx-auto px-4 py-8 max-w-4xl">
           <div className="bg-white rounded-lg shadow-sm border p-8 text-center">
             <Package2 className="w-16 h-16 text-red-500 mx-auto mb-4" />
@@ -185,24 +205,36 @@ const EditProductForm: React.FC<EditProductFormProps> = ({ onNavigateBack, onSuc
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="p-6">
-        <button
-          onClick={onNavigateBack}
-          className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors mb-4"
-        >
-          ← 상품관리로 돌아가기
-        </button>
-      </div>
+      {/* 헤더 */}
+      <header className="bg-white shadow-lg">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={onNavigateBack}
+              className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <Package2 className="w-5 h-5" />
+              <span>이전화면</span>
+            </button>
+            
+            <div className="flex-1 text-center">
+              <div className="flex items-center justify-center gap-3">
+                <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+                  <Package2 className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">상품 수정</h1>
+                  <p className="text-sm text-blue-600 font-medium">상품 정보를 수정하세요</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="w-[100px]"></div>
+          </div>
+        </div>
+      </header>
       
       <div className="container mx-auto px-4 py-8 max-w-4xl">
-        {/* 헤더 */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <Package2 className="w-8 h-8 text-blue-600" />
-            상품 수정
-          </h1>
-          <p className="text-gray-600 mt-2">상품 정보를 수정하세요</p>
-        </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* 기본 정보 섹션 */}
