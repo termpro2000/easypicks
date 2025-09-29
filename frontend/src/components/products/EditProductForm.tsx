@@ -98,14 +98,14 @@ const EditProductForm: React.FC<EditProductFormProps> = ({ onNavigateBack, onSuc
   const handlePriceSelect = (price: number) => {
     setFormData(prev => ({
       ...prev,
-      cost2: price.toString()
+      cost1: price.toString()
     }));
     
     // 에러 클리어
-    if (errors.cost2) {
+    if (errors.cost1) {
       setErrors(prev => ({
         ...prev,
-        cost2: ''
+        cost1: ''
       }));
     }
   };
@@ -256,9 +256,9 @@ const EditProductForm: React.FC<EditProductFormProps> = ({ onNavigateBack, onSuc
             </div>
           </div>
 
-          {/* 가격 정보 섹션 */}
+          {/* 배송비용 섹션 */}
           <div className="bg-white rounded-lg shadow-sm border p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">가격 정보</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">배송비용</h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>

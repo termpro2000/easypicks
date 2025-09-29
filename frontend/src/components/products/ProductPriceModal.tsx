@@ -140,7 +140,7 @@ const ProductPriceModal: React.FC<ProductPriceModalProps> = ({
         <div className="flex items-center justify-between p-6 border-b">
           <div className="flex items-center gap-3">
             <Calculator className="w-6 h-6 text-blue-600" />
-            <h2 className="text-xl font-semibold text-gray-900">배송비용 검색</h2>
+            <h2 className="text-xl font-semibold text-gray-900">배송비용</h2>
           </div>
           <button
             onClick={onClose}
@@ -215,7 +215,7 @@ const ProductPriceModal: React.FC<ProductPriceModalProps> = ({
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <Package className="w-5 h-5 text-blue-600" />
-                가격 정보
+                배송비용
               </h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -229,30 +229,10 @@ const ProductPriceModal: React.FC<ProductPriceModalProps> = ({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-                <div className="bg-white p-3 rounded border">
-                  <span className="text-gray-600">내림비:</span>
-                  <p className="font-semibold text-gray-900">{priceData.narim_cost?.toLocaleString() || 0}원</p>
-                </div>
-                <div className="bg-white p-3 rounded border">
-                  <span className="text-gray-600">계단(2층):</span>
-                  <p className="font-semibold text-gray-900">{priceData.stair_2f?.toLocaleString() || 0}원</p>
-                </div>
-                <div className="bg-white p-3 rounded border">
-                  <span className="text-gray-600">계단(3층):</span>
-                  <p className="font-semibold text-gray-900">{priceData.stair_3f?.toLocaleString() || 0}원</p>
-                </div>
-                <div className="bg-white p-3 rounded border">
-                  <span className="text-gray-600">계단(4층):</span>
-                  <p className="font-semibold text-gray-900">{priceData.stair_4f?.toLocaleString() || 0}원</p>
-                </div>
-                <div className="bg-white p-3 rounded border">
-                  <span className="text-gray-600">기사(10%인상):</span>
-                  <p className="font-semibold text-gray-900">{priceData.driver_10_increase?.toLocaleString() || 0}원</p>
-                </div>
-                <div className="bg-green-100 p-3 rounded border border-green-300">
-                  <span className="text-green-700">미래 운임가격:</span>
-                  <p className="font-bold text-green-900 text-lg">{priceData.future_cost?.toLocaleString() || 0}원</p>
+              <div className="grid grid-cols-1 gap-4 text-sm">
+                <div className="bg-green-100 p-4 rounded border border-green-300">
+                  <span className="text-green-700">배송비:</span>
+                  <p className="font-bold text-green-900 text-2xl">{priceData.future_cost?.toLocaleString() || 0}원</p>
                 </div>
               </div>
             </div>
