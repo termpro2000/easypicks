@@ -96,12 +96,12 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ onLogout }) => {
     },
     {
       id: 'dashboard-view',
-      title: '주문관리',
+      title: '배송보기',
       icon: Package,
       bgColor: 'bg-gradient-to-br from-rose-50 to-rose-100',
       hoverColor: 'hover:from-rose-100 hover:to-rose-200',
       textColor: 'text-rose-900',
-      action: '주문관리',
+      action: '배송보기',
       stats: {
         main: dashboardStats.orders.processing,
         sub: dashboardStats.orders.shipped,
@@ -149,7 +149,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ onLogout }) => {
       case '새배송접수':
         setCurrentPage('new-shipping');
         break;
-      case '주문관리':
+      case '배송보기':
         setCurrentPage('dashboard-view');
         break;
       case '상품관리':
@@ -214,7 +214,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ onLogout }) => {
                 >
                   ← 대시보드로 돌아가기
                 </button>
-                <h1 className="text-2xl font-bold text-gray-900">주문 관리</h1>
+                <h1 className="text-2xl font-bold text-gray-900">배송 보기</h1>
               </div>
             </div>
           </div>
