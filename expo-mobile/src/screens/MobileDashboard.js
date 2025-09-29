@@ -40,7 +40,7 @@ const MobileDashboard = ({ navigation }) => {
 
   const handleNewDelivery = () => {
     // 새배송접수 화면으로 이동
-    navigation.navigate('UserShippingForm');
+    navigation.navigate('UserNewForm');
   };
 
   const handleDeliveryStatus = () => {

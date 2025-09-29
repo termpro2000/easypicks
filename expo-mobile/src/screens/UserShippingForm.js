@@ -9,7 +9,6 @@ import {
   ScrollView,
   Alert,
   Switch,
-  Modal,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
@@ -22,11 +21,6 @@ import api from '../config/api';
 const UserShippingForm = ({ navigation }) => {
   const [userInfo, setUserInfo] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitResult, setSubmitResult] = useState(null);
-  
-  // 스텝 관리
-  const [currentStep, setCurrentStep] = useState(1);
-  const [senderInfoExpanded, setSenderInfoExpanded] = useState(true);
 
   // 발송인 정보
   const [senderName, setSenderName] = useState('');
@@ -38,6 +32,7 @@ const UserShippingForm = ({ navigation }) => {
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
   const [customerDetailAddress, setCustomerDetailAddress] = useState('');
+
 
   // 제품 정보
   const [productName, setProductName] = useState('');
@@ -76,8 +71,6 @@ const UserShippingForm = ({ navigation }) => {
       if (userInfoString) {
         const parsedUserInfo = JSON.parse(userInfoString);
         setUserInfo(parsedUserInfo);
-        
-        // 발송인 정보를 사용자 정보로 자동 설정
         setSenderName(parsedUserInfo.name || parsedUserInfo.username || '');
       }
     } catch (error) {
@@ -85,41 +78,7 @@ const UserShippingForm = ({ navigation }) => {
     }
   };
 
-  const validateStep = (step) => {
-    switch (step) {
-      case 1: // 수취인 정보
-        if (!customerName.trim()) {
-          Alert.alert('입력 오류', '수취인 이름을 입력해주세요.');
-          return false;
-        }
-        if (!customerPhone.trim()) {
-          Alert.alert('입력 오류', '수취인 전화번호를 입력해주세요.');
-          return false;
-        }
-        if (!customerAddress.trim()) {
-          Alert.alert('입력 오류', '수취인 주소를 입력해주세요.');
-          return false;
-        }
-        return true;
-      case 2: // 제품 정보
-        if (!productName.trim()) {
-          Alert.alert('입력 오류', '제품명을 입력해주세요.');
-          return false;
-        }
-        return true;
-      case 3: // 배송 옵션
-        return true; // 배송 옵션은 선택사항
-      case 4: // 건물 정보
-        return true; // 건물 정보는 선택사항
-      case 5: // 기타 정보
-        return true; // 기타 정보는 선택사항
-      default:
-        return true;
-    }
-  };
-
   const validateForm = () => {
-    // 발송인 정보 검증
     if (!senderName.trim()) {
       Alert.alert('입력 오류', '발송인 이름을 입력해주세요.');
       return false;
@@ -128,58 +87,23 @@ const UserShippingForm = ({ navigation }) => {
       Alert.alert('입력 오류', '발송인 주소를 입력해주세요.');
       return false;
     }
-    
-    // 모든 스텝 검증
-    for (let i = 1; i <= 5; i++) {
-      if (!validateStep(i)) {
-        return false;
-      }
+    if (!customerName.trim()) {
+      Alert.alert('입력 오류', '수취인 이름을 입력해주세요.');
+      return false;
+    }
+    if (!customerPhone.trim()) {
+      Alert.alert('입력 오류', '수취인 전화번호를 입력해주세요.');
+      return false;
+    }
+    if (!customerAddress.trim()) {
+      Alert.alert('입력 오류', '수취인 주소를 입력해주세요.');
+      return false;
+    }
+    if (!productName.trim()) {
+      Alert.alert('입력 오류', '제품명을 입력해주세요.');
+      return false;
     }
     return true;
-  };
-
-  const scrollViewRef = React.useRef(null);
-
-  const scrollToSection = (step) => {
-    setCurrentStep(step);
-    // 각 섹션의 대략적인 위치로 스크롤
-    const scrollPositions = {
-      1: 400,   // 수취인 정보
-      2: 800,   // 제품 정보  
-      3: 1200,  // 배송 옵션
-      4: 1600,  // 건물 정보
-      5: 2000   // 기타 정보
-    };
-    
-    if (scrollViewRef.current && scrollPositions[step]) {
-      scrollViewRef.current.scrollTo({
-        y: scrollPositions[step],
-        animated: true
-      });
-    }
-  };
-
-  const handleNext = () => {
-    if (validateStep(currentStep)) {
-      const nextStep = currentStep + 1;
-      scrollToSection(nextStep);
-    }
-  };
-
-  const handlePrevious = () => {
-    const prevStep = currentStep - 1;
-    scrollToSection(prevStep);
-  };
-
-  const getStepTitle = () => {
-    switch (currentStep) {
-      case 1: return '수취인 정보';
-      case 2: return '제품 정보';
-      case 3: return '배송 옵션';
-      case 4: return '건물 정보';
-      case 5: return '기타 정보';
-      default: return '';
-    }
   };
 
   const handleSubmit = async () => {
@@ -228,12 +152,6 @@ const UserShippingForm = ({ navigation }) => {
       const response = await api.post('/deliveries', deliveryData);
       
       if (response.data.success) {
-        setSubmitResult({
-          success: true,
-          message: '배송 접수가 완료되었습니다.',
-          trackingNumber: response.data.trackingNumber,
-        });
-        
         Alert.alert(
           '접수 완료',
           `배송 접수가 완료되었습니다.\n배송번호: ${response.data.trackingNumber}`,
@@ -258,35 +176,7 @@ const UserShippingForm = ({ navigation }) => {
     }
   };
 
-  const FormSection = ({ title, icon, children, collapsible = false, expanded = true, onToggle }) => (
-    <View style={styles.section}>
-      <TouchableOpacity 
-        style={styles.sectionHeader} 
-        onPress={collapsible ? onToggle : undefined}
-        disabled={!collapsible}
-      >
-        <Ionicons name={icon} size={24} color="#2196F3" />
-        <Text style={styles.sectionTitle}>{title}</Text>
-        {collapsible && (
-          <Ionicons 
-            name={expanded ? "chevron-up" : "chevron-down"} 
-            size={20} 
-            color="#666" 
-            style={styles.toggleIcon}
-          />
-        )}
-      </TouchableOpacity>
-      {collapsible ? (
-        <View style={!expanded ? styles.hiddenStep : null}>
-          {children}
-        </View>
-      ) : (
-        children
-      )}
-    </View>
-  );
-
-  const InputField = React.memo(({ label, value, onChangeText, placeholder, required = false, ...props }) => (
+  const InputField = ({ label, value, onChangeText, placeholder, required = false, ...props }) => (
     <View style={styles.inputContainer}>
       <Text style={styles.inputLabel}>
         {label}
@@ -298,13 +188,10 @@ const UserShippingForm = ({ navigation }) => {
         onChangeText={onChangeText}
         placeholder={placeholder}
         placeholderTextColor="#999"
-        autoCapitalize="none"
-        autoCorrect={false}
-        key={`input-${label}`}
         {...props}
       />
     </View>
-  ));
+  );
 
   const SwitchField = ({ label, value, onValueChange, description }) => (
     <View style={styles.switchContainer}>
@@ -321,80 +208,32 @@ const UserShippingForm = ({ navigation }) => {
     </View>
   );
 
-  const NavigationButtons = () => (
-    <View style={styles.navigationContainer}>
-      {currentStep > 1 && (
-        <TouchableOpacity 
-          style={styles.previousButton}
-          onPress={handlePrevious}
-        >
-          <Ionicons name="arrow-back" size={20} color="#2196F3" />
-          <Text style={styles.previousButtonText}>이전</Text>
-        </TouchableOpacity>
-      )}
-      
-      <View style={styles.buttonSpacer} />
-      
-      {currentStep < 5 ? (
-        <TouchableOpacity 
-          style={styles.nextButton}
-          onPress={handleNext}
-        >
-          <Text style={styles.nextButtonText}>다음</Text>
-          <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
-        </TouchableOpacity>
-      ) : (
-        <TouchableOpacity
-          style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]}
-          onPress={handleSubmit}
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <>
-              <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
-              <Text style={styles.submitButtonText}>배송접수 완료</Text>
-            </>
-          )}
-        </TouchableOpacity>
-      )}
-    </View>
-  );
-
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
-      <KeyboardAvoidingView 
-        style={styles.container} 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        {/* 헤더 */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#333" />
-          </TouchableOpacity>
-          <View style={styles.headerTitleContainer}>
-            <Text style={styles.headerTitle}>새배송접수</Text>
-            <Text style={styles.stepIndicator}>{currentStep}/5 단계 - {getStepTitle()}</Text>
-          </View>
-          <View style={styles.placeholder} />
-        </View>
+      
+      {/* 헤더 */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="#333" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>새배송접수</Text>
+        <View style={styles.placeholder} />
+      </View>
 
-        <ScrollView 
-          ref={scrollViewRef}
-          style={styles.scrollView} 
-          showsVerticalScrollIndicator={false} 
-          keyboardShouldPersistTaps="handled"
-        >
-          {/* 발송인 정보 - 접을 수 있는 섹션 */}
-          <FormSection 
-            title="발송인 정보" 
-            icon="person-outline"
-            collapsible={true}
-            expanded={senderInfoExpanded}
-            onToggle={() => setSenderInfoExpanded(!senderInfoExpanded)}
-          >
+      <ScrollView 
+        style={styles.scrollView} 
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+          
+          {/* 발송인 정보 */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="person-outline" size={24} color="#2196F3" />
+              <Text style={styles.sectionTitle}>발송인 정보</Text>
+            </View>
+            
             <InputField
               label="발송인 이름"
               value={senderName}
@@ -415,10 +254,15 @@ const UserShippingForm = ({ navigation }) => {
               onChangeText={setSenderDetailAddress}
               placeholder="상세 주소를 입력하세요"
             />
-          </FormSection>
+          </View>
 
-          {/* 모든 섹션을 항상 렌더링 - 단계 표시만 변경 */}
-          <FormSection title={`수취인 정보 ${currentStep === 1 ? '← 현재 단계' : ''}`} icon="location-outline">
+          {/* 수취인 정보 */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="location-outline" size={24} color="#2196F3" />
+              <Text style={styles.sectionTitle}>수취인 정보</Text>
+            </View>
+            
             <InputField
               label="수취인 이름"
               value={customerName}
@@ -447,9 +291,15 @@ const UserShippingForm = ({ navigation }) => {
               onChangeText={setCustomerDetailAddress}
               placeholder="상세 주소를 입력하세요"
             />
-          </FormSection>
+          </View>
 
-          <FormSection title={`제품 정보 ${currentStep === 2 ? '← 현재 단계' : ''}`} icon="cube-outline">
+          {/* 제품 정보 */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="cube-outline" size={24} color="#2196F3" />
+              <Text style={styles.sectionTitle}>제품 정보</Text>
+            </View>
+            
             <InputField
               label="제품명"
               value={productName}
@@ -487,9 +337,15 @@ const UserShippingForm = ({ navigation }) => {
               onChangeText={setBoxSize}
               placeholder="예: 1300x900x700mm"
             />
-          </FormSection>
+          </View>
 
-          <FormSection title={`배송 옵션 ${currentStep === 3 ? '← 현재 단계' : ''}`} icon="time-outline">
+          {/* 배송 옵션 */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="time-outline" size={24} color="#2196F3" />
+              <Text style={styles.sectionTitle}>배송 옵션</Text>
+            </View>
+            
             <View style={styles.row}>
               <View style={styles.halfWidth}>
                 <InputField
@@ -535,9 +391,15 @@ const UserShippingForm = ({ navigation }) => {
               placeholder="착불금액 (원)"
               keyboardType="numeric"
             />
-          </FormSection>
+          </View>
 
-          <FormSection title={`건물 정보 ${currentStep === 4 ? '← 현재 단계' : ''}`} icon="business-outline">
+          {/* 건물 정보 */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="business-outline" size={24} color="#2196F3" />
+              <Text style={styles.sectionTitle}>건물 정보</Text>
+            </View>
+            
             <View style={styles.row}>
               <View style={styles.halfWidth}>
                 <InputField
@@ -575,9 +437,15 @@ const UserShippingForm = ({ navigation }) => {
               onValueChange={setDisposal}
               description="폐기물 처리가 필요한 경우 활성화"
             />
-          </FormSection>
+          </View>
 
-          <FormSection title={`기타 정보 ${currentStep === 5 ? '← 현재 단계' : ''}`} icon="document-text-outline">
+          {/* 기타 정보 */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="document-text-outline" size={24} color="#2196F3" />
+              <Text style={styles.sectionTitle}>기타 정보</Text>
+            </View>
+            
             <SwitchField
               label="파손 주의"
               value={fragile}
@@ -600,12 +468,27 @@ const UserShippingForm = ({ navigation }) => {
               multiline
               numberOfLines={3}
             />
-          </FormSection>
+          </View>
 
-          {/* 네비게이션 버튼 */}
-          <NavigationButtons />
+          {/* 제출 버튼 */}
+          <View style={styles.submitContainer}>
+            <TouchableOpacity
+              style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]}
+              onPress={handleSubmit}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <>
+                  <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
+                  <Text style={styles.submitButtonText}>배송접수 완료</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+          
         </ScrollView>
-      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
@@ -616,6 +499,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
+  flex: {
+    flex: 1,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -625,28 +511,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
   },
   backButton: {
     padding: 5,
-  },
-  headerTitleContainer: {
-    alignItems: 'center',
-    flex: 1,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#333',
-  },
-  stepIndicator: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 2,
+    flex: 1,
+    textAlign: 'center',
   },
   placeholder: {
     width: 34,
@@ -670,21 +544,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 20,
-    justifyContent: 'space-between',
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
     marginLeft: 10,
-    flex: 1,
-  },
-  toggleIcon: {
-    marginLeft: 10,
-  },
-  hiddenStep: {
-    height: 0,
-    overflow: 'hidden',
   },
   inputContainer: {
     marginBottom: 15,
@@ -736,47 +601,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     marginTop: 2,
-  },
-  navigationContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 30,
-    marginBottom: 40,
-    paddingHorizontal: 20,
-  },
-  previousButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-    borderWidth: 1,
-    borderColor: '#2196F3',
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    gap: 8,
-  },
-  previousButtonText: {
-    color: '#2196F3',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  nextButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#2196F3',
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    gap: 8,
-  },
-  nextButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  buttonSpacer: {
-    flex: 1,
   },
   submitContainer: {
     marginTop: 20,

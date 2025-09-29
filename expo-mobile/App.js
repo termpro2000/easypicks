@@ -13,6 +13,7 @@ import DeliveryListScreen from './src/screens/DeliveryListScreen';
 import UserDeliveryListScreen from './src/screens/UserDeliveryListScreen';
 import MobileDashboard from './src/screens/MobileDashboard';
 import UserShippingForm from './src/screens/UserShippingForm';
+import UserNewForm from './src/screens/UserNewForm';
 import UserDeliveryDetailScreen from './src/screens/UserDeliveryDetailScreen';
 import DeliveryDetailScreen from './src/screens/DeliveryDetailScreen';
 import LoadingConfirmScreen from './src/screens/LoadingConfirmScreen';
@@ -269,6 +270,14 @@ const App = () => {
                   <Stack.Screen
                     name="UserShippingForm"
                     component={UserShippingForm}
+                    options={{ 
+                      title: '새배송접수',
+                      headerShown: false 
+                    }}
+                  />
+                  <Stack.Screen
+                    name="UserNewForm"
+                    component={UserNewForm}
                     options={{ 
                       title: '새배송접수',
                       headerShown: false 

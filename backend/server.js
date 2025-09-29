@@ -4259,6 +4259,157 @@ app.delete('/api/user-detail/:userId', async (req, res) => {
   }
 });
 
+// ===== F_PRICE API =====
+
+// f_price 테이블 생성 및 데이터 삽입
+app.post('/api/setup-f-price', async (req, res) => {
+  try {
+    console.log('🏗️ f_price 테이블 설정 요청');
+    
+    const { setupFPrice } = require('./setup-f-price');
+    await setupFPrice();
+    
+    res.json({
+      success: true,
+      message: 'f_price 테이블 설정 완료'
+    });
+    
+  } catch (error) {
+    console.error('❌ f_price 설정 실패:', error);
+    res.status(500).json({
+      success: false,
+      message: 'f_price 테이블 설정 실패',
+      error: error.message
+    });
+  }
+});
+
+// f_price 데이터 조회
+app.get('/api/f-price', async (req, res) => {
+  try {
+    console.log('💰 f_price 데이터 조회 요청');
+    
+    const { category, size } = req.query;
+    
+    let query = 'SELECT * FROM f_price';
+    const params = [];
+    
+    if (category || size) {
+      const conditions = [];
+      if (category) {
+        conditions.push('category LIKE ?');
+        params.push(`%${category}%`);
+      }
+      if (size) {
+        conditions.push('size = ?');
+        params.push(size);
+      }
+      query += ' WHERE ' + conditions.join(' AND ');
+    }
+    
+    query += ' ORDER BY category, size';
+    
+    const [rows] = await pool.execute(query, params);
+    
+    res.json({
+      success: true,
+      data: rows,
+      total: rows.length
+    });
+    
+  } catch (error) {
+    console.error('❌ f_price 조회 실패:', error);
+    res.status(500).json({
+      success: false,
+      message: 'f_price 데이터 조회 실패',
+      error: error.message
+    });
+  }
+});
+
+// 특정 카테고리와 사이즈의 가격 조회
+app.get('/api/f-price/:category/:size', async (req, res) => {
+  try {
+    const { category, size } = req.params;
+    console.log(`💰 특정 가격 조회: ${category} - ${size}`);
+    
+    const [rows] = await pool.execute(
+      'SELECT * FROM f_price WHERE category LIKE ? AND size = ?',
+      [`%${category}%`, size]
+    );
+    
+    if (rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: '해당 카테고리와 사이즈의 가격 정보를 찾을 수 없습니다.'
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: rows[0]
+    });
+    
+  } catch (error) {
+    console.error('❌ 특정 가격 조회 실패:', error);
+    res.status(500).json({
+      success: false,
+      message: '가격 조회 실패',
+      error: error.message
+    });
+  }
+});
+
+// 카테고리 목록 조회
+app.get('/api/f-price/categories', async (req, res) => {
+  try {
+    console.log('📋 카테고리 목록 조회 요청');
+    
+    const [rows] = await pool.execute(
+      'SELECT DISTINCT category FROM f_price ORDER BY category'
+    );
+    
+    res.json({
+      success: true,
+      data: rows.map(row => row.category)
+    });
+    
+  } catch (error) {
+    console.error('❌ 카테고리 조회 실패:', error);
+    res.status(500).json({
+      success: false,
+      message: '카테고리 조회 실패',
+      error: error.message
+    });
+  }
+});
+
+// 사이즈 목록 조회 (특정 카테고리)
+app.get('/api/f-price/sizes/:category', async (req, res) => {
+  try {
+    const { category } = req.params;
+    console.log(`📏 사이즈 목록 조회: ${category}`);
+    
+    const [rows] = await pool.execute(
+      'SELECT DISTINCT size FROM f_price WHERE category LIKE ? ORDER BY size',
+      [`%${category}%`]
+    );
+    
+    res.json({
+      success: true,
+      data: rows.map(row => row.size)
+    });
+    
+  } catch (error) {
+    console.error('❌ 사이즈 조회 실패:', error);
+    res.status(500).json({
+      success: false,
+      message: '사이즈 조회 실패',
+      error: error.message
+    });
+  }
+});
+
 // 서버 시작
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
