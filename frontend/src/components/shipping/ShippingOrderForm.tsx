@@ -5,7 +5,7 @@ import {
   Calendar, Clock, AlertTriangle, FileText, Shield, 
   Home, Wrench, Weight, Box, Settings, ArrowLeft, Check, Search, Plus, Trash2, Zap
 } from 'lucide-react';
-import { shippingAPI, deliveriesAPI, productsAPI } from '../../services/api';
+import { shippingAPI, deliveriesAPI, productsAPI, userDetailAPI } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
 import ProductSelectionModal from '../partner/ProductSelectionModal';
 
@@ -179,6 +179,64 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess }) => {
       floor_count: 1
     }
   });
+
+  // 사용자 정보로 발송인 정보 자동 채우기
+  useEffect(() => {
+    const loadUserInfo = async () => {
+      if (user) {
+        try {
+          // 발송인 이름 설정 (name 또는 username 사용)
+          if (user.name) {
+            setValue('sender_name', user.name);
+          } else if (user.username) {
+            setValue('sender_name', user.username);
+          }
+
+          // 기본 주소 정보가 user 객체에 있다면 설정
+          if (user.default_sender_address) {
+            setValue('sender_address', user.default_sender_address);
+          }
+          
+          if (user.default_sender_detail_address) {
+            setValue('sender_detail_address', user.default_sender_detail_address);
+          }
+
+          // 사용자 상세 정보에서 추가 주소 정보 가져오기
+          if (user.id) {
+            try {
+              const userDetailResponse = await userDetailAPI.getUserDetail(user.id);
+              if (userDetailResponse.success && userDetailResponse.detail) {
+                const detail = typeof userDetailResponse.detail === 'string' 
+                  ? JSON.parse(userDetailResponse.detail) 
+                  : userDetailResponse.detail;
+
+                // 상세 정보에서 주소가 있고 아직 설정되지 않았다면 설정
+                if (detail.sender_address && !user.default_sender_address) {
+                  setValue('sender_address', detail.sender_address);
+                }
+                
+                if (detail.sender_detail_address && !user.default_sender_detail_address) {
+                  setValue('sender_detail_address', detail.sender_detail_address);
+                }
+
+                // 회사명이 있다면 발송인 이름으로 설정할 수 있음 (옵션)
+                if (detail.company && !user.name) {
+                  setValue('sender_name', detail.company);
+                }
+              }
+            } catch (error) {
+              console.log('사용자 상세 정보 로드 실패 (선택사항):', error);
+              // 에러가 발생해도 기본 사용자 정보는 이미 설정되었으므로 무시
+            }
+          }
+        } catch (error) {
+          console.error('사용자 정보 로드 실패:', error);
+        }
+      }
+    };
+
+    loadUserInfo();
+  }, [user, setValue]);
 
   // 랜덤 데이터 생성 함수들
   const generateRandomName = () => {
