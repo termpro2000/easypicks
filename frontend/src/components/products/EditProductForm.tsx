@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Save, X, Package2, Calculator } from 'lucide-react';
 import { productsAPI } from '../../services/api';
 import ProductPriceModal from './ProductPriceModal';
+import { useAuth } from '../../hooks/useAuth';
 
 interface Product {
   id: number;
@@ -37,6 +38,8 @@ interface ProductFormData {
 }
 
 const EditProductForm: React.FC<EditProductFormProps> = ({ onNavigateBack, onSuccess, product }) => {
+  const { user } = useAuth();
+  const canEditPricing = user?.role === 'admin' || user?.role === 'manager';
   const [formData, setFormData] = useState<ProductFormData>({
     name: product.name || '',
     maincode: product.maincode || '',
@@ -257,23 +260,31 @@ const EditProductForm: React.FC<EditProductFormProps> = ({ onNavigateBack, onSuc
           </div>
 
           {/* 배송비용 섹션 */}
-          <div className="bg-white rounded-lg shadow-sm border p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">배송비용</h2>
+          <div className={`bg-white rounded-lg shadow-sm border p-6 ${!canEditPricing ? 'opacity-60' : ''}`}>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold text-gray-900">배송비용</h2>
+              {!canEditPricing && (
+                <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                  관리자/매니저 전용
+                </span>
+              )}
+            </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  비용 1 (원)
+                  배송비용(원)
                 </label>
                 <input
                   type="number"
                   name="cost1"
                   value={formData.cost1}
                   onChange={handleInputChange}
+                  disabled={!canEditPricing}
                   className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                     errors.cost1 ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="첫 번째 비용을 입력하세요"
+                  } ${!canEditPricing ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                  placeholder={canEditPricing ? "배송비용을 입력하세요" : "권한이 필요합니다"}
                   min="0"
                 />
                 {errors.cost1 && <p className="text-red-500 text-sm mt-1">{errors.cost1}</p>}
@@ -289,17 +300,23 @@ const EditProductForm: React.FC<EditProductFormProps> = ({ onNavigateBack, onSuc
                     name="cost2"
                     value={formData.cost2}
                     onChange={handleInputChange}
+                    disabled={!canEditPricing}
                     className={`flex-1 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                       errors.cost2 ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                    placeholder="운임가격을 입력하세요"
+                    } ${!canEditPricing ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                    placeholder={canEditPricing ? "운임가격을 입력하세요" : "권한이 필요합니다"}
                     min="0"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPriceModal(true)}
-                    className="px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 whitespace-nowrap"
-                    title="배송비용 검색"
+                    disabled={!canEditPricing}
+                    className={`px-4 py-3 rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap ${
+                      canEditPricing 
+                        ? 'bg-green-600 text-white hover:bg-green-700'
+                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    }`}
+                    title={canEditPricing ? "배송비용 검색" : "관리자/매니저 권한이 필요합니다"}
                   >
                     <Calculator className="w-4 h-4" />
                     배송비용검색
