@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { User, Lock, Phone, Building, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { User, Lock, Phone, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import type { LoginData, RegisterData } from '../../types';
 
@@ -238,31 +238,16 @@ const AuthPage: React.FC = () => {
               )}
             </div>
 
-            <div className="grid grid-cols-1 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">전화번호 (선택)</label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type="tel"
-                    {...registerForm.register('phone')}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                    placeholder="전화번호를 입력하세요"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">회사명 (선택)</label>
-                <div className="relative">
-                  <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type="text"
-                    {...registerForm.register('company')}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                    placeholder="회사명을 입력하세요"
-                  />
-                </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">전화번호 (선택)</label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="tel"
+                  {...registerForm.register('phone')}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  placeholder="전화번호를 입력하세요"
+                />
               </div>
             </div>
 

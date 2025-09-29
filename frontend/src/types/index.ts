@@ -20,7 +20,6 @@ export interface RegisterData {
   confirmPassword: string;
   name: string;
   phone?: string;
-  company?: string;
 }
 
 // 배송접수 관련 타입 (26개 필드)

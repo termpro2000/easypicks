@@ -147,7 +147,7 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ onNavigateBack, s
             onClick={onNavigateBack}
             className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
           >
-            ← 파트너 선택으로 돌아가기
+            ← 돌아가기
           </button>
           <div className="flex-1 text-center">
             <h1 className="text-2xl font-bold text-gray-900 flex items-center justify-center gap-2">

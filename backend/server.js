@@ -1705,7 +1705,7 @@ app.post('/api/auth/register', async (req, res) => {
     const { username, user_id, password, name, phone } = req.body;
     const registerId = username || user_id; // username 또는 user_id 둘 다 지원
     
-    console.log('👤 회원가입 요청:', { username, user_id, registerId, name });
+    console.log('👤 회원가입 요청:', { username, user_id, registerId, name, phone });
 
     // 필수 필드 검증
     if (!registerId || !password || !name) {
@@ -1729,6 +1729,7 @@ app.post('/api/auth/register', async (req, res) => {
     }
 
     // 사용자 생성 (비밀번호는 평문 저장 - 개발용)
+    // company 컬럼이 없으므로 제외하고 저장
     const [result] = await pool.execute(`
       INSERT INTO users (username, password, name, phone, role, is_active, created_at, updated_at) 
       VALUES (?, ?, ?, ?, 'user', 1, NOW(), NOW())
