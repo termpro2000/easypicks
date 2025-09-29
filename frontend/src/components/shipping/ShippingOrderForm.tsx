@@ -242,6 +242,16 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess }) => {
                   setValue('furniture_company', detail.company);
                 }
 
+                // 발송업체명이 있는 경우 가구회사 필드에 우선적으로 사용
+                if (detail.sender_company) {
+                  setValue('furniture_company', detail.sender_company);
+                }
+
+                // 긴급연락전화번호가 있는 경우 긴급연락처 필드에 설정
+                if (detail.emergency_contact_phone) {
+                  setValue('emergency_contact', detail.emergency_contact_phone);
+                }
+
                 // 대표자명이 있고 발송인 이름이 설정되지 않은 경우
                 if (detail.representative_name && !user.name && !detail.company) {
                   setValue('sender_name', detail.representative_name);
