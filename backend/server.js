@@ -4410,6 +4410,30 @@ app.get('/api/f-price/sizes/:category', async (req, res) => {
   }
 });
 
+// 임시 SQL 실행 API (f_price 테이블 생성용)
+app.post('/api/temp-sql', async (req, res) => {
+  try {
+    const { sql } = req.body;
+    console.log('🔧 임시 SQL 실행:', sql);
+    
+    const [result] = await pool.execute(sql);
+    
+    res.json({
+      success: true,
+      result: result,
+      message: 'SQL 실행 완료'
+    });
+    
+  } catch (error) {
+    console.error('❌ SQL 실행 실패:', error);
+    res.status(500).json({
+      success: false,
+      message: 'SQL 실행 실패',
+      error: error.message
+    });
+  }
+});
+
 // 서버 시작
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
