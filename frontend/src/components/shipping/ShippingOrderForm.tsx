@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { 
   User, Phone, Building, MapPin, Package, Truck, 
   Calendar, Clock, AlertTriangle, FileText, Shield, 
-  Home, Wrench, Weight, Box, Settings, ArrowLeft, Check, Search, Plus, Trash2, Zap
+  Home, Wrench, Weight, Box, Settings, ArrowLeft, Check, Search, Plus, Trash2, Zap, Mail
 } from 'lucide-react';
 import { shippingAPI, deliveriesAPI, productsAPI, userDetailAPI } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
@@ -20,6 +20,12 @@ interface DeliveryData {
   sender_name: string;
   sender_address: string;
   sender_detail_address?: string;
+  sender_phone?: string;
+  sender_email?: string;
+  sender_company?: string;
+  sender_business_number?: string;
+  sender_representative_name?: string;
+  sender_business_type?: string;
   status: string;
   request_type?: string;
   construction_type?: string;
@@ -192,6 +198,15 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess }) => {
             setValue('sender_name', user.username);
           }
 
+          // 기본 사용자 정보 설정
+          if (user.phone) {
+            setValue('sender_phone', user.phone);
+          }
+          
+          if (user.email) {
+            setValue('sender_email', user.email);
+          }
+
           // 기본 주소 정보가 user 객체에 있다면 설정
           if (user.default_sender_address) {
             setValue('sender_address', user.default_sender_address);
@@ -219,9 +234,25 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess }) => {
                   setValue('sender_detail_address', detail.sender_detail_address);
                 }
 
-                // 회사명이 있다면 발송인 이름으로 설정할 수 있음 (옵션)
-                if (detail.company && !user.name) {
-                  setValue('sender_name', detail.company);
+                // 파트너 추가 정보 설정
+                if (detail.company) {
+                  setValue('sender_company', detail.company);
+                  // 회사명이 있고 발송인 이름이 없다면 회사명을 발송인 이름으로 설정
+                  if (!user.name) {
+                    setValue('sender_name', detail.company);
+                  }
+                }
+                
+                if (detail.business_number) {
+                  setValue('sender_business_number', detail.business_number);
+                }
+                
+                if (detail.representative_name) {
+                  setValue('sender_representative_name', detail.representative_name);
+                }
+                
+                if (detail.business_type) {
+                  setValue('sender_business_type', detail.business_type);
                 }
               }
             } catch (error) {
@@ -528,6 +559,12 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess }) => {
         sender_name: data.sender_name,
         sender_address: data.sender_address,
         sender_detail_address: data.sender_detail_address,
+        sender_phone: data.sender_phone,
+        sender_email: data.sender_email,
+        sender_company: data.sender_company,
+        sender_business_number: data.sender_business_number,
+        sender_representative_name: data.sender_representative_name,
+        sender_business_type: data.sender_business_type,
         customer_name: data.customer_name,
         customer_phone: data.customer_phone,
         customer_address: data.customer_address,
@@ -714,6 +751,60 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess }) => {
                   {...register('emergency_contact')}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="010-0000-0000"
+                />
+              </InfoCell>
+
+              <InfoCell label="발송인 전화번호" icon={Phone}>
+                <input
+                  type="tel"
+                  {...register('sender_phone')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="010-1234-5678"
+                />
+              </InfoCell>
+
+              <InfoCell label="발송인 이메일" icon={Mail}>
+                <input
+                  type="email"
+                  {...register('sender_email')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="example@company.com"
+                />
+              </InfoCell>
+
+              <InfoCell label="회사명" icon={Building}>
+                <input
+                  type="text"
+                  {...register('sender_company')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="회사명을 입력하세요"
+                />
+              </InfoCell>
+
+              <InfoCell label="사업자번호" icon={FileText}>
+                <input
+                  type="text"
+                  {...register('sender_business_number')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="000-00-00000"
+                />
+              </InfoCell>
+
+              <InfoCell label="대표자명" icon={User}>
+                <input
+                  type="text"
+                  {...register('sender_representative_name')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="대표자명을 입력하세요"
+                />
+              </InfoCell>
+
+              <InfoCell label="업종" icon={Building}>
+                <input
+                  type="text"
+                  {...register('sender_business_type')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="예: 물류, 유통, 제조업"
                 />
               </InfoCell>
             </div>
