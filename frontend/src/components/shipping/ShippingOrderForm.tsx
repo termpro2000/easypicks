@@ -187,7 +187,7 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess }) => {
     const loadUserInfo = async () => {
       if (user) {
         try {
-          // 발송인 이름 설정 (name 또는 username 사용)
+          // 발송인 이름 설정 우선순위: user.name > company name > username
           if (user.name) {
             setValue('sender_name', user.name);
           } else if (user.username) {
@@ -203,7 +203,16 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess }) => {
             setValue('sender_email', user.email);
           }
 
-          // 사용자 상세 정보에서 파트너 추가 정보의 발송인 주소 가져오기
+          // 기본 발송인 주소 우선 설정 (파트너 추가 정보가 없는 경우를 위한 폴백)
+          if (user.default_sender_address) {
+            setValue('sender_address', user.default_sender_address);
+          }
+          
+          if (user.default_sender_detail_address) {
+            setValue('sender_detail_address', user.default_sender_detail_address);
+          }
+
+          // 사용자 상세 정보에서 파트너 추가 정보 가져오기
           if (user.id) {
             try {
               const userDetailResponse = await userDetailAPI.getUserDetail(user.id);
@@ -212,7 +221,9 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess }) => {
                   ? JSON.parse(userDetailResponse.detail) 
                   : userDetailResponse.detail;
 
-                // 파트너 추가 정보의 발송인 주소를 우선적으로 사용
+                console.log('파트너 추가 정보:', detail);
+
+                // 파트너 추가 정보의 발송인 주소를 우선적으로 사용 (덮어씀)
                 if (detail.sender_address) {
                   setValue('sender_address', detail.sender_address);
                 }
@@ -221,25 +232,44 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess }) => {
                   setValue('sender_detail_address', detail.sender_detail_address);
                 }
 
-                // 회사명이 있고 발송인 이름이 없다면 회사명을 발송인 이름으로 설정 (옵션)
-                if (detail.company && !user.name) {
-                  setValue('sender_name', detail.company);
+                // 회사명이 있는 경우 발송인 이름에 반영 (기존 이름이 없거나 회사명이 더 적절한 경우)
+                if (detail.company) {
+                  // 기존 이름이 없거나 사용자명만 있는 경우 회사명으로 교체
+                  if (!user.name && user.username) {
+                    setValue('sender_name', detail.company);
+                  }
+                  // 가구회사 필드에도 설정
+                  setValue('furniture_company', detail.company);
+                }
+
+                // 대표자명이 있고 발송인 이름이 설정되지 않은 경우
+                if (detail.representative_name && !user.name && !detail.company) {
+                  setValue('sender_name', detail.representative_name);
+                }
+
+                // 기타 파트너 추가 정보를 적절한 필드에 매핑
+                // 업종 정보가 있는 경우 메모에 추가
+                if (detail.business_type) {
+                  const currentMemo = '';
+                  const businessTypeInfo = `업종: ${detail.business_type}`;
+                  setValue('main_memo', currentMemo ? `${currentMemo}\n${businessTypeInfo}` : businessTypeInfo);
+                }
+
+                // 서비스 지역 정보가 있는 경우 특별 지시사항에 추가
+                if (detail.service_area) {
+                  const serviceAreaInfo = `서비스 지역: ${detail.service_area}`;
+                  setValue('special_instructions', serviceAreaInfo);
+                }
+
+                // 사업자등록번호가 있는 경우 상세 메모에 추가
+                if (detail.business_number) {
+                  const businessNumberInfo = `사업자등록번호: ${detail.business_number}`;
+                  setValue('detail_notes', businessNumberInfo);
                 }
               }
             } catch (error) {
               console.log('사용자 상세 정보 로드 실패 (선택사항):', error);
               // 에러가 발생해도 기본 사용자 정보는 이미 설정되었으므로 무시
-            }
-          }
-
-          // 파트너 추가 정보에 주소가 없는 경우에만 기본 주소 사용 (폴백)
-          if (!user.id) {
-            if (user.default_sender_address) {
-              setValue('sender_address', user.default_sender_address);
-            }
-            
-            if (user.default_sender_detail_address) {
-              setValue('sender_detail_address', user.default_sender_detail_address);
             }
           }
         } catch (error) {
