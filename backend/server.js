@@ -105,8 +105,8 @@ app.get('/api/debug/columns', async (req, res) => {
 // 루트 엔드포인트
 app.get('/', (req, res) => {
   res.json({
-    message: '배송접수 웹앱 API - 최소버전',
-    version: '1.0.0',
+    message: '배송접수 웹앱 API - f_price 업데이트 버전',
+    version: '1.1.0',
     timestamp: new Date().toISOString()
   });
 });
