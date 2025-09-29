@@ -140,20 +140,17 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ onNavigateBack, s
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="p-6">
-        <button
-          onClick={onNavigateBack}
-          className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors mb-4"
-        >
-          ← 파트너 선택으로 돌아가기
-        </button>
-      </div>
-      
       <div className="container mx-auto px-4 py-8 space-y-6">
         {/* 헤더 */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+        <div className="flex items-center relative">
+          <button
+            onClick={onNavigateBack}
+            className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            ← 파트너 선택으로 돌아가기
+          </button>
+          <div className="flex-1 text-center">
+            <h1 className="text-2xl font-bold text-gray-900 flex items-center justify-center gap-2">
               <Package2 className="w-7 h-7 text-blue-600" />
               상품 관리
               {selectedPartnerName && (
@@ -169,16 +166,16 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ onNavigateBack, s
               }
             </p>
           </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleAddProduct}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            새 상품 추가
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleAddProduct}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              새 상품 추가
+            </button>
+          </div>
         </div>
-      </div>
 
       {/* 검색 */}
       <div className="bg-white rounded-lg shadow-sm border p-4">
