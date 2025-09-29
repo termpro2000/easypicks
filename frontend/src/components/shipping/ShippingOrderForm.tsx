@@ -185,71 +185,105 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess }) => {
   // 사용자 정보로 발송인 정보 자동 채우기
   useEffect(() => {
     const loadUserInfo = async () => {
+      console.log('🔄 ShippingOrderForm 자동 채움 시작');
+      console.log('👤 현재 사용자 객체:', user);
+      
       if (user) {
         try {
           // 발송인 이름 설정 우선순위: user.name > company name > username
+          console.log('📝 기본 사용자 정보 설정 시작');
           if (user.name) {
+            console.log('✅ sender_name 설정:', user.name);
             setValue('sender_name', user.name);
           } else if (user.username) {
+            console.log('✅ sender_name 설정 (username):', user.username);
             setValue('sender_name', user.username);
           }
 
           // 기본 사용자 정보 설정
           if (user.phone) {
+            console.log('✅ sender_phone 설정:', user.phone);
             setValue('sender_phone', user.phone);
           }
           
           if (user.email) {
+            console.log('✅ sender_email 설정:', user.email);
             setValue('sender_email', user.email);
           }
 
           // 기본 발송인 주소 우선 설정 (파트너 추가 정보가 없는 경우를 위한 폴백)
           if (user.default_sender_address) {
+            console.log('✅ sender_address 설정 (기본):', user.default_sender_address);
             setValue('sender_address', user.default_sender_address);
           }
           
           if (user.default_sender_detail_address) {
+            console.log('✅ sender_detail_address 설정 (기본):', user.default_sender_detail_address);
             setValue('sender_detail_address', user.default_sender_detail_address);
           }
 
           // 사용자 상세 정보에서 파트너 추가 정보 가져오기
+          console.log('🔍 파트너 추가정보 API 호출 시작, user.id:', user.id);
           if (user.id) {
             try {
               const userDetailResponse = await userDetailAPI.getUserDetail(user.id);
+              console.log('📡 API 응답 전체:', userDetailResponse);
+              
               if (userDetailResponse.success && userDetailResponse.detail) {
+                console.log('✅ API 응답 성공, detail 존재함');
                 const detail = typeof userDetailResponse.detail === 'string' 
                   ? JSON.parse(userDetailResponse.detail) 
                   : userDetailResponse.detail;
 
-                console.log('파트너 추가 정보:', detail);
+                console.log('🔍 파싱된 파트너 추가 정보:', detail);
+                console.log('📊 사용 가능한 필드들:', Object.keys(detail));
 
                 // 파트너 추가 정보의 발송인 주소를 우선적으로 사용 (덮어씀)
+                console.log('🏠 주소 정보 처리');
                 if (detail.sender_address) {
+                  console.log('✅ sender_address 덮어쓰기:', detail.sender_address);
                   setValue('sender_address', detail.sender_address);
+                } else {
+                  console.log('❌ detail.sender_address 없음');
                 }
                 
                 if (detail.sender_detail_address) {
+                  console.log('✅ sender_detail_address 덮어쓰기:', detail.sender_detail_address);
                   setValue('sender_detail_address', detail.sender_detail_address);
+                } else {
+                  console.log('❌ detail.sender_detail_address 없음');
                 }
 
                 // 회사명이 있는 경우 발송인 이름에 반영 (기존 이름이 없거나 회사명이 더 적절한 경우)
+                console.log('🏢 회사 정보 처리');
                 if (detail.company) {
+                  console.log('✅ detail.company 발견:', detail.company);
                   // 기존 이름이 없거나 사용자명만 있는 경우 회사명으로 교체
                   if (!user.name && user.username) {
+                    console.log('✅ sender_name을 company로 교체:', detail.company);
                     setValue('sender_name', detail.company);
                   }
                   // 가구회사 필드에도 설정
+                  console.log('✅ furniture_company 설정 (company):', detail.company);
                   setValue('furniture_company', detail.company);
+                } else {
+                  console.log('❌ detail.company 없음');
                 }
 
                 // 발송업체명이 있는 경우 가구회사 필드에 우선적으로 사용
                 if (detail.sender_company) {
+                  console.log('✅ furniture_company 덮어쓰기 (sender_company):', detail.sender_company);
                   setValue('furniture_company', detail.sender_company);
+                } else {
+                  console.log('❌ detail.sender_company 없음');
                 }
 
                 // 긴급연락전화번호가 있는 경우 긴급연락처 필드에 설정
                 if (detail.emergency_contact_phone) {
+                  console.log('✅ emergency_contact 설정:', detail.emergency_contact_phone);
                   setValue('emergency_contact', detail.emergency_contact_phone);
+                } else {
+                  console.log('❌ detail.emergency_contact_phone 없음');
                 }
 
                 // 대표자명이 있고 발송인 이름이 설정되지 않은 경우
@@ -276,16 +310,29 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess }) => {
                   const businessNumberInfo = `사업자등록번호: ${detail.business_number}`;
                   setValue('detail_notes', businessNumberInfo);
                 }
+              } else {
+                console.log('❌ API 응답 실패 또는 detail 없음');
+                console.log('- success:', userDetailResponse.success);
+                console.log('- detail:', userDetailResponse.detail);
+                console.log('- data:', userDetailResponse.data);
               }
             } catch (error) {
-              console.log('사용자 상세 정보 로드 실패 (선택사항):', error);
+              console.error('❌ 사용자 상세 정보 로드 실패:', error);
+              console.error('- Error details:', error.response?.data);
+              console.error('- Status:', error.response?.status);
               // 에러가 발생해도 기본 사용자 정보는 이미 설정되었으므로 무시
             }
+          } else {
+            console.log('❌ user.id 없음, 파트너 추가정보 조회 건너뜀');
           }
         } catch (error) {
-          console.error('사용자 정보 로드 실패:', error);
+          console.error('❌ 전체 사용자 정보 로드 실패:', error);
         }
+      } else {
+        console.log('❌ user 객체 없음, 자동 채움 건너뜀');
       }
+      
+      console.log('🏁 ShippingOrderForm 자동 채움 완료');
     };
 
     loadUserInfo();
