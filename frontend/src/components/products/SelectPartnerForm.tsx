@@ -71,25 +71,23 @@ const SelectPartnerForm: React.FC<SelectPartnerFormProps> = ({ onNavigateBack, o
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="p-6">
-        <button
-          onClick={onNavigateBack}
-          className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors mb-4"
-        >
-          ← 관리자화면으로 돌아가기
-        </button>
-      </div>
-      
       <div className="container mx-auto px-4 py-8 space-y-6">
         {/* 헤더 */}
         <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+          <button
+            onClick={onNavigateBack}
+            className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            ← 관리자화면으로 돌아가기
+          </button>
+          <div className="text-center flex-1">
+            <h1 className="text-2xl font-bold text-gray-900 flex items-center justify-center gap-2">
               <Building className="w-7 h-7 text-blue-600" />
               파트너사 선택
             </h1>
             <p className="text-gray-600 mt-1">상품을 관리할 파트너사를 선택하세요</p>
           </div>
+          <div className="w-[200px]"></div> {/* Spacer for centering */}
         </div>
 
         {/* 검색 및 필터 */}
