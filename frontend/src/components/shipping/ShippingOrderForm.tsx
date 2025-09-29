@@ -229,11 +229,11 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess }) => {
               const userDetailResponse = await userDetailAPI.getUserDetail(user.id);
               console.log('📡 API 응답 전체:', userDetailResponse);
               
-              if (userDetailResponse.success && userDetailResponse.detail) {
+              if (userDetailResponse.success && userDetailResponse.data && userDetailResponse.data.detail) {
                 console.log('✅ API 응답 성공, detail 존재함');
-                const detail = typeof userDetailResponse.detail === 'string' 
-                  ? JSON.parse(userDetailResponse.detail) 
-                  : userDetailResponse.detail;
+                const detail = typeof userDetailResponse.data.detail === 'string' 
+                  ? JSON.parse(userDetailResponse.data.detail) 
+                  : userDetailResponse.data.detail;
 
                 console.log('🔍 파싱된 파트너 추가 정보:', detail);
                 console.log('📊 사용 가능한 필드들:', Object.keys(detail));
@@ -313,8 +313,11 @@ const ShippingOrderForm: React.FC<ShippingOrderFormProps> = ({ onSuccess }) => {
               } else {
                 console.log('❌ API 응답 실패 또는 detail 없음');
                 console.log('- success:', userDetailResponse.success);
-                console.log('- detail:', userDetailResponse.detail);
                 console.log('- data:', userDetailResponse.data);
+                console.log('- data.detail:', userDetailResponse.data?.detail);
+                if (userDetailResponse.data && !userDetailResponse.data.detail) {
+                  console.log('⚠️ data는 있지만 detail이 없음 - 파트너 추가정보가 등록되지 않은 사용자일 수 있음');
+                }
               }
             } catch (error) {
               console.error('❌ 사용자 상세 정보 로드 실패:', error);
