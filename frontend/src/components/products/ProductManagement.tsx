@@ -3,6 +3,7 @@ import { Package2, Plus, Search, Trash2, Edit } from 'lucide-react';
 import { productsAPI } from '../../services/api';
 import ProductForm from './ProductForm';
 import EditProductForm from './EditProductForm';
+import { useAuth } from '../../hooks/useAuth';
 
 interface Product {
   id: number;
@@ -27,23 +28,27 @@ interface ProductManagementProps {
 }
 
 const ProductManagement: React.FC<ProductManagementProps> = ({ onNavigateBack, selectedPartnerId, selectedPartnerName }) => {
+  const { user } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentView, setCurrentView] = useState<'list' | 'add-form' | 'edit-form'>('list');
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
+  // user 역할일 때는 자신의 상품만, 다른 역할일 때는 selectedPartnerId 사용
+  const effectivePartnerId = user?.role === 'user' ? user.id : selectedPartnerId;
+
   // 상품 목록 로드 (파트너 변경 시에도 재로드)
   useEffect(() => {
     loadProducts();
-  }, [selectedPartnerId]);
+  }, [effectivePartnerId]);
 
   const loadProducts = async () => {
     setIsLoading(true);
     try {
       let response;
-      if (selectedPartnerId) {
-        response = await productsAPI.getProductsByPartner(selectedPartnerId);
+      if (effectivePartnerId) {
+        response = await productsAPI.getProductsByPartner(effectivePartnerId);
       } else {
         response = await productsAPI.getAllProducts();
       }
@@ -62,7 +67,13 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ onNavigateBack, s
   };
 
 
-  const handleDeleteProduct = async (id: number) => {
+  const handleDeleteProduct = async (id: number, product: Product) => {
+    // user 역할일 때는 자신의 상품만 삭제 가능
+    if (user?.role === 'user' && product.user_id !== user.id) {
+      alert('자신이 등록한 상품만 삭제할 수 있습니다.');
+      return;
+    }
+
     if (window.confirm('이 상품을 삭제하시겠습니까?')) {
       try {
         await productsAPI.deleteProduct(id);
@@ -85,6 +96,12 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ onNavigateBack, s
   };
 
   const handleEditProduct = (product: Product) => {
+    // user 역할일 때는 자신의 상품만 편집 가능
+    if (user?.role === 'user' && product.user_id !== user.id) {
+      alert('자신이 등록한 상품만 수정할 수 있습니다.');
+      return;
+    }
+
     setEditingProduct(product);
     setCurrentView('edit-form');
   };
@@ -106,7 +123,7 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ onNavigateBack, s
       <ProductForm 
         onNavigateBack={handleBackToList}
         onSuccess={handleFormSuccess}
-        selectedPartnerId={selectedPartnerId}
+        selectedPartnerId={effectivePartnerId}
       />
     );
   }
@@ -237,7 +254,7 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ onNavigateBack, s
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleDeleteProduct(product.id);
+                            handleDeleteProduct(product.id, product);
                           }}
                           className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                           title="삭제"

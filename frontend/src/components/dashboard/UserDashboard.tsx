@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Package, Plus, LogOut, TrendingUp, AlertCircle, Clock, CheckCircle, XCircle, Truck,
-  BarChart3, Activity, Settings, Database, Eye, MapPin, FileText
+  Package, Plus, LogOut, TrendingUp, AlertCircle, Clock, CheckCircle, XCircle,
+  BarChart3, Activity, Package2
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { userAPI, authAPI } from '../../services/api';
@@ -9,12 +9,13 @@ import AdminShippingForm from '../admin/AdminShippingForm';
 import ShippingOrderForm from '../shipping/ShippingOrderForm';
 import UserProfileModal from '../admin/UserProfileModal';
 import Dashboard from './Dashboard';
+import ProductManagement from '../products/ProductManagement';
 
 interface UserDashboardProps {
   onLogout: () => void;
 }
 
-type UserPageType = 'main' | 'new-shipping' | 'delivery-status' | 'analytics' | 'settings' | 'dashboard-view';
+type UserPageType = 'main' | 'new-shipping' | 'analytics' | 'dashboard-view' | 'product-management';
 
 // 카드 데이터 인터페이스
 interface DashboardCard {
@@ -94,22 +95,6 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ onLogout }) => {
       status: dashboardStats.deliveries.pending > 10 ? 'warning' : 'normal'
     },
     {
-      id: 'delivery-status',
-      title: '배송현황',
-      icon: MapPin,
-      bgColor: 'bg-gradient-to-br from-slate-50 to-slate-100',
-      hoverColor: 'hover:from-slate-100 hover:to-slate-200',
-      textColor: 'text-slate-800',
-      action: '배송현황',
-      stats: {
-        main: dashboardStats.deliveries.completed,
-        sub: dashboardStats.deliveries.cancelled,
-        label: '완료',
-        subLabel: '취소'
-      },
-      status: 'success'
-    },
-    {
       id: 'dashboard-view',
       title: '주문관리',
       icon: Package,
@@ -122,6 +107,22 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ onLogout }) => {
         sub: dashboardStats.orders.shipped,
         label: '처리중',
         subLabel: '배송중'
+      },
+      status: 'normal'
+    },
+    {
+      id: 'product-management',
+      title: '상품관리',
+      icon: Package2,
+      bgColor: 'bg-gradient-to-br from-green-50 to-green-100',
+      hoverColor: 'hover:from-green-100 hover:to-green-200',
+      textColor: 'text-green-900',
+      action: '상품관리',
+      stats: {
+        main: '12',
+        sub: '3',
+        label: '등록상품',
+        subLabel: '신규'
       },
       status: 'normal'
     },
@@ -140,38 +141,6 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ onLogout }) => {
         subLabel: '전월대비'
       },
       status: 'success'
-    },
-    {
-      id: 'reports',
-      title: '리포트',
-      icon: FileText,
-      bgColor: 'bg-gradient-to-br from-orange-50 to-orange-100',
-      hoverColor: 'hover:from-orange-100 hover:to-orange-200',
-      textColor: 'text-orange-900',
-      action: '리포트',
-      stats: {
-        main: dashboardStats.orders.delivered,
-        sub: '이번달',
-        label: '완료건수',
-        subLabel: ''
-      },
-      status: 'normal'
-    },
-    {
-      id: 'settings',
-      title: '설정',
-      icon: Settings,
-      bgColor: 'bg-gradient-to-br from-gray-50 to-gray-100',
-      hoverColor: 'hover:from-gray-100 hover:to-gray-200',
-      textColor: 'text-gray-800',
-      action: '설정',
-      stats: {
-        main: 'v3.0',
-        sub: '최신',
-        label: '버전',
-        subLabel: '상태'
-      },
-      status: 'normal'
     }
   ];
 
@@ -180,21 +149,14 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ onLogout }) => {
       case '새배송접수':
         setCurrentPage('new-shipping');
         break;
-      case '배송현황':
-        setCurrentPage('delivery-status');
-        break;
       case '주문관리':
         setCurrentPage('dashboard-view');
         break;
+      case '상품관리':
+        setCurrentPage('product-management');
+        break;
       case '통계보기':
         setCurrentPage('analytics');
-        break;
-      case '리포트':
-        // 향후 리포트 페이지 구현
-        console.log('리포트 페이지는 향후 구현 예정입니다.');
-        break;
-      case '설정':
-        setCurrentPage('settings');
         break;
       default:
         console.log(`${action} 버튼 클릭됨`);
@@ -264,6 +226,16 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ onLogout }) => {
     );
   }
 
+  if (currentPage === 'product-management') {
+    return (
+      <ProductManagement 
+        onNavigateBack={() => setCurrentPage('main')}
+        selectedPartnerId={user?.role === 'user' ? user.id : null}
+        selectedPartnerName={user?.role === 'user' ? user.name : undefined}
+      />
+    );
+  }
+
   if (currentPage === 'analytics') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-6">
@@ -284,25 +256,6 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ onLogout }) => {
     );
   }
 
-  if (currentPage === 'settings') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-6">
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-white rounded-lg shadow-lg p-8 text-center">
-            <Settings className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">설정</h2>
-            <p className="text-gray-600 mb-6">사용자 설정 기능은 향후 업데이트에서 제공됩니다.</p>
-            <button
-              onClick={() => setCurrentPage('main')}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              메인으로 돌아가기
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   // 카드 컴포넌트
   const DashboardCard: React.FC<{ card: DashboardCard }> = ({ card }) => {

@@ -263,6 +263,13 @@ eas update --branch production --message "업데이트 내용"
 - **권한 표시**: 비권한 사용자에게 시각적 제한 표시
 - **UI 개선**: 섹션별 권한 배지 및 비활성화 스타일링
 
+### ✅ UserDashboard 상품관리 시스템
+- **상품관리 카드 추가**: UserDashboard에 새로운 상품관리 버튼 생성
+- **ProductManagement 통합**: role 기반 필터링으로 사용자별 상품 관리
+- **자동 권한 제어**: user 역할은 자신의 상품만, admin/manager는 선택된 파트너 상품 관리
+- **완전한 CRUD 보안**: 등록/수정/삭제 모든 작업에 권한 검증 적용
+- **접근 거부 UI**: 권한 없는 상품 수정 시도 시 명확한 안내 메시지
+
 ### ✅ 이전 업데이트 (2025-09-28)
 - **Firebase Storage 웹 연동**: 모바일 업로드 사진 웹에서 실시간 확인
 - **DeliveryDetail 개선**: 메모및 지시사항 하단에 시공설치사진 섹션 추가
@@ -273,6 +280,22 @@ eas update --branch production --message "업데이트 내용"
 모바일 앱 (사진 업로드) → Firebase Storage → 웹 어드민 (실시간 확인)
      ↓                         ↓                    ↓
 웹 어드민 (배송 접수) → delivery_details → 모바일 앱 (상품 표시)
+     ↓                         ↓                    ↓
+UserDashboard (상품관리) → ProductManagement → role 기반 필터링
+```
+
+### 🔐 권한 체계
+```
+user (파트너사):
+├── 자신의 상품만 조회/등록/수정/삭제
+├── 배송비용 섹션 접근 제한 (보기만 가능)
+└── UserDashboard 상품관리 카드 접근
+
+admin/manager:
+├── 선택된 파트너의 상품 관리
+├── 배송비용 섹션 완전 접근
+├── ProductManagement 모든 기능 사용
+└── 권한 제한 없음
 ```
 
 ---

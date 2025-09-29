@@ -40,6 +40,9 @@ interface ProductFormData {
 const EditProductForm: React.FC<EditProductFormProps> = ({ onNavigateBack, onSuccess, product }) => {
   const { user } = useAuth();
   const canEditPricing = user?.role === 'admin' || user?.role === 'manager';
+  
+  // user 역할일 때는 자신의 상품만 수정 가능하도록 권한 확인
+  const canEditProduct = user?.role !== 'user' || product.user_id === user?.id;
   const [formData, setFormData] = useState<ProductFormData>({
     name: product.name || '',
     maincode: product.maincode || '',
@@ -148,6 +151,37 @@ const EditProductForm: React.FC<EditProductFormProps> = ({ onNavigateBack, onSuc
       setIsLoading(false);
     }
   };
+
+  // 권한이 없는 경우 접근 거부 메시지 표시
+  if (!canEditProduct) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="p-6">
+          <button
+            onClick={onNavigateBack}
+            className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors mb-4"
+          >
+            ← 상품관리로 돌아가기
+          </button>
+        </div>
+        <div className="container mx-auto px-4 py-8 max-w-4xl">
+          <div className="bg-white rounded-lg shadow-sm border p-8 text-center">
+            <Package2 className="w-16 h-16 text-red-500 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">접근 권한 없음</h2>
+            <p className="text-gray-600 mb-6">
+              이 상품을 수정할 권한이 없습니다. 자신이 등록한 상품만 수정할 수 있습니다.
+            </p>
+            <button
+              onClick={onNavigateBack}
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              상품관리로 돌아가기
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">

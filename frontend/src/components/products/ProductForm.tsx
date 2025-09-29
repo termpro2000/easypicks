@@ -24,6 +24,9 @@ interface ProductFormData {
 const ProductForm: React.FC<ProductFormProps> = ({ onNavigateBack, onSuccess, selectedPartnerId }) => {
   const { user } = useAuth();
   const canEditPricing = user?.role === 'admin' || user?.role === 'manager';
+  
+  // user 역할일 때는 자신의 ID, 다른 역할일 때는 selectedPartnerId 사용
+  const effectiveUserId = user?.role === 'user' ? user.id : selectedPartnerId;
   const [formData, setFormData] = useState<ProductFormData>({
     name: '',
     maincode: '',
@@ -112,7 +115,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ onNavigateBack, onSuccess, se
         name: formData.name.trim(),
         maincode: formData.maincode.trim(),
         subcode: formData.subcode.trim(),
-        user_id: selectedPartnerId
+        user_id: effectiveUserId
       };
 
       // 선택적 필드들은 값이 있을 때만 추가
