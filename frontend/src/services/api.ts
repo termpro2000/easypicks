@@ -853,6 +853,40 @@ export const userAPI = {
 };
 
 /**
+ * 배송단가 API 함수들
+ * f_price 테이블 기반 배송비용 검색
+ */
+export const fPriceAPI = {
+  // 모든 가격 데이터 조회
+  getAllPrices: async (category?: string, size?: string) => {
+    const params = new URLSearchParams();
+    if (category) params.append('category', category);
+    if (size) params.append('size', size);
+    
+    const response = await apiClient.get(`/f-price?${params}`);
+    return response.data;
+  },
+
+  // 카테고리 목록 조회
+  getCategories: async () => {
+    const response = await apiClient.get('/f-price/categories');
+    return response.data;
+  },
+
+  // 특정 카테고리의 사이즈 목록 조회
+  getSizes: async (category: string) => {
+    const response = await apiClient.get(`/f-price/sizes/${encodeURIComponent(category)}`);
+    return response.data;
+  },
+
+  // 특정 카테고리와 사이즈의 가격 조회
+  getPrice: async (category: string, size: string) => {
+    const response = await apiClient.get(`/f-price/${encodeURIComponent(category)}/${encodeURIComponent(size)}`);
+    return response.data;
+  }
+};
+
+/**
  * JWT 토큰 관리 함수들
  */
 export const tokenAPI = {
