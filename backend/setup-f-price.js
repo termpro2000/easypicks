@@ -45,7 +45,7 @@ async function insertFPriceData() {
     console.log('📊 f_price 데이터 삽입 중...');
     
     // JSON 파일 읽기
-    const dataPath = path.join(__dirname, '..', 'f_price_data.json');
+    const dataPath = path.join(__dirname, 'f_price_data.json');
     const rawData = fs.readFileSync(dataPath, 'utf8');
     const priceData = JSON.parse(rawData);
     
