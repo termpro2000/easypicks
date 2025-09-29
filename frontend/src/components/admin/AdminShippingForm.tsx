@@ -5,7 +5,7 @@ import {
   Calendar, Clock, AlertTriangle, FileText, Shield, 
   Home, Wrench, Weight, Box, Settings, ArrowLeft, Check, Search, Plus, Trash2, Zap, ChevronDown, ChevronRight
 } from 'lucide-react';
-import { shippingAPI, deliveriesAPI, productsAPI, userAPI } from '../../services/api';
+import { shippingAPI, deliveriesAPI, productsAPI, userAPI, userDetailAPI } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
 import ProductSelectionModal from '../partner/ProductSelectionModal';
 
@@ -148,38 +148,110 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack, s
     };
   }, []);
 
-  // 사용자 목록 로드
-  // 선택된 파트너 정보 로드 (단순화)
+  // 선택된 파트너 정보로 발송인 정보 자동 채우기 (ShippingOrderForm 로직 적용)
   useEffect(() => {
-    if (!selectedPartnerId) {
-      setPartnerInfo(null);
-      return;
-    }
-
     const loadPartnerInfo = async () => {
+      if (!selectedPartnerId) {
+        setPartnerInfo(null);
+        return;
+      }
+
       setIsLoadingPartner(true);
       try {
+        // 기본 파트너 정보 로드
         const response = await userAPI.getUserById(selectedPartnerId.toString());
         if (response.success && response.data) {
           const partner = response.data;
           setPartnerInfo(partner);
+
+          // 발송인 이름 설정 우선순위: partner.name > username
+          if (partner.name) {
+            setValue('sender_name', partner.name);
+          } else if (partner.username) {
+            setValue('sender_name', partner.username);
+          }
+
+          // 기본 파트너 정보 설정
+          if (partner.phone) {
+            setValue('emergency_contact', partner.phone);
+          }
+
+          // 기본 발송인 주소 우선 설정 (파트너 추가 정보가 없는 경우를 위한 폴백)
+          if (partner.default_sender_address) {
+            setValue('sender_address', partner.default_sender_address);
+          }
           
-          // 파트너 정보로 발송인 정보 자동 채우기 (setTimeout으로 지연)
-          setTimeout(() => {
-            if (partner.name) {
-              setValue('sender_name', partner.name);
-              setValue('furniture_company', partner.name);
+          if (partner.default_sender_detail_address) {
+            setValue('sender_detail_address', partner.default_sender_detail_address);
+          }
+
+          // 파트너 상세 정보에서 파트너 추가 정보 가져오기
+          try {
+            const userDetailResponse = await userDetailAPI.getUserDetail(selectedPartnerId);
+            
+            if (userDetailResponse.success && userDetailResponse.data && userDetailResponse.data.detail) {
+              const detail = typeof userDetailResponse.data.detail === 'string' 
+                ? JSON.parse(userDetailResponse.data.detail) 
+                : userDetailResponse.data.detail;
+
+              // 파트너 추가 정보의 발송인 주소를 우선적으로 사용 (덮어씀)
+              if (detail.sender_address) {
+                setValue('sender_address', detail.sender_address);
+              }
+              
+              if (detail.sender_detail_address) {
+                setValue('sender_detail_address', detail.sender_detail_address);
+              }
+
+              // 회사명이 있는 경우 발송인 이름에 반영 (기존 이름이 없거나 회사명이 더 적절한 경우)
+              if (detail.company) {
+                // 기존 이름이 없거나 사용자명만 있는 경우 회사명으로 교체
+                if (!partner.name && partner.username) {
+                  setValue('sender_name', detail.company);
+                }
+                // 가구회사 필드에도 설정
+                setValue('furniture_company', detail.company);
+              }
+
+              // 발송업체명이 있는 경우 가구회사 필드에 우선적으로 사용
+              if (detail.sender_company) {
+                setValue('furniture_company', detail.sender_company);
+              }
+
+              // 긴급연락전화번호가 있는 경우 긴급연락처 필드에 설정
+              if (detail.emergency_contact_phone) {
+                setValue('emergency_contact', detail.emergency_contact_phone);
+              }
+
+              // 대표자명이 있고 발송인 이름이 설정되지 않은 경우
+              if (detail.representative_name && !partner.name && !detail.company) {
+                setValue('sender_name', detail.representative_name);
+              }
+
+              // 기타 파트너 추가 정보를 적절한 필드에 매핑
+              // 업종 정보가 있는 경우 메모에 추가
+              if (detail.business_type) {
+                const currentMemo = '';
+                const businessTypeInfo = `업종: ${detail.business_type}`;
+                setValue('main_memo', currentMemo ? `${currentMemo}\n${businessTypeInfo}` : businessTypeInfo);
+              }
+
+              // 서비스 지역 정보가 있는 경우 특별 지시사항에 추가
+              if (detail.service_area) {
+                const serviceAreaInfo = `서비스 지역: ${detail.service_area}`;
+                setValue('special_instructions', serviceAreaInfo);
+              }
+
+              // 사업자등록번호가 있는 경우 상세 메모에 추가
+              if (detail.business_number) {
+                const businessNumberInfo = `사업자등록번호: ${detail.business_number}`;
+                setValue('driver_notes', businessNumberInfo);
+              }
             }
-            if (partner.address) {
-              setValue('sender_address', partner.address);
-            }
-            if (partner.detail_address) {
-              setValue('sender_detail_address', partner.detail_address);
-            }
-            if (partner.phone) {
-              setValue('emergency_contact', partner.phone);
-            }
-          }, 100);
+          } catch (error) {
+            console.log('파트너 상세 정보 로드 실패 (선택사항):', error);
+            // 에러가 발생해도 기본 파트너 정보는 이미 설정되었으므로 무시
+          }
         } else {
           console.error('파트너 정보 로드 실패');
           setPartnerInfo(null);
@@ -193,7 +265,7 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack, s
     };
 
     loadPartnerInfo();
-  }, [selectedPartnerId]);
+  }, [selectedPartnerId, setValue]);
 
   // 의뢰종류 목록 로드
   useEffect(() => {
