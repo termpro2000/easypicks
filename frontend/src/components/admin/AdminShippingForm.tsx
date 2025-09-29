@@ -115,6 +115,7 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack, s
     product_size?: string;
     box_size?: string;
     product_weight?: string;
+    cost1?: string;
   }[]>([]);
   
   // 제품 검색 관련 상태
@@ -130,6 +131,7 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack, s
   const [currentProductWeight, setCurrentProductWeight] = useState('');
   const [currentProductSize, setCurrentProductSize] = useState('');
   const [currentBoxSize, setCurrentBoxSize] = useState('');
+  const [currentProductCost1, setCurrentProductCost1] = useState('');
 
   // Daum 우편번호 서비스 초기화
   useEffect(() => {
@@ -484,6 +486,7 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack, s
       product_size: currentProductSize.trim() || undefined,
       box_size: currentBoxSize.trim() || undefined,
       product_weight: currentProductWeight.trim() || undefined,
+      cost1: currentProductCost1.trim() || undefined,
     };
 
     const updatedProducts = [...products, newProduct];
@@ -496,6 +499,7 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack, s
     setCurrentProductWeight('');
     setCurrentProductSize('');
     setCurrentBoxSize('');
+    setCurrentProductCost1('');
     
     console.log('제품이 추가되었습니다:', newProduct);
   };
@@ -1113,6 +1117,17 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack, s
                 />
               </InfoCell>
 
+              <InfoCell label="배송비용" icon={Shield}>
+                <input
+                  type="number"
+                  value={currentProductCost1}
+                  onChange={(e) => setCurrentProductCost1(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="예: 50000"
+                  min="0"
+                />
+              </InfoCell>
+
               {/* 선택된 상품 목록 */}
               {products.length > 0 && (
                 <div className="col-span-full">
@@ -1139,7 +1154,7 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack, s
                               )}
                               
                               {/* 제품 정보 그리드 */}
-                              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 text-sm">
+                              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 text-sm">
                                 <div className="bg-gray-50 rounded-md p-2">
                                   <span className="font-medium text-gray-600 block">제품코드</span>
                                   <span className="font-mono text-gray-900 text-xs">{product.product_code}</span>
@@ -1160,6 +1175,10 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack, s
                                   <span className="font-medium text-gray-600 block">박스크기</span>
                                   <span className="text-gray-900">{product.box_size || '-'}</span>
                                 </div>
+                                <div className="bg-gray-50 rounded-md p-2">
+                                  <span className="font-medium text-gray-600 block">배송비용</span>
+                                  <span className="text-gray-900">{product.cost1 ? `${parseInt(product.cost1).toLocaleString()}원` : '-'}</span>
+                                </div>
                               </div>
                             </div>
                             <button
@@ -1176,13 +1195,19 @@ const AdminShippingForm: React.FC<AdminShippingFormProps> = ({ onNavigateBack, s
                     
                     {/* 요약 정보 */}
                     <div className="mt-4 pt-3 border-t border-blue-200">
-                      <div className="flex justify-between text-sm text-gray-600">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm text-gray-600">
                         <span>제품 종류: {products.length}개</span>
                         <span>
                           예상 총 중량: {products.reduce((sum, p) => {
                             const weight = parseFloat(p.product_weight?.replace(/[^0-9.]/g, '') || '0');
                             return sum + weight;
                           }, 0).toFixed(1)}kg
+                        </span>
+                        <span>
+                          총 배송비용: {products.reduce((sum, p) => {
+                            const cost = parseFloat(p.cost1?.replace(/[^0-9.]/g, '') || '0');
+                            return sum + cost;
+                          }, 0).toLocaleString()}원
                         </span>
                       </div>
                     </div>
