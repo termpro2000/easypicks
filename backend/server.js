@@ -4398,6 +4398,9 @@ app.get('/api/f-price/sizes/:category', async (req, res) => {
       [`%${decodedCategory}%`]
     );
     
+    console.log(`📊 사이즈 조회 결과: ${rows.length}개 발견`);
+    console.log('조회된 사이즈:', rows);
+    
     res.json({
       success: true,
       data: rows.map(row => row.size)
