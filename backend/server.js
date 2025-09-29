@@ -4327,42 +4327,7 @@ app.get('/api/f-price', async (req, res) => {
   }
 });
 
-// 특정 카테고리와 사이즈의 가격 조회
-app.get('/api/f-price/:category/:size', async (req, res) => {
-  try {
-    const { category, size } = req.params;
-    const decodedCategory = decodeURIComponent(category);
-    const decodedSize = decodeURIComponent(size);
-    console.log(`💰 특정 가격 조회: ${decodedCategory} - ${decodedSize}`);
-    
-    const [rows] = await pool.execute(
-      'SELECT * FROM f_price WHERE category LIKE ? AND size = ?',
-      [`%${decodedCategory}%`, decodedSize]
-    );
-    
-    if (rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: '해당 카테고리와 사이즈의 가격 정보를 찾을 수 없습니다.'
-      });
-    }
-    
-    res.json({
-      success: true,
-      data: rows[0]
-    });
-    
-  } catch (error) {
-    console.error('❌ 특정 가격 조회 실패:', error);
-    res.status(500).json({
-      success: false,
-      message: '가격 조회 실패',
-      error: error.message
-    });
-  }
-});
-
-// 카테고리 목록 조회
+// 카테고리 목록 조회 (구체적인 라우트를 먼저 정의)
 app.get('/api/f-price/categories', async (req, res) => {
   try {
     console.log('📋 카테고리 목록 조회 요청');
@@ -4411,6 +4376,41 @@ app.get('/api/f-price/sizes/:category', async (req, res) => {
     res.status(500).json({
       success: false,
       message: '사이즈 조회 실패',
+      error: error.message
+    });
+  }
+});
+
+// 특정 카테고리와 사이즈의 가격 조회 (마지막에 정의)
+app.get('/api/f-price/:category/:size', async (req, res) => {
+  try {
+    const { category, size } = req.params;
+    const decodedCategory = decodeURIComponent(category);
+    const decodedSize = decodeURIComponent(size);
+    console.log(`💰 특정 가격 조회: ${decodedCategory} - ${decodedSize}`);
+    
+    const [rows] = await pool.execute(
+      'SELECT * FROM f_price WHERE category LIKE ? AND size = ?',
+      [`%${decodedCategory}%`, decodedSize]
+    );
+    
+    if (rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: '해당 카테고리와 사이즈의 가격 정보를 찾을 수 없습니다.'
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: rows[0]
+    });
+    
+  } catch (error) {
+    console.error('❌ 특정 가격 조회 실패:', error);
+    res.status(500).json({
+      success: false,
+      message: '가격 조회 실패',
       error: error.message
     });
   }
