@@ -172,14 +172,17 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ onLogout }) => {
           <header className="bg-white/80 backdrop-blur-md shadow-lg border-b border-white/20 mb-6">
             <div className="max-w-7xl mx-auto px-6 py-4">
               <div className="flex justify-between items-center">
-                <div className="flex items-center gap-4">
+                <div className="flex items-center justify-between">
                   <button
                     onClick={() => setCurrentPage('main')}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                   >
                     ← 대시보드로 돌아가기
                   </button>
-                  <h1 className="text-2xl font-bold text-gray-900">새 배송접수</h1>
+                  <div className="flex-1 text-center">
+                    <h1 className="text-2xl font-bold text-gray-900">새 배송접수</h1>
+                  </div>
+                  <div className="w-[200px]"></div> {/* Spacer for centering */}
                 </div>
               </div>
             </div>
