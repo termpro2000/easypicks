@@ -107,8 +107,6 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
   useEffect(() => {
     if (isOpen && initialUser) {
-      setUser(initialUser);
-      setEditedUser({ ...initialUser });
       setError(null);
       setSuccessMessage(null);
       setIsEditing(false);
@@ -116,10 +114,49 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
       setPasswordError(null);
       
+      // 최신 사용자 데이터 로드
+      loadUserData();
       // User detail 로드
       loadUserDetail();
     }
   }, [isOpen, initialUser]);
+
+  // 최신 사용자 데이터 로드 함수
+  const loadUserData = async () => {
+    if (!initialUser?.id) return;
+    
+    setIsLoading(true);
+    try {
+      console.log('UserProfileModal: 최신 사용자 데이터 로드 시작:', initialUser.id);
+      let userResponse;
+      
+      if (currentUser?.role === 'admin') {
+        // 관리자는 userAPI.getUser 사용
+        userResponse = await userAPI.getUser(initialUser.id.toString());
+      } else {
+        // 일반 사용자는 authAPI.me 사용
+        userResponse = await authAPI.me();
+      }
+      
+      if (userResponse && userResponse.success) {
+        const userData = userResponse.data || userResponse.user;
+        setUser(userData);
+        setEditedUser({ ...userData });
+        console.log('UserProfileModal: 사용자 데이터 로드 성공:', userData);
+      } else {
+        console.warn('UserProfileModal: 사용자 데이터 로드 실패, initialUser 사용');
+        setUser(initialUser);
+        setEditedUser({ ...initialUser });
+      }
+    } catch (error) {
+      console.error('UserProfileModal: 사용자 데이터 로드 오류:', error);
+      // 오류 시 initialUser 사용
+      setUser(initialUser);
+      setEditedUser({ ...initialUser });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // User detail 로드 함수
   const loadUserDetail = async () => {
@@ -694,8 +731,12 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                         placeholder="전화번호를 입력하세요"
                       />
                     ) : (
-                      <p className="px-3 py-2 bg-gray-50 rounded-lg text-gray-900">
-                        {user.phone || '-'}
+                      <p className="px-3 py-2 bg-gray-50 rounded-lg">
+                        {user.phone ? (
+                          <span className="text-gray-900">{user.phone}</span>
+                        ) : (
+                          <span className="text-gray-400 italic">전화번호 미등록</span>
+                        )}
                       </p>
                     )}
                   </div>
@@ -718,8 +759,12 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                         placeholder="이메일을 입력하세요"
                       />
                     ) : (
-                      <p className="px-3 py-2 bg-gray-50 rounded-lg text-gray-900">
-                        {user.email || '-'}
+                      <p className="px-3 py-2 bg-gray-50 rounded-lg">
+                        {user.email ? (
+                          <span className="text-gray-900">{user.email}</span>
+                        ) : (
+                          <span className="text-gray-400 italic">이메일 미등록</span>
+                        )}
                       </p>
                     )}
                   </div>
