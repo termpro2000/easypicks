@@ -3931,6 +3931,10 @@ app.use('/api/auth', authRoutes);
 const userRoutes = require('./routes/users');
 app.use('/api/users', userRoutes);
 
+// Deliveries 라우트 추가 (배송 CRUD 등)
+const deliveriesRoutes = require('./routes/deliveries');
+app.use('/api/deliveries', deliveriesRoutes);
+
 // Delivery Details 라우트 추가 (제품 정보 조회 등)
 const deliveryDetailsRoutes = require('./routes/deliveryDetails');
 app.use('/api/delivery-details', deliveryDetailsRoutes);
