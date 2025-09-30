@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Package, User, MapPin, Truck, Clock, CheckCircle, AlertCircle, TrendingUp, Edit, Hash } from 'lucide-react';
+import { X, Package, User, MapPin, Truck, Clock, CheckCircle, AlertCircle, TrendingUp, Edit, Hash, Building, Phone, Mail, Calendar, FileText, Wrench, DollarSign, Star, Shield, Camera, Clipboard } from 'lucide-react';
 import type { ShippingOrder } from '../../types';
 import { shippingAPI } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
@@ -198,92 +198,174 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ order, isOpen, onCl
 
           {/* 모달 본문 */}
           <div className="bg-white px-6 py-4 max-h-[calc(100vh-200px)] overflow-y-auto">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="space-y-6">
               
-              {/* 발송인 정보 */}
+              {/* 기본 정보 */}
               <div className="bg-gray-50 rounded-lg p-6">
                 <div className="flex items-center gap-2 mb-4">
-                  <User className="w-5 h-5 text-blue-500" />
-                  <h4 className="text-lg font-semibold text-gray-900">발송인 정보</h4>
+                  <Package className="w-5 h-5 text-blue-500" />
+                  <h4 className="text-lg font-semibold text-gray-900">기본 정보</h4>
                 </div>
                 
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">이름</label>
-                      <p className="text-sm text-gray-900 mt-1">{order.sender_name || '-'}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">전화번호</label>
-                      <p className="text-sm text-gray-900 mt-1">{order.sender_phone || '-'}</p>
-                    </div>
-                  </div>
-                  
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                   <div>
-                    <label className="text-sm font-medium text-gray-600">주소</label>
-                    <p className="text-sm text-gray-900 mt-1">
-                      ({order.sender_zipcode}) {order.sender_address} {order.sender_detail_address}
-                    </p>
+                    <label className="text-sm font-medium text-gray-600">주문 ID</label>
+                    <p className="text-sm text-gray-900 mt-1">{(order as any).id || '-'}</p>
                   </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">이메일</label>
-                      <p className="text-sm text-gray-900 mt-1">{order.sender_email || '-'}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">회사명</label>
-                      <p className="text-sm text-gray-900 mt-1">{order.sender_company || '-'}</p>
-                    </div>
-                  </div>
-                  
                   <div>
-                    <label className="text-sm font-medium text-gray-600">메모</label>
-                    <p className="text-sm text-gray-900 mt-1">{order.delivery_memo || '-'}</p>
+                    <label className="text-sm font-medium text-gray-600">운송장번호</label>
+                    <p className="text-sm text-gray-900 mt-1 font-mono">{(order as any).tracking_number || '미배정'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">상태</label>
+                    <div className="mt-1">{getStatusBadge((order as any).status)}</div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">접수일</label>
+                    <p className="text-sm text-gray-900 mt-1">{formatDate((order as any).created_at)}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">사용자 ID</label>
+                    <p className="text-sm text-gray-900 mt-1">{(order as any).user_id || '-'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">파트너 ID</label>
+                    <p className="text-sm text-gray-900 mt-1">{(order as any).partner_id || '-'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">기사 ID</label>
+                    <p className="text-sm text-gray-900 mt-1">{(order as any).driver_id || '-'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">요청 유형</label>
+                    <p className="text-sm text-gray-900 mt-1">{(order as any).request_type || '-'}</p>
                   </div>
                 </div>
               </div>
 
-              {/* 수취인 정보 */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* 발송인 정보 */}
+                <div className="bg-gray-50 rounded-lg p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <User className="w-5 h-5 text-blue-500" />
+                    <h4 className="text-lg font-semibold text-gray-900">발송인 정보</h4>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">이름</label>
+                        <p className="text-sm text-gray-900 mt-1">{(order as any).sender_name || '-'}</p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">전화번호</label>
+                        <p className="text-sm text-gray-900 mt-1">{(order as any).sender_phone || '-'}</p>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">주소</label>
+                      <p className="text-sm text-gray-900 mt-1">
+                        {(order as any).sender_zipcode && `(${(order as any).sender_zipcode}) `}
+                        {(order as any).sender_address || '-'}
+                        {(order as any).sender_detail_address && ` ${(order as any).sender_detail_address}`}
+                      </p>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">이메일</label>
+                        <p className="text-sm text-gray-900 mt-1">{(order as any).sender_email || '-'}</p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">회사명</label>
+                        <p className="text-sm text-gray-900 mt-1">{(order as any).sender_company || (order as any).furniture_company || '-'}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 수취인 정보 */}
+                <div className="bg-gray-50 rounded-lg p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <MapPin className="w-5 h-5 text-green-500" />
+                    <h4 className="text-lg font-semibold text-gray-900">수취인 정보</h4>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">이름</label>
+                        <p className="text-sm text-gray-900 mt-1">{(order as any).customer_name || (order as any).receiver_name || '-'}</p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">전화번호</label>
+                        <p className="text-sm text-gray-900 mt-1">{(order as any).customer_phone || (order as any).receiver_phone || '-'}</p>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">주소</label>
+                      <p className="text-sm text-gray-900 mt-1">
+                        {(order as any).receiver_zipcode && `(${(order as any).receiver_zipcode}) `}
+                        {(order as any).customer_address || (order as any).receiver_address || '-'}
+                        {(order as any).receiver_detail_address && ` ${(order as any).receiver_detail_address}`}
+                      </p>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">이메일</label>
+                        <p className="text-sm text-gray-900 mt-1">{(order as any).receiver_email || '-'}</p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">긴급 연락처</label>
+                        <p className="text-sm text-gray-900 mt-1">{(order as any).emergency_contact || '-'}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 상품 정보 */}
               <div className="bg-gray-50 rounded-lg p-6">
                 <div className="flex items-center gap-2 mb-4">
-                  <MapPin className="w-5 h-5 text-green-500" />
-                  <h4 className="text-lg font-semibold text-gray-900">수취인 정보</h4>
+                  <Package className="w-5 h-5 text-purple-500" />
+                  <h4 className="text-lg font-semibold text-gray-900">상품 정보</h4>
                 </div>
                 
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">이름</label>
-                      <p className="text-sm text-gray-900 mt-1">{order.receiver_name || '-'}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">전화번호</label>
-                      <p className="text-sm text-gray-900 mt-1">{order.receiver_phone || '-'}</p>
-                    </div>
-                  </div>
-                  
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                   <div>
-                    <label className="text-sm font-medium text-gray-600">주소</label>
-                    <p className="text-sm text-gray-900 mt-1">
-                      ({order.receiver_zipcode}) {order.receiver_address} {order.receiver_detail_address}
-                    </p>
+                    <label className="text-sm font-medium text-gray-600">상품명</label>
+                    <p className="text-sm text-gray-900 mt-1">{(order as any).product_name || '-'}</p>
                   </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">이메일</label>
-                      <p className="text-sm text-gray-900 mt-1">{order.receiver_email || '-'}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">회사명</label>
-                      <p className="text-sm text-gray-900 mt-1">{order.receiver_company || '-'}</p>
-                    </div>
-                  </div>
-                  
                   <div>
-                    <label className="text-sm font-medium text-gray-600">메모</label>
-                    <p className="text-sm text-gray-900 mt-1">{order.delivery_memo || '-'}</p>
+                    <label className="text-sm font-medium text-gray-600">상품코드</label>
+                    <p className="text-sm text-gray-900 mt-1 font-mono">{(order as any).furniture_product_code || '-'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">수량</label>
+                    <p className="text-sm text-gray-900 mt-1">{(order as any).product_quantity || '-'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">전체 무게</label>
+                    <p className="text-sm text-gray-900 mt-1">{(order as any).weight || '-'} kg</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">상품 무게</label>
+                    <p className="text-sm text-gray-900 mt-1">{(order as any).product_weight || '-'} kg</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">상품 크기</label>
+                    <p className="text-sm text-gray-900 mt-1">{(order as any).product_size || '-'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">박스 크기</label>
+                    <p className="text-sm text-gray-900 mt-1">{(order as any).box_size || '-'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">판매자 정보</label>
+                    <p className="text-sm text-gray-900 mt-1">{(order as any).seller_info || '-'}</p>
                   </div>
                 </div>
               </div>
@@ -291,65 +373,112 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ order, isOpen, onCl
               {/* 배송 정보 */}
               <div className="bg-gray-50 rounded-lg p-6">
                 <div className="flex items-center gap-2 mb-4">
-                  <Truck className="w-5 h-5 text-purple-500" />
+                  <Truck className="w-5 h-5 text-orange-500" />
                   <h4 className="text-lg font-semibold text-gray-900">배송 정보</h4>
                 </div>
                 
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">상품명</label>
-                      <p className="text-sm text-gray-900 mt-1">{order.package_description || '-'}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">수량</label>
-                      <p className="text-sm text-gray-900 mt-1">{order.package_type || '-'}</p>
-                    </div>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">배송 유형</label>
+                    <p className="text-sm text-gray-900 mt-1">{(order as any).delivery_type || '-'}</p>
                   </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">무게 (kg)</label>
-                      <p className="text-sm text-gray-900 mt-1">{order.package_weight || '-'}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">크기 (cm)</label>
-                      <p className="text-sm text-gray-900 mt-1">{order.package_size || '-'}</p>
-                    </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">시공 유형</label>
+                    <p className="text-sm text-gray-900 mt-1">{(order as any).construction_type || '-'}</p>
                   </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">배송비</label>
-                      <p className="text-sm text-gray-900 mt-1">{order.package_value ? `${order.package_value}원` : '-'}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">운송장번호</label>
-                      <div className="mt-1 flex items-center gap-2">
-                        <p className="text-sm text-gray-900 font-mono">{order.tracking_number || '미배정'}</p>
-                        {order.tracking_number && (
-                          <a
-                            href={`/tracking?number=${order.tracking_number}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-500 hover:text-blue-700 text-xs underline"
-                          >
-                            추적
-                          </a>
-                        )}
-                      </div>
-                    </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">방문일</label>
+                    <p className="text-sm text-gray-900 mt-1">{(order as any).visit_date || '-'}</p>
                   </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">희망배송일</label>
-                      <p className="text-sm text-gray-900 mt-1">{order.delivery_date || '-'}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">배송유형</label>
-                      <p className="text-sm text-gray-900 mt-1">{order.delivery_type || '-'}</p>
-                    </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">방문시간</label>
+                    <p className="text-sm text-gray-900 mt-1">{(order as any).visit_time || '-'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">예상 배송일</label>
+                    <p className="text-sm text-gray-900 mt-1">{(order as any).estimated_delivery || '-'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">실제 배송일</label>
+                    <p className="text-sm text-gray-900 mt-1">{(order as any).actual_delivery || '-'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">완료일시</label>
+                    <p className="text-sm text-gray-900 mt-1">{(order as any).completed_at || '-'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">우선순위</label>
+                    <p className="text-sm text-gray-900 mt-1">{(order as any).priority || '-'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 건물 정보 */}
+              <div className="bg-gray-50 rounded-lg p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Building className="w-5 h-5 text-indigo-500" />
+                  <h4 className="text-lg font-semibold text-gray-900">건물/시공 정보</h4>
+                </div>
+                
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">건물 유형</label>
+                    <p className="text-sm text-gray-900 mt-1">{(order as any).building_type || '-'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">층수</label>
+                    <p className="text-sm text-gray-900 mt-1">{(order as any).floor_count || '-'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">엘리베이터</label>
+                    <p className="text-sm text-gray-900 mt-1">{(order as any).elevator_available || '-'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">사다리차</label>
+                    <p className="text-sm text-gray-900 mt-1">{(order as any).ladder_truck || '-'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">폐기물 처리</label>
+                    <p className="text-sm text-gray-900 mt-1">{(order as any).disposal || '-'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">방 이동</label>
+                    <p className="text-sm text-gray-900 mt-1">{(order as any).room_movement || '-'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">벽체 시공</label>
+                    <p className="text-sm text-gray-900 mt-1">{(order as any).wall_construction || '-'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">가구 요청사항</label>
+                    <p className="text-sm text-gray-900 mt-1">{(order as any).furniture_requests || '-'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 비용 정보 */}
+              <div className="bg-gray-50 rounded-lg p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <DollarSign className="w-5 h-5 text-green-500" />
+                  <h4 className="text-lg font-semibold text-gray-900">비용 정보</h4>
+                </div>
+                
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">배송비</label>
+                    <p className="text-sm text-gray-900 mt-1">{(order as any).delivery_fee ? `${(order as any).delivery_fee}원` : '-'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">보험료</label>
+                    <p className="text-sm text-gray-900 mt-1">{(order as any).insurance_value ? `${(order as any).insurance_value}원` : '-'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">착불 금액</label>
+                    <p className="text-sm text-gray-900 mt-1">{(order as any).cod_amount ? `${(order as any).cod_amount}원` : '-'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">결제 방법</label>
+                    <p className="text-sm text-gray-900 mt-1">{(order as any).payment_method || '-'}</p>
                   </div>
                 </div>
               </div>
@@ -357,32 +486,113 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ order, isOpen, onCl
               {/* 특수 옵션 */}
               <div className="bg-gray-50 rounded-lg p-6">
                 <div className="flex items-center gap-2 mb-4">
-                  <AlertCircle className="w-5 h-5 text-orange-500" />
+                  <Shield className="w-5 h-5 text-red-500" />
                   <h4 className="text-lg font-semibold text-gray-900">특수 옵션</h4>
                 </div>
                 
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">보험가입</label>
-                      <p className="text-sm text-gray-900 mt-1">
-                        {order.insurance_amount && order.insurance_amount > 0 ? '가입' : '미가입'}
-                        {order.insurance_amount && order.insurance_amount > 0 && ` (${order.insurance_amount}원)`}
-                      </p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">착불</label>
-                      <p className="text-sm text-gray-900 mt-1">
-                        {order.requires_signature ? '서명필요' : '서명불필요'}
-                      </p>
-                    </div>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">파손주의</label>
+                    <p className="text-sm text-gray-900 mt-1">{(order as any).fragile ? '예' : '아니오'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">냉동품</label>
+                    <p className="text-sm text-gray-900 mt-1">{(order as any).frozen ? '예' : '아니오'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">서명 필요</label>
+                    <p className="text-sm text-gray-900 mt-1">{(order as any).signature_required ? '예' : '아니오'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">배송 방법</label>
+                    <p className="text-sm text-gray-900 mt-1">{(order as any).shipping_method || '-'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 메모 및 기타 정보 */}
+              <div className="bg-gray-50 rounded-lg p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <FileText className="w-5 h-5 text-gray-500" />
+                  <h4 className="text-lg font-semibold text-gray-900">메모 및 기타 정보</h4>
+                </div>
+                
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">주요 메모</label>
+                    <p className="text-sm text-gray-900 mt-1 whitespace-pre-wrap">{(order as any).main_memo || '-'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">특별 지시사항</label>
+                    <p className="text-sm text-gray-900 mt-1 whitespace-pre-wrap">{(order as any).special_instructions || '-'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">상세 메모</label>
+                    <p className="text-sm text-gray-900 mt-1 whitespace-pre-wrap">{(order as any).detail_notes || '-'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">기사 메모</label>
+                    <p className="text-sm text-gray-900 mt-1 whitespace-pre-wrap">{(order as any).driver_notes || '-'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">일반 메모</label>
+                    <p className="text-sm text-gray-900 mt-1 whitespace-pre-wrap">{(order as any).notes || '-'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">취소 사유</label>
+                    <p className="text-sm text-gray-900 mt-1 whitespace-pre-wrap">{(order as any).cancellation_reason || '-'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 파일 및 서명 */}
+              {((order as any).installation_photos || (order as any).customer_signature) && (
+                <div className="bg-gray-50 rounded-lg p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Camera className="w-5 h-5 text-pink-500" />
+                    <h4 className="text-lg font-semibold text-gray-900">사진 및 서명</h4>
                   </div>
                   
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    {(order as any).installation_photos && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">설치 사진</label>
+                        <p className="text-sm text-gray-900 mt-1">첨부된 사진 있음</p>
+                      </div>
+                    )}
+                    {(order as any).customer_signature && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">고객 서명</label>
+                        <p className="text-sm text-gray-900 mt-1">서명 완료</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* 시스템 정보 */}
+              <div className="bg-gray-50 rounded-lg p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Clipboard className="w-5 h-5 text-gray-500" />
+                  <h4 className="text-lg font-semibold text-gray-900">시스템 정보</h4>
+                </div>
+                
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                   <div>
-                    <label className="text-sm font-medium text-gray-600">특별 요청사항</label>
-                    <p className="text-sm text-gray-900 mt-1 whitespace-pre-wrap">
-                      {order.special_instructions || '없음'}
-                    </p>
+                    <label className="text-sm font-medium text-gray-600">생성일시</label>
+                    <p className="text-sm text-gray-900 mt-1">{formatDate((order as any).created_at)}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">수정일시</label>
+                    <p className="text-sm text-gray-900 mt-1">{formatDate((order as any).updated_at)}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">취소일시</label>
+                    <p className="text-sm text-gray-900 mt-1">{(order as any).cancelled_at ? formatDate((order as any).cancelled_at) : '-'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">배송사</label>
+                    <p className="text-sm text-gray-900 mt-1">{(order as any).tracking_company || '-'}</p>
                   </div>
                 </div>
               </div>
