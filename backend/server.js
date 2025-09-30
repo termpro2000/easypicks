@@ -1370,11 +1370,34 @@ app.get('/api/deliveries', async (req, res) => {
     let queryParams = [];
     let whereConditions = [];
     
+    // JWT 토큰에서 사용자 role 확인
+    let userRole = null;
+    try {
+      const authHeader = req.headers['authorization'];
+      const token = authHeader && authHeader.split(' ')[1];
+      if (token) {
+        const jwt = require('jsonwebtoken');
+        const jwtSecret = process.env.JWT_SECRET || 'easypicks-jwt-secret-2024';
+        const decoded = jwt.verify(token, jwtSecret);
+        userRole = decoded.role;
+        console.log(`🔍 JWT 토큰에서 확인된 사용자 role: ${userRole}`);
+      }
+    } catch (jwtError) {
+      console.log('JWT 토큰 파싱 중 오류 (무시하고 계속):', jwtError.message);
+    }
+    
     // user_id로 필터링이 요청된 경우
     if (user_id) {
-      whereConditions.push('user_id = ?');
-      queryParams.push(user_id);
-      console.log(`👤 사용자별 배송 목록 조회: user_id=${user_id}`);
+      // 사용자 role이 'driver'인 경우 driver_id로 필터링
+      if (userRole === 'driver') {
+        whereConditions.push('driver_id = ?');
+        queryParams.push(user_id);
+        console.log(`🚛 기사별 배송 목록 조회: driver_id=${user_id} (role: ${userRole})`);
+      } else {
+        whereConditions.push('user_id = ?');
+        queryParams.push(user_id);
+        console.log(`👤 사용자별 배송 목록 조회: user_id=${user_id} (role: ${userRole})`);
+      }
     }
     
     // partner_id로 필터링이 요청된 경우 (UserDeliveryListScreen용)
