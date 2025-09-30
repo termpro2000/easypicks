@@ -25,6 +25,10 @@ const ProfileScreen = ({ navigation }) => {
     vehicle_type: '',
     vehicle_number: '',
     cargo_capacity: '',
+    company_name: '',
+    company_address: '',
+    business_number: '',
+    business_type: '',
   });
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -57,6 +61,10 @@ const ProfileScreen = ({ navigation }) => {
           vehicle_type: profileData.vehicle_type || '',
           vehicle_number: profileData.vehicle_number || '',
           cargo_capacity: profileData.cargo_capacity || '',
+          company_name: profileData.company_name || '',
+          company_address: profileData.company_address || '',
+          business_number: profileData.business_number || '',
+          business_type: profileData.business_type || '',
         });
       }
     } catch (error) {
@@ -75,7 +83,7 @@ const ProfileScreen = ({ navigation }) => {
 
     setSaving(true);
     try {
-      // drivers 테이블의 모든 필드 업데이트
+      // 모든 필드 업데이트
       const updateData = {
         name: formData.name,
         phone: formData.phone,
@@ -83,22 +91,26 @@ const ProfileScreen = ({ navigation }) => {
         delivery_area: formData.delivery_area,
         vehicle_type: formData.vehicle_type,
         vehicle_number: formData.vehicle_number,
-        cargo_capacity: formData.cargo_capacity
+        cargo_capacity: formData.cargo_capacity,
+        company_name: formData.company_name,
+        company_address: formData.company_address,
+        business_number: formData.business_number,
+        business_type: formData.business_type
       };
       
-      console.log('기사프로필 업데이트 요청:', updateData);
+      console.log('사용자프로필 업데이트 요청:', updateData);
       const response = await api.put('/auth/profile', updateData);
-      console.log('기사프로필 업데이트 응답:', response.data);
+      console.log('사용자프로필 업데이트 응답:', response.data);
       
       // AsyncStorage의 사용자 정보도 업데이트
       const updatedUser = { ...userInfo, ...response.data.user };
       await AsyncStorage.setItem('user_info', JSON.stringify(updatedUser));
       setUserInfo(updatedUser);
       
-      Alert.alert('성공', '기사프로필이 성공적으로 업데이트되었습니다.');
+      Alert.alert('성공', '사용자프로필이 성공적으로 업데이트되었습니다.');
     } catch (error) {
-      console.error('기사프로필 업데이트 오류:', error);
-      const errorMessage = error.response?.data?.message || error.response?.data?.error || '기사프로필 업데이트에 실패했습니다.';
+      console.error('사용자프로필 업데이트 오류:', error);
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || '사용자프로필 업데이트에 실패했습니다.';
       Alert.alert('오류', errorMessage);
     } finally {
       setSaving(false);
@@ -149,7 +161,7 @@ const ProfileScreen = ({ navigation }) => {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#2196F3" />
-        <Text style={styles.loadingText}>기사프로필 로딩 중...</Text>
+        <Text style={styles.loadingText}>사용자프로필 로딩 중...</Text>
       </View>
     );
   }
@@ -204,39 +216,90 @@ const ProfileScreen = ({ navigation }) => {
         </View>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>차량 정보</Text>
-        
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>차량종류</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.vehicle_type}
-            onChangeText={(text) => setFormData({...formData, vehicle_type: text})}
-            placeholder="예: 1톤 트럭, 2.5톤 트럭"
-          />
-        </View>
+      {/* role에 따른 추가정보 섹션 */}
+      {userInfo.role === 'driver' && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>차량정보</Text>
+          
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>차량종류</Text>
+            <TextInput
+              style={styles.input}
+              value={formData.vehicle_type}
+              onChangeText={(text) => setFormData({...formData, vehicle_type: text})}
+              placeholder="예: 1톤 트럭, 2.5톤 트럭"
+            />
+          </View>
 
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>차량번호</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.vehicle_number}
-            onChangeText={(text) => setFormData({...formData, vehicle_number: text})}
-            placeholder="예: 서울12가3456"
-          />
-        </View>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>차량번호</Text>
+            <TextInput
+              style={styles.input}
+              value={formData.vehicle_number}
+              onChangeText={(text) => setFormData({...formData, vehicle_number: text})}
+              placeholder="예: 서울12가3456"
+            />
+          </View>
 
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>화물총크기</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.cargo_capacity}
-            onChangeText={(text) => setFormData({...formData, cargo_capacity: text})}
-            placeholder="예: 최대 1톤, 3m x 2m x 2m"
-          />
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>화물총크기</Text>
+            <TextInput
+              style={styles.input}
+              value={formData.cargo_capacity}
+              onChangeText={(text) => setFormData({...formData, cargo_capacity: text})}
+              placeholder="예: 최대 1톤, 3m x 2m x 2m"
+            />
+          </View>
         </View>
-      </View>
+      )}
+
+      {userInfo.role === 'partner' && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>업체정보</Text>
+          
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>업체명</Text>
+            <TextInput
+              style={styles.input}
+              value={formData.company_name}
+              onChangeText={(text) => setFormData({...formData, company_name: text})}
+              placeholder="업체명을 입력하세요"
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>업체주소</Text>
+            <TextInput
+              style={styles.input}
+              value={formData.company_address}
+              onChangeText={(text) => setFormData({...formData, company_address: text})}
+              placeholder="업체 주소를 입력하세요"
+              multiline
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>사업자등록번호</Text>
+            <TextInput
+              style={styles.input}
+              value={formData.business_number}
+              onChangeText={(text) => setFormData({...formData, business_number: text})}
+              placeholder="예: 123-45-67890"
+              keyboardType="numeric"
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>업종</Text>
+            <TextInput
+              style={styles.input}
+              value={formData.business_type}
+              onChangeText={(text) => setFormData({...formData, business_type: text})}
+              placeholder="예: 가구배송업, 물류업"
+            />
+          </View>
+        </View>
+      )}
 
 
       {/* 프로필 저장 버튼 */}
@@ -248,7 +311,7 @@ const ProfileScreen = ({ navigation }) => {
         {saving ? (
           <ActivityIndicator color="#fff" />
         ) : (
-          <Text style={styles.buttonText}>기사프로필 저장</Text>
+          <Text style={styles.buttonText}>사용자프로필 저장</Text>
         )}
       </TouchableOpacity>
 

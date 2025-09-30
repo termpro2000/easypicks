@@ -944,7 +944,7 @@ const DeliveryListScreen = ({ navigation }) => {
                   navigation.navigate('Profile');
                 }}
               >
-                <Text style={styles.menuItemText}>👤 기사프로필</Text>
+                <Text style={styles.menuItemText}>👤 사용자프로필</Text>
               </TouchableOpacity>
               
               <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>

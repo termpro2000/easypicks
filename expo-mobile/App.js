@@ -307,7 +307,7 @@ const App = () => {
                   <Stack.Screen
                     name="Profile"
                     component={ProfileScreen}
-                    options={{ title: '사용자 프로필' }}
+                    options={{ title: '사용자프로필' }}
                   />
                   <Stack.Screen
                     name="AppInfo"
@@ -338,7 +338,7 @@ const App = () => {
                   <Stack.Screen
                     name="Profile"
                     component={ProfileScreen}
-                    options={{ title: '기사 프로필' }}
+                    options={{ title: '사용자프로필' }}
                   />
                   <Stack.Screen
                     name="MapSetting"
