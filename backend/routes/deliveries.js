@@ -7,6 +7,7 @@ const {
   getDeliveryById, 
   updateDeliveryStatus,
   cancelDelivery,
+  deleteDelivery,
   getDatabaseSchema
 } = require('../controllers/deliveriesController');
 
@@ -23,7 +24,10 @@ router.get('/:id', authenticateToken, getDeliveryById);
 router.patch('/:trackingNumber/status', authenticateToken, updateDeliveryStatus);
 
 // 배송 취소 처리 (JWT 인증 필요)
-router.delete('/:deliveryId', authenticateToken, cancelDelivery);
+router.patch('/:deliveryId/cancel', authenticateToken, cancelDelivery);
+
+// 개별 배송 삭제 (JWT 인증 필요, 관리자 권한)
+router.delete('/:deliveryId', authenticateToken, deleteDelivery);
 
 // 데이터베이스 스키마 조회 (개발용)
 router.get('/debug/schema', authenticateToken, getDatabaseSchema);

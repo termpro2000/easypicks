@@ -1,10 +1,12 @@
 import React from 'react';
+import { Eye, Trash2 } from 'lucide-react';
 
 interface DeliveriesListModalProps {
   isOpen: boolean;
   onClose: () => void;
   deliveries: any[];
   onDeliveryClick?: (delivery: any) => void;
+  onDeleteDelivery?: (deliveryId: number, deliveryInfo: any) => void;
 }
 
 const DeliveriesListModal: React.FC<DeliveriesListModalProps> = ({
@@ -12,6 +14,7 @@ const DeliveriesListModal: React.FC<DeliveriesListModalProps> = ({
   onClose,
   deliveries,
   onDeliveryClick,
+  onDeleteDelivery,
 }) => {
   if (!isOpen) return null;
 
@@ -119,14 +122,14 @@ const DeliveriesListModal: React.FC<DeliveriesListModalProps> = ({
                     <th className="border border-gray-300 px-2 py-1 text-left text-xs">고객완료요청</th>
                     <th className="border border-gray-300 px-2 py-1 text-left text-xs">업체완료요청</th>
                     <th className="border border-gray-300 px-2 py-1 text-left text-xs">완료오디오</th>
+                    <th className="border border-gray-300 px-2 py-1 text-left text-xs">작업</th>
                   </tr>
                 </thead>
                 <tbody>
                   {deliveries.map((delivery) => (
                     <tr 
                       key={delivery.id} 
-                      className="hover:bg-gray-50 cursor-pointer"
-                      onClick={() => onDeliveryClick?.(delivery)}
+                      className="hover:bg-gray-50"
                     >
                       {/* 기본 정보 (1-10) */}
                       <td className="border border-gray-300 px-2 py-1 text-xs">{displayValue(delivery.id)}</td>
@@ -246,6 +249,37 @@ const DeliveriesListModal: React.FC<DeliveriesListModalProps> = ({
                       <td className="border border-gray-300 px-2 py-1 text-xs">
                         {delivery.completion_audio_file ? '있음' : displayValue(null)}
                       </td>
+                      
+                      {/* 작업 버튼들 */}
+                      <td className="border border-gray-300 px-2 py-1 text-xs">
+                        <div className="flex gap-2 justify-center">
+                          {/* 상세정보 버튼 */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDeliveryClick?.(delivery);
+                            }}
+                            className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
+                            title="상세정보 보기"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          
+                          {/* 삭제 버튼 */}
+                          {onDeleteDelivery && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onDeleteDelivery(delivery.id, delivery);
+                              }}
+                              className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors"
+                              title="배송 삭제"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -259,7 +293,7 @@ const DeliveriesListModal: React.FC<DeliveriesListModalProps> = ({
               • 52개 전체 필드 표시 (null 값은 <span className="text-gray-400 italic">null</span>로 표시)
             </div>
             <div className="text-xs text-gray-500">
-              • 클릭하면 상세정보 모달이 열립니다
+              • <Eye className="inline w-3 h-3 text-blue-600" /> 상세정보 보기, <Trash2 className="inline w-3 h-3 text-red-600" /> 개별 배송 삭제
             </div>
           </div>
         </div>

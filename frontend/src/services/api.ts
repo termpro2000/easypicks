@@ -648,6 +648,12 @@ export const deliveriesAPI = {
   getDeliveryProducts: async (deliveryId: number) => {
     const response = await apiClient.get(`/deliveries/${deliveryId}/products`);
     return response.data;
+  },
+
+  // 개별 배송 삭제
+  deleteDelivery: async (deliveryId: number) => {
+    const response = await apiClient.delete(`/deliveries/${deliveryId}`);
+    return response.data;
   }
 };
 

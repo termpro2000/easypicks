@@ -35,7 +35,6 @@ const TestPage: React.FC<TestPageProps> = ({ onNavigateBack }) => {
   const [isCreating, setIsCreating] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showDriverDeleteConfirm, setShowDriverDeleteConfirm] = useState(false);
-  const [showDeliveriesDeleteConfirm, setShowDeliveriesDeleteConfirm] = useState(false);
   const [showDateInputModal, setShowDateInputModal] = useState(false);
   const [visitDate, setVisitDate] = useState('');
   const [showDeliveryCreateModal, setShowDeliveryCreateModal] = useState(false);
@@ -133,47 +132,38 @@ const TestPage: React.FC<TestPageProps> = ({ onNavigateBack }) => {
     }
   };
 
-  const handleDeleteAllDeliveries = () => {
-    console.log('🗑️ 배송 삭제 버튼 클릭됨');
-    setShowDeliveriesDeleteConfirm(true);
-    console.log('🗑️ 삭제 확인 모달 상태 설정:', true);
-  };
+  // 개별 배송 삭제 함수
+  const handleDeleteDelivery = async (deliveryId: number, deliveryInfo: any) => {
+    if (!window.confirm(`정말로 이 배송을 삭제하시겠습니까?\n\nID: ${deliveryId}\n고객명: ${deliveryInfo.customer_name || 'N/A'}\n운송장번호: ${deliveryInfo.tracking_number || 'N/A'}`)) {
+      return;
+    }
 
-  const confirmDeleteAllDeliveries = async () => {
-    console.log('🚀 confirmDeleteAllDeliveries 함수 시작');
     setIsLoading(true);
     setMessage(null);
-    setShowDeliveriesDeleteConfirm(false);
     
     try {
-      console.log('📞 deliveriesAPI.deleteAllDeliveries() 호출 시작');
+      console.log('🗑️ 개별 배송 삭제 시작:', deliveryId);
       
-      // 실제 API 호출로 모든 배송 데이터 삭제
-      const response = await deliveriesAPI.deleteAllDeliveries();
+      const response = await deliveriesAPI.deleteDelivery(deliveryId);
       
-      console.log('✅ API 응답 수신:', response);
+      console.log('✅ 개별 배송 삭제 성공:', response);
       
-      // 삭제 후 현재 목록 초기화
-      setDeliveries([]);
+      // 배송 목록에서 삭제된 항목 제거
+      setDeliveries(prev => prev.filter(delivery => delivery.id !== deliveryId));
       
       setMessage({
         type: 'success',
-        text: response.message || `총 ${response.deletedCount || 0}개의 배송 데이터가 성공적으로 삭제되었습니다.`
+        text: `배송이 성공적으로 삭제되었습니다.\n운송장번호: ${response.trackingNumber || 'N/A'}\n고객명: ${response.customerName || 'N/A'}`
       });
       
-      console.log('✅ 배송 데이터 삭제 완료:', response);
     } catch (error: any) {
-      console.error('❌ 배송 삭제 오류 상세:', error);
-      console.error('❌ 오류 응답:', error.response);
-      console.error('❌ 오류 메시지:', error.message);
-      console.error('❌ 오류 스택:', error.stack);
+      console.error('❌ 개별 배송 삭제 오류:', error);
       
       setMessage({
         type: 'error',
         text: '배송 삭제에 실패했습니다: ' + (error.response?.data?.message || error.message || '알 수 없는 오류')
       });
     } finally {
-      console.log('🏁 confirmDeleteAllDeliveries 함수 종료');
       setIsLoading(false);
     }
   };
@@ -571,13 +561,9 @@ const TestPage: React.FC<TestPageProps> = ({ onNavigateBack }) => {
               </div>
             </button>
 
-            {/* 배송 삭제 */}
+            {/* 개별 배송 삭제 */}
             <button
-              onClick={(e) => {
-                e.preventDefault();
-                console.log('🗑️ 배송 삭제 버튼 직접 클릭됨');
-                handleDeleteAllDeliveries();
-              }}
+              onClick={handleLoadDeliveries}
               disabled={isLoading}
               className="flex flex-col items-center gap-4 p-6 bg-red-50 hover:bg-red-100 rounded-xl border-2 border-red-200 hover:border-red-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
             >
@@ -585,17 +571,13 @@ const TestPage: React.FC<TestPageProps> = ({ onNavigateBack }) => {
                 <Trash2 className="w-8 h-8 text-white" />
               </div>
               <div className="text-center">
-                <h3 className="font-semibold text-gray-900 mb-1">배송 삭제</h3>
-                <p className="text-sm text-gray-600">모든 배송 삭제</p>
+                <h3 className="font-semibold text-gray-900 mb-1">개별 배송 삭제</h3>
+                <p className="text-sm text-gray-600">배송 목록에서 개별 삭제</p>
               </div>
             </button>
 
           </div>
 
-          {/* 디버깅 정보 */}
-          <div className="mt-4 p-2 bg-blue-50 border border-blue-200 rounded text-xs">
-            <p>디버깅: showDeliveriesDeleteConfirm = {showDeliveriesDeleteConfirm.toString()}</p>
-          </div>
 
           {/* 경고 메시지 */}
           <div className="mt-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center gap-3">
@@ -632,6 +614,7 @@ const TestPage: React.FC<TestPageProps> = ({ onNavigateBack }) => {
           onClose={() => setShowDeliveriesModal(false)}
           deliveries={deliveries}
           onDeliveryClick={handleDeliveryClick}
+          onDeleteDelivery={handleDeleteDelivery}
         />
       )}
 
@@ -699,31 +682,6 @@ const TestPage: React.FC<TestPageProps> = ({ onNavigateBack }) => {
         </div>
       )}
 
-      {showDeliveriesDeleteConfirm && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]"
-          style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }}
-        >
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-2xl border-4 border-red-500">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">⚠️ 배송 삭제 확인</h3>
-            <p className="text-gray-600 mb-6">정말로 모든 배송을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.</p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setShowDeliveriesDeleteConfirm(false)}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800"
-              >
-                취소
-              </button>
-              <button
-                onClick={confirmDeleteAllDeliveries}
-                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-              >
-                삭제
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {showDateInputModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

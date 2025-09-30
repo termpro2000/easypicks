@@ -582,11 +582,75 @@ const getDatabaseSchema = async (req, res) => {
   }
 };
 
+/**
+ * 개별 배송 삭제
+ */
+const deleteDelivery = async (req, res) => {
+  try {
+    const { deliveryId } = req.params;
+    
+    console.log('🗑️ [deleteDelivery] 개별 배송 삭제:', { deliveryId });
+
+    // 관리자 권한 확인
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({
+        error: 'Forbidden',
+        message: '관리자 권한이 필요합니다.'
+      });
+    }
+
+    // 배송 존재 확인
+    const [existingDelivery] = await pool.execute(
+      'SELECT id, tracking_number, customer_name FROM deliveries WHERE id = ?',
+      [deliveryId]
+    );
+
+    if (existingDelivery.length === 0) {
+      return res.status(404).json({
+        error: 'Not Found',
+        message: '해당 배송을 찾을 수 없습니다.'
+      });
+    }
+
+    const delivery = existingDelivery[0];
+
+    // 배송 삭제
+    const [result] = await pool.execute(
+      'DELETE FROM deliveries WHERE id = ?',
+      [deliveryId]
+    );
+
+    console.log('✅ [deleteDelivery] 배송 삭제 완료:', {
+      deliveryId,
+      trackingNumber: delivery.tracking_number,
+      customerName: delivery.customer_name,
+      affectedRows: result.affectedRows
+    });
+
+    res.json({
+      success: true,
+      message: '배송이 성공적으로 삭제되었습니다.',
+      deliveryId: parseInt(deliveryId),
+      trackingNumber: delivery.tracking_number,
+      customerName: delivery.customer_name,
+      deletedCount: result.affectedRows
+    });
+
+  } catch (error) {
+    console.error('❌ [deleteDelivery] 오류:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: '배송 삭제 중 오류가 발생했습니다.'
+    });
+  }
+};
+
 module.exports = {
   createDelivery,
   getAllDeliveries,
   getDeliveryById,
   updateDeliveryStatus,
   cancelDelivery,
+  deleteDelivery,
   getDatabaseSchema
 };
