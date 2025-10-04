@@ -329,7 +329,7 @@ const PartnerProductList: React.FC<PartnerProductListProps> = ({ onNavigateBack 
       <footer className="bg-white border-t mt-16">
         <div className="max-w-7xl mx-auto px-6 py-8">
           <div className="text-center text-sm text-gray-500">
-            <p>&copy; 2024 이지픽스 업체용 서비스. All rights reserved.</p>
+            <p>&copy; 2025 (주) 미래파트너. All rights reserved.</p>
             <p className="mt-1">효율적인 상품 관리로 더 나은 배송 서비스를 제공하세요.</p>
           </div>
         </div>

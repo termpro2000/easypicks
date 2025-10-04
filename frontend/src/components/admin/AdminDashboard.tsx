@@ -566,7 +566,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
       <footer className="bg-white border-t mt-16">
         <div className="max-w-4xl mx-auto px-6 py-8">
           <div className="text-center text-sm text-gray-500">
-            <p>&copy; 2024 이지픽스 관리자 서비스. All rights reserved.</p>
+            <p>&copy; 2025 (주) 미래파트너. All rights reserved.</p>
             <p className="mt-1">안전하고 신뢰할 수 있는 배송 서비스를 제공합니다.</p>
           </div>
         </div>
